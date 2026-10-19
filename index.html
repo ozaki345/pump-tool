@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>泵浦數據單位換算工具</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--text:#1b2733;--muted:#66788a;--line:#dbe3ea;--accent:#0b7bc1;--accent-bg:#e4f2fb;--ok:#0a8a5a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161c;--card:#18212a;--text:#e6edf3;--muted:#8fa1b2;--line:#2a3846;--accent:#4db3f0;--accent-bg:#14303f;--ok:#4cd39b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10161c;--card:#18212a;--text:#e6edf3;--muted:#8fa1b2;--line:#2a3846;--accent:#4db3f0;--accent-bg:#14303f;--ok:#4cd39b;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:13px}
+h2{font-size:14px;color:var(--muted);margin:24px 0 10px;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card.res{border-color:var(--ok)}
+.card h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:baseline}
+.card h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.row{display:flex;gap:8px}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+input{flex:1}
+input:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+input[readonly]{opacity:.85}
+.tbl{margin-top:10px;border-top:1px dashed var(--line);padding-top:6px;max-height:230px;overflow-y:auto}
+.tr{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border-radius:6px;cursor:pointer;font-size:13px}
+.tr:hover{background:var(--accent-bg)}
+.tr b{font-variant-numeric:tabular-nums;font-weight:600}
+.tr span{color:var(--muted)}
+.tr.cur{background:var(--accent-bg)}
+.note{color:var(--muted);font-size:12px;margin-top:20px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.btn{font:inherit;font-size:14px;color:var(--accent);background:var(--card);border:1px solid var(--accent);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn:hover{background:var(--accent-bg)}
+.btn.pri{background:var(--accent);color:var(--bg)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:6px 14px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<main>
+<h1>💧 泵浦數據單位換算工具</h1>
+<p class="sub">分成「原廠銘牌」與「現場量測」兩組輸入，每個參數即時顯示所有常用單位。揚程與壓力依流體密度連動，並自動比對現場與銘牌的偏差。點擊任一數值可複製。</p>
+
+<div class="card" style="margin-bottom:12px"><h3>泵浦名稱／型號<small>匯出時當作檔名</small></h3><div class="row"><input id="pumpName" type="text" placeholder="例如：P-101 或泵浦型號"></div></div>
+<div class="bar"><button class="btn pri" id="btnCsv">下載 Excel 檔（.csv）</button><button class="btn" id="btnCopy">複製全部數據（貼到 Excel）</button></div>
+<h2>① 泵浦原廠銘牌數據</h2>
+<div class="grid" id="nameplate"></div>
+<h2>② 馬達原廠數據</h2>
+<div class="grid" id="motor"></div>
+<h2>③ 現場量測數據</h2>
+<div class="grid" id="field"></div>
+<h2>流體</h2>
+<div class="grid" id="fluid"></div>
+<h2>④ 自動計算</h2>
+<div class="grid" id="results"></div>
+<p class="note">公式：P = ρ·g·H；水力功率 = ρ·g·Q·H；軸功率 = 水力功率 ÷ 效率。g = 9.80665 m/s²。HP 為機械馬力（745.7 W），PS 為公制馬力（735.5 W）。</p>
+</main>
+<div class="toast" id="toast">已複製</div>
+<script>
+const G=9.80665;
+const Q={
+ flow:[["m³/h",1/3600],["L/min",1/60000],["L/s",1e-3],["m³/s",1],["m³/min",1/60],["GPM (US)",6.30901964e-5],["GPM (UK)",7.5768e-5],["ft³/h",7.865791e-6],["ft³/min",4.719474e-4],["bbl/day",1.8401307e-6]],
+ length:[["m",1],["mm",1e-3],["cm",1e-2],["ft",0.3048],["in",0.0254],["yd",0.9144]],
+ pressure:[["bar",1e5],["kPa",1e3],["MPa",1e6],["Pa",1],["mbar",100],["psi",6894.757],["kgf/cm²",98066.5],["atm",101325],["mmHg",133.322],["inH₂O",249.089]],
+ power:[["kW",1e3],["W",1],["MW",1e6],["HP",745.6999],["PS",735.49875],["BTU/h",0.29307107],["kcal/h",1.163]],
+ speed:[["rpm",1],["rps",1/60],["rad/s",60/(2*Math.PI)]],
+ density:[["kg/m³",1],["g/cm³",1000],["SG（比重）",1000],["lb/ft³",16.018463]],
+ voltage:[["V",1],["kV",1000]],
+ current:[["A",1],["mA",1e-3]],
+ freq:[["Hz",1]]
+};
+const S={nQ:100/3600,nH:50,pPm:15000,pN:2900,pV:380,pI:28,pHz:50,pEta:90,pPF:0.85,mQ:95/3600,mH:46,mN:2870,mPm:14000,mNPSH:4,eV:380,eI:26,eP:14000,rho:1000};
+const calc=()=>{
+ ["n","m"].forEach(p=>{S[p+"P"]=S.rho*G*S[p+"H"];S[p+"hyd"]=S.rho*G*S[p+"Q"]*S[p+"H"]});
+ S.mEta=S.mPm>0?S.mhyd/S.mPm*100:NaN;
+ S.shaftE=Math.sqrt(3)*S.eV*S.eI*S.pPF;
+ S.pumpEta=S.eP>0?S.mhyd/S.eP*100:NaN;
+ S.dP1=S.eP>0?(S.shaftE/S.eP-1)*100:NaN;
+ S.P2=S.eP*S.pEta/100;
+ S.dQ=(S.mQ/S.nQ-1)*100;S.dH=(S.mH/S.nH-1)*100;S.dN=(S.mN/S.pN-1)*100;S.load=S.mPm/S.pPm*100;
+};
+calc();
+const cards=[
+ {key:"nQ",t:"額定流量 Q",q:"flow",u:0,box:"nameplate"},
+ {key:"nH",t:"額定揚程 H",q:"length",u:0,box:"nameplate"},
+ {key:"pPm",t:"馬達額定功率",q:"power",u:0,box:"motor"},
+ {key:"pN",t:"馬達額定轉速",q:"speed",u:0,box:"motor"},
+ {key:"pV",t:"額定電壓",q:"voltage",u:0,box:"motor"},
+ {key:"pI",t:"額定電流",q:"current",u:0,box:"motor"},
+ {key:"pHz",t:"額定頻率",q:"freq",u:0,box:"motor"},
+ {key:"pEta",t:"馬達額定效率",q:null,suf:"%",box:"motor"},
+ {key:"pPF",t:"功率因數 cosφ",q:null,suf:"",box:"motor"},
+ {key:"mQ",t:"實測流量 Q",q:"flow",u:0,box:"field"},
+ {key:"mH",t:"實測揚程 H",q:"length",u:0,box:"field"},
+ {key:"mP",t:"出口壓",q:"pressure",u:0,box:"field",hint:"與揚程連動"},
+ {key:"eV",t:"電表電壓",q:"voltage",u:0,box:"field"},
+ {key:"eI",t:"電表電流",q:"current",u:0,box:"field"},
+ {key:"eP",t:"P1 軸功率 (實測)",q:"power",u:0,box:"field"},
+ {key:"rho",t:"流體密度 ρ",q:"density",u:0,box:"fluid"},
+ {key:"shaftE",t:"P1 軸功率 (由電表算出)",q:"power",u:0,box:"results",ro:true,hint:"√3 × V × I × cosφ"},
+ {key:"P2",t:"P2 軸功率",q:"power",u:0,box:"results",ro:true,hint:"= P1 (實測) × 馬達額定效率"},
+ {key:"mhyd",t:"P3 水馬力功率",q:"power",u:0,box:"results",ro:true,hint:"ρ·g·實測Q·實測H"},
+ {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P1 軸功率 (實測)"}
+];
+const fmt=x=>{if(!isFinite(x))return"—";if(x===0)return"0";const a=Math.abs(x);if(a>=1e9||a<1e-4)return x.toExponential(4);return String(parseFloat(x.toPrecision(6)))};
+const toast=document.getElementById("toast");
+let tt;function copy(s){try{navigator.clipboard.writeText(s)}catch(e){}toast.textContent="已複製 "+s;toast.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("on"),1100)}
+
+cards.forEach(c=>{
+ const el=document.createElement("div");el.className="card"+(c.ro?" res":"");
+ const units=c.q?Q[c.q]:null;
+ el.innerHTML=`<h3>${c.t}<small>${c.hint||""}</small></h3><div class="row"><input type="text" inputmode="decimal" ${c.ro?"readonly":""}>${units?`<select>${units.map((u,i)=>`<option value="${i}">${u[0]}</option>`).join("")}</select>`:`<span style="align-self:center;color:var(--muted);white-space:nowrap">${c.suf||""}</span>`}</div>${units?'<div class="tbl"></div>':""}`;
+ document.getElementById(c.box).appendChild(el);
+ c.el=el;c.inp=el.querySelector("input");c.sel=el.querySelector("select");c.tbl=el.querySelector(".tbl");
+ if(c.sel)c.sel.onchange=()=>{c.u=+c.sel.value;update(null)};
+ if(!c.ro)c.inp.oninput=()=>{
+  const v=parseFloat(c.inp.value.replace(/,/g,""));if(!isFinite(v))return;
+  S[c.key]=units?v*units[c.u][1]:v;
+  if(c.key==="nP")S.nH=S.nP/(S.rho*G);
+  if(c.key==="mP")S.mH=S.mP/(S.rho*G);
+  calc();update(c.key);
+ };
+});
+function update(skip){
+ cards.forEach(c=>{
+  const units=c.q?Q[c.q]:null;
+  const base=S[c.key];
+  if(c.key!==skip)c.inp.value=units?fmt(base/units[c.u][1]):fmt(base);
+  if(units){
+   c.tbl.innerHTML=units.map((u,i)=>{const s=fmt(base/u[1]);return`<div class="tr${i===c.u?" cur":""}" data-v="${s}"><span>${u[0]}</span><b>${s}</b></div>`}).join("");
+   c.tbl.querySelectorAll(".tr").forEach(r=>r.onclick=()=>copy(r.dataset.v));
+  }
+ });
+}
+update(null);
+const secName={nameplate:"① 泵浦原廠銘牌數據",motor:"② 馬達原廠數據",field:"③ 現場量測數據",fluid:"流體",results:"④ 自動計算"};
+function exportRows(){
+ const head=["區塊","參數","數值","單位"];
+ const body=cards.map(c=>{
+  const u=c.q?Q[c.q][c.u]:null;
+  const v=u?S[c.key]/u[1]:S[c.key];
+  return[secName[c.box],c.t,isFinite(v)?String(parseFloat(v.toPrecision(8))):"",u?u[0]:(c.suf||"")];
+ });
+ const nm=document.getElementById("pumpName").value.trim();
+ return[head,["基本資料","泵浦名稱／型號",nm,""],...body];
+}
+function msg(s){toast.textContent=s;toast.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("on"),1600)}
+document.getElementById("btnCopy").onclick=async()=>{
+ const t=exportRows().map(r=>r.join("\t")).join("\n");
+ try{await navigator.clipboard.writeText(t);msg("已複製，請在 Excel 貼上")}catch(e){msg("複製失敗，請改用下載")}
+};
+let dl=null;
+const btnCsv=document.getElementById("btnCsv");
+try{if(window.claude&&claude.use)claude.use("downloads").then(d=>{if(d){dl=d;btnCsv.style.display=""}}).catch(()=>{})}catch(e){}
+btnCsv.onclick=async()=>{
+ const csv="\ufeff"+exportRows().map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+ const nm=document.getElementById("pumpName").value.trim().replace(/[\\\/:*?"<>|]/g,"_");
+ const name=(nm||"pump-data")+".csv";
+ try{if(dl)await dl.save({filename:name,data:csv});else{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=name;document.body.appendChild(a);a.click();a.remove()}msg("已匯出")}catch(e){if(!e||e.code!=="declined")msg("下載失敗，請改用「複製全部數據」")}
+};
+</script>
+</body>
+</html>
