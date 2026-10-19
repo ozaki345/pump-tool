@@ -79,7 +79,7 @@ const calc=()=>{
  ["n","m"].forEach(p=>{S[p+"P"]=S.rho*G*S[p+"H"];S[p+"hyd"]=S.rho*G*S[p+"Q"]*S[p+"H"]});
  S.mEta=S.mPm>0?S.mhyd/S.mPm*100:NaN;
  S.shaftE=Math.sqrt(3)*S.eV*S.eI*S.pPF;
- S.pumpEta=S.eP>0?S.mhyd/S.eP*100:NaN;
+ S.pumpEta=S.eP*S.pEta>0?S.mhyd/(S.eP*S.pEta/100)*100:NaN;
  S.dP1=S.eP>0?(S.shaftE/S.eP-1)*100:NaN;
  S.P2=S.eP*S.pEta/100;
  S.dQ=(S.mQ/S.nQ-1)*100;S.dH=(S.mH/S.nH-1)*100;S.dN=(S.mN/S.pN-1)*100;S.load=S.mPm/S.pPm*100;
@@ -92,28 +92,41 @@ const cards=[
  {key:"pN",t:"馬達額定轉速",q:"speed",u:0,box:"motor"},
  {key:"pV",t:"額定電壓",q:"voltage",u:0,box:"motor"},
  {key:"pI",t:"額定電流",q:"current",u:0,box:"motor"},
- {key:"pHz",t:"額定頻率",q:"freq",u:0,box:"motor"},
+ {key:"pHz",t:"額定頻率",q:null,suf:"Hz",opts:[50,60],box:"motor"},
  {key:"pEta",t:"馬達額定效率",q:null,suf:"%",box:"motor"},
- {key:"pPF",t:"功率因數 cosφ",q:null,suf:"",box:"motor"},
  {key:"mQ",t:"實測流量 Q",q:"flow",u:0,box:"field"},
  {key:"mH",t:"實測揚程 H",q:"length",u:0,box:"field"},
  {key:"mP",t:"出口壓",q:"pressure",u:0,box:"field",hint:"與揚程連動"},
  {key:"eV",t:"電表電壓",q:"voltage",u:0,box:"field"},
  {key:"eI",t:"電表電流",q:"current",u:0,box:"field"},
+ {key:"pPF",t:"功率因數 cosφ",q:null,suf:"",box:"field"},
  {key:"eP",t:"P1 軸功率 (實測)",q:"power",u:0,box:"field"},
  {key:"rho",t:"流體密度 ρ",q:"density",u:0,box:"fluid"},
  {key:"shaftE",t:"P1 軸功率 (由電表算出)",q:"power",u:0,box:"results",ro:true,hint:"√3 × V × I × cosφ"},
  {key:"P2",t:"P2 軸功率",q:"power",u:0,box:"results",ro:true,hint:"= P1 (實測) × 馬達額定效率"},
  {key:"mhyd",t:"P3 水馬力功率",q:"power",u:0,box:"results",ro:true,hint:"ρ·g·實測Q·實測H"},
- {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P1 軸功率 (實測)"}
+ {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P2"}
 ];
 const fmt=x=>{if(!isFinite(x))return"—";if(x===0)return"0";const a=Math.abs(x);if(a>=1e9||a<1e-4)return x.toExponential(4);return String(parseFloat(x.toPrecision(6)))};
 const toast=document.getElementById("toast");
 let tt;function copy(s){try{navigator.clipboard.writeText(s)}catch(e){}toast.textContent="已複製 "+s;toast.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("on"),1100)}
 
+const FLUIDS=[["一般",[["純水 20°C",998],["海水（鹽度約 3.5%）",1025]]],["乙二醇水溶液（質量百分比，20°C）",[["約 10%",1011],["約 20%",1025],["約 30%",1038],["約 40%",1052],["約 50%",1065],["純乙二醇 100%",1114]]],["丙二醇水溶液（質量百分比，20°C）",[["10%",1006],["20%",1014],["30%",1022],["40%",1030],["50%",1038],["60%",1046],["純丙二醇 100%",1036]]]];
+const presetCard=document.createElement("div");presetCard.className="card";
+presetCard.innerHTML=`<h3>常用流體<small>選擇後自動帶入密度</small></h3><div class="row"><select id="fluidPreset" style="flex:1"><option value="">自訂（手動輸入密度）</option>${FLUIDS.map(g=>`<optgroup label="${g[0]}">${g[1].map(f=>`<option value="${f[1]}">${f[0]} — ${f[1]} kg/m³</option>`).join("")}</optgroup>`).join("")}</select></div>`;
+document.getElementById("fluid").appendChild(presetCard);
+const presetSel=presetCard.querySelector("select");
+presetSel.onchange=()=>{if(!presetSel.value)return;S.rho=+presetSel.value;calc();update(null)};
 cards.forEach(c=>{
  const el=document.createElement("div");el.className="card"+(c.ro?" res":"");
  const units=c.q?Q[c.q]:null;
+ if(c.opts){
+  el.innerHTML=`<h3>${c.t}<small>${c.hint||""}</small></h3><div class="row"><select style="flex:1">${c.opts.map(o=>`<option value="${o}">${o} Hz</option>`).join("")}</select></div>`;
+  document.getElementById(c.box).appendChild(el);
+  c.sel=el.querySelector("select");c.sel.value=S[c.key];
+  c.sel.onchange=()=>{S[c.key]=+c.sel.value;calc();update(null)};
+  return;
+ }
  el.innerHTML=`<h3>${c.t}<small>${c.hint||""}</small></h3><div class="row"><input type="text" inputmode="decimal" ${c.ro?"readonly":""}>${units?`<select>${units.map((u,i)=>`<option value="${i}">${u[0]}</option>`).join("")}</select>`:`<span style="align-self:center;color:var(--muted);white-space:nowrap">${c.suf||""}</span>`}</div>${units?'<div class="tbl"></div>':""}`;
  document.getElementById(c.box).appendChild(el);
  c.el=el;c.inp=el.querySelector("input");c.sel=el.querySelector("select");c.tbl=el.querySelector(".tbl");
@@ -121,6 +134,7 @@ cards.forEach(c=>{
  if(!c.ro)c.inp.oninput=()=>{
   const v=parseFloat(c.inp.value.replace(/,/g,""));if(!isFinite(v))return;
   S[c.key]=units?v*units[c.u][1]:v;
+  if(c.key==="rho")presetSel.value="";
   if(c.key==="nP")S.nH=S.nP/(S.rho*G);
   if(c.key==="mP")S.mH=S.mP/(S.rho*G);
   calc();update(c.key);
@@ -129,6 +143,7 @@ cards.forEach(c=>{
 function update(skip){
  cards.forEach(c=>{
   const units=c.q?Q[c.q]:null;
+  if(c.opts)return;
   const base=S[c.key];
   if(c.key!==skip)c.inp.value=units?fmt(base/units[c.u][1]):fmt(base);
   if(units){
