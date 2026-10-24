@@ -73,6 +73,13 @@ button:hover,.file:hover{border-color:var(--bl)}
       <h2>曲線圖</h2>
       <label class="file primary">選擇圖片<input id="file" type="file" accept="image/*"></label>
       <p class="hint">支援 PNG、JPG。PDF 請先截圖或轉成圖片。</p>
+    <div class="lbl" style="margin-top:12px"><span>轉正圖片（選填）</span></div>
+    <p class="hint" style="margin:0 0 8px">圖片歪斜時使用：在圖上點兩個點，工具會把這兩點的連線轉成水平（或垂直）。轉正後需要重新校正座標軸。</p>
+    <select id="alMode"><option value="h">連線轉成水平（例如 X 軸）</option><option value="v">連線轉成垂直（例如 Y 軸）</option></select>
+    <div class="two" style="grid-template-columns:1fr 1fr;margin:8px 0 0"><button id="alBtn" type="button">開始兩點轉正</button><button id="psBtn" type="button">開始四點透視校正</button></div>
+    <p class="hint" style="margin:6px 0 8px">四點透視校正：適合用手機拍紙本圖、拍歪造成上寬下窄的情況。依序點座標框（格線外框）的四個角，順序不拘。</p>
+    <button id="alUndo" type="button">還原原圖</button>
+    <p class="hint" id="alInfo" style="margin:6px 0 0"></p>
     </section>
 
     <section class="panel">
@@ -134,6 +141,7 @@ var HF={'m':1,'ft':0.3048};
 var ZF={'HP':1,'kW':1.34102};
 var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null,null,null],act=0;
 var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2','Z 軸刻度 1','Z 軸刻度 2'];
+var aln=null,psp=null,orig=null,rotDeg=0,alNote='';
 var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 function load(f){
@@ -143,7 +151,7 @@ function load(f){
     $('#next').textContent=m;$('#msg').textContent=m;return;
   }
   var u=URL.createObjectURL(f),im=new Image();
-  im.onload=function(){img=im;cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
+  im.onload=function(){img=im;orig=im;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
     pts=[null,null,null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';update();URL.revokeObjectURL(u)};
   im.onerror=function(){var m='這張圖片無法讀取。iPhone 的 HEIC 格式請改存成 JPG 或 PNG。';$('#next').textContent=m;$('#msg').textContent=m};
   im.src=u;
@@ -157,7 +165,7 @@ var w=$('#wrap');
 w.addEventListener('drop',function(e){load(e.dataTransfer.files[0])});
 
 for(var i=0;i<6;i++)(function(i){
-  $('#b'+i).onclick=function(){act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
+  $('#b'+i).onclick=function(){aln=null;psp=null;act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
   $('#v'+i).oninput=update;
 })(i);
 ['xu','yu','logx','logy','zxu','zu','logz','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
@@ -167,7 +175,10 @@ $('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;update(
 cv.addEventListener('click',function(e){
   if(!img)return;
   var r=cv.getBoundingClientRect();
-  pts[act]={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
+  var p={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
+  if(psp){alNote='';psp.push(p);if(psp.length===4)doPersp();update();return}
+  if(aln){alNote='';aln.push(p);if(aln.length===2)doAlign();update();return}
+  pts[act]=p;
   var cur=act,n=pts.slice(0,4).findIndex(function(p){return !p});if(n>=0)act=n;else if(cur===4&&!pts[5])act=5;
   update();
   var vi=$('#v'+cur);if(vi.value==='')vi.focus();
@@ -182,6 +193,117 @@ function axis(k){
   return function(v){return(lg&&v<=0)?NaN:p1+(f(v)-f(v1))*(p2-p1)/(f(v2)-f(v1))};
 }
 function fmt(n){return String(+n.toPrecision(4))}
+function homog(P){
+  var x0=P[0].x,y0=P[0].y,x1=P[1].x,y1=P[1].y,x2=P[2].x,y2=P[2].y,x3=P[3].x,y3=P[3].y;
+  var dx1=x1-x2,dx2=x3-x2,dx3=x0-x1+x2-x3,dy1=y1-y2,dy2=y3-y2,dy3=y0-y1+y2-y3,a,b,c,d,e,f,g,h;
+  if(Math.abs(dx3)<1e-9&&Math.abs(dy3)<1e-9){a=x1-x0;b=x3-x0;c=x0;d=y1-y0;e=y3-y0;f=y0;g=0;h=0}
+  else{
+    var den=dx1*dy2-dx2*dy1;
+    g=(dx3*dy2-dx2*dy3)/den;h=(dx1*dy3-dx3*dy1)/den;
+    a=x1-x0+g*x1;b=x3-x0+h*x3;c=x0;d=y1-y0+g*y1;e=y3-y0+h*y3;f=y0;
+  }
+  return [a,b,c,d,e,f,g,h];
+}
+function warpPersp(sd,sw,sh,P,maxSide){
+  var m=homog(P),a=m[0],b=m[1],c=m[2],d=m[3],e=m[4],f=m[5],g=m[6],h=m[7];
+  function dist(p,q){return Math.hypot(p.x-q.x,p.y-q.y)}
+  var fw=Math.max(dist(P[0],P[1]),dist(P[3],P[2])),fh=Math.max(dist(P[0],P[3]),dist(P[1],P[2]));
+  var det=a*(e-f*h)-b*(d-f*g)+c*(d*h-e*g);
+  if(!isFinite(det)||Math.abs(det)<1e-12)return null;
+  var inv=[[(e-f*h)/det,(c*h-b)/det,(b*f-c*e)/det],[(f*g-d)/det,(a-c*g)/det,(c*d-a*f)/det],[(d*h-e*g)/det,(b*g-a*h)/det,(a*e-b*d)/det]];
+  var us=[],vs=[],okc=true;
+  [[0,0],[sw,0],[sw,sh],[0,sh]].forEach(function(p){
+    var X=inv[0][0]*p[0]+inv[0][1]*p[1]+inv[0][2],Y=inv[1][0]*p[0]+inv[1][1]*p[1]+inv[1][2],W=inv[2][0]*p[0]+inv[2][1]*p[1]+inv[2][2];
+    if(W<=1e-9){okc=false;return}
+    us.push(X/W);vs.push(Y/W);
+  });
+  var umin=-0.2,umax=1.2,vmin=-0.2,vmax=1.2;
+  if(okc){
+    umin=Math.max(-1,Math.min.apply(null,us));umax=Math.min(2,Math.max.apply(null,us));
+    vmin=Math.max(-1,Math.min.apply(null,vs));vmax=Math.min(2,Math.max.apply(null,vs));
+  }
+  umin=Math.min(umin,0);vmin=Math.min(vmin,0);umax=Math.max(umax,1);vmax=Math.max(vmax,1);
+  var W0=(umax-umin)*fw,H0=(vmax-vmin)*fh,k=Math.min(1,maxSide/Math.max(W0,H0));
+  var ow=Math.max(1,Math.round(W0*k)),oh=Math.max(1,Math.round(H0*k)),out=new Uint8ClampedArray(ow*oh*4);
+  for(var j=0;j<oh;j++){
+    var v=vmin+(j+0.5)/oh*(vmax-vmin);
+    for(var i=0;i<ow;i++){
+      var u=umin+(i+0.5)/ow*(umax-umin),den=g*u+h*v+1,o=(j*ow+i)*4;
+      var x=(a*u+b*v+c)/den-0.5,y=(d*u+e*v+f)/den-0.5;
+      if(den<=1e-9||x<-0.5||y<-0.5||x>sw-0.5||y>sh-0.5){out[o]=out[o+1]=out[o+2]=out[o+3]=255;continue}
+      var xa=Math.floor(x),ya=Math.floor(y),fx=x-xa,fy=y-ya,xb=Math.min(sw-1,xa+1),yb=Math.min(sh-1,ya+1);
+      xa=Math.max(0,xa);ya=Math.max(0,ya);
+      for(var ch=0;ch<3;ch++){
+        var p00=sd[(ya*sw+xa)*4+ch],p10=sd[(ya*sw+xb)*4+ch],p01=sd[(yb*sw+xa)*4+ch],p11=sd[(yb*sw+xb)*4+ch];
+        out[o+ch]=(p00*(1-fx)+p10*fx)*(1-fy)+(p01*(1-fx)+p11*fx)*fy;
+      }
+      out[o+3]=255;
+    }
+  }
+  return {data:out,w:ow,h:oh};
+}
+function doPersp(){
+  var q=psp.slice().sort(function(a,b){return a.y-b.y});
+  var tp=q.slice(0,2).sort(function(a,b){return a.x-b.x}),bt=q.slice(2).sort(function(a,b){return a.x-b.x});
+  var P=[tp[0],tp[1],bt[1],bt[0]];
+  psp=null;
+  var sg=0,cvx=true;
+  for(var i=0;i<4;i++){
+    var A=P[i],B=P[(i+1)%4],C=P[(i+2)%4],cr=(B.x-A.x)*(C.y-B.y)-(B.y-A.y)*(C.x-B.x);
+    if(cr===0)cvx=false;else if(sg===0)sg=cr>0?1:-1;else if((cr>0?1:-1)!==sg)cvx=false;
+  }
+  if(!cvx){psp=[];alNote='四個點必須是四邊形的四個角（不可交叉、不可共線）。';return}
+  var tc=document.createElement('canvas');tc.width=cv.width;tc.height=cv.height;
+  var t=tc.getContext('2d');t.fillStyle='#fff';t.fillRect(0,0,tc.width,tc.height);t.drawImage(img,0,0);
+  var id=t.getImageData(0,0,tc.width,tc.height);
+  var r=warpPersp(id.data,tc.width,tc.height,P,3000);
+  if(!r){psp=[];alNote='這四個點無法計算，請重新點選。';return}
+  var oc=document.createElement('canvas');oc.width=r.w;oc.height=r.h;
+  var o=oc.getContext('2d'),od=o.createImageData(r.w,r.h);od.data.set(r.data);o.putImageData(od,0,0);
+  img=oc;cv.width=r.w;cv.height=r.h;
+  pts=[null,null,null,null,null,null];act=0;
+  $('#stat').textContent=r.w+' × '+r.h+' px';
+  $('#alInfo').textContent='已套用四點透視校正。請重新點選座標軸的刻度。';
+}
+$('#psBtn').onclick=function(){
+  if(!img){$('#next').textContent='請先上傳曲線圖。';return}
+  aln=null;psp=psp?null:[];update();
+};
+function doAlign(){
+  var a=aln[0],b=aln[1],dx=b.x-a.x,dy=b.y-a.y;
+  if(Math.hypot(dx,dy)<10){aln=[];alNote='兩點太近。';return}
+  var th=Math.atan2(dy,dx);
+  if($('#alMode').value==='v')th-=Math.PI/2;
+  while(th>Math.PI/2)th-=Math.PI;
+  while(th<-Math.PI/2)th+=Math.PI;
+  aln=null;
+  rotateImg(-th);
+}
+function rotateImg(al){
+  var w=cv.width,h=cv.height,c=Math.abs(Math.cos(al)),sn=Math.abs(Math.sin(al));
+  var nw=Math.ceil(w*c+h*sn),nh=Math.ceil(w*sn+h*c);
+  var oc=document.createElement('canvas');oc.width=nw;oc.height=nh;
+  var o=oc.getContext('2d');
+  o.fillStyle='#fff';o.fillRect(0,0,nw,nh);
+  o.translate(nw/2,nh/2);o.rotate(al);o.drawImage(img,-w/2,-h/2);
+  img=oc;cv.width=nw;cv.height=nh;
+  rotDeg+=al*180/Math.PI;
+  pts=[null,null,null,null,null,null];act=0;
+  $('#stat').textContent=nw+' × '+nh+' px';
+  $('#alInfo').textContent='已轉正（累計 '+rotDeg.toFixed(2)+'°）。請重新點選座標軸的刻度。';
+}
+$('#alBtn').onclick=function(){
+  if(!img){$('#next').textContent='請先上傳曲線圖。';return}
+  psp=null;aln=aln?null:[];update();
+};
+$('#alUndo').onclick=function(){
+  if(!orig)return;
+  img=orig;cv.width=orig.naturalWidth;cv.height=orig.naturalHeight;
+  rotDeg=0;aln=null;psp=null;pts=[null,null,null,null,null,null];act=0;
+  $('#stat').textContent=orig.naturalWidth+' × '+orig.naturalHeight+' px';
+  $('#alInfo').textContent='已還原原圖，請重新校正座標軸。';
+  update();
+};
 
 function render(exp){
   if(!img)return;
@@ -193,6 +315,19 @@ function render(exp){
     ctx.beginPath();ctx.moveTo(p.x-9*s,p.y);ctx.lineTo(p.x+9*s,p.y);ctx.moveTo(p.x,p.y-9*s);ctx.lineTo(p.x,p.y+9*s);ctx.stroke();
     ctx.fillStyle=blue;ctx.font='bold '+Math.round(16*s)+'px '+FONT;ctx.fillText(String(i+1),p.x+11*s,p.y-8*s);
   });
+  if(!exp&&aln&&aln.length){
+    ctx.strokeStyle='#e07b00';ctx.fillStyle='#e07b00';ctx.lineWidth=2.5*s;
+    ctx.font='bold '+Math.round(16*s)+'px '+FONT;
+    aln.forEach(function(p,i){ctx.beginPath();ctx.arc(p.x,p.y,9*s,0,7);ctx.stroke();ctx.fillText('轉'+(i+1),p.x+12*s,p.y-8*s)});
+  }
+  if(!exp&&psp&&psp.length){
+    ctx.strokeStyle='#e07b00';ctx.fillStyle='#e07b00';ctx.lineWidth=2.5*s;
+    ctx.font='bold '+Math.round(16*s)+'px '+FONT;
+    psp.forEach(function(p,i){
+      ctx.beginPath();ctx.arc(p.x,p.y,9*s,0,7);ctx.stroke();ctx.fillText('透'+(i+1),p.x+12*s,p.y-8*s);
+      if(i>0){ctx.beginPath();ctx.moveTo(psp[i-1].x,psp[i-1].y);ctx.lineTo(p.x,p.y);ctx.stroke()}
+    });
+  }
   var msg=$('#msg'),X=axis('x'),Y=axis('y'),rs=getRows().filter(function(r){return r.ok});
   if(!X||!Y||!rs.length)return;
   var qu=$('#qu').value,hu=$('#hu').value,xu=$('#xu').value,yu=$('#yu').value;
@@ -278,11 +413,15 @@ function update(){
     b.innerHTML=names[i]+'<small>'+(i===act&&!d?'請在圖上點選':d?'已定位':'')+'</small>';
   }
   var rs=getRows(),nok=rs.filter(function(r){return r.ok}).length,t='';
-  if(!img)t='請先在左側上傳曲線圖。';
+  $('#alBtn').textContent=aln?'取消轉正':'開始兩點轉正';
+  $('#psBtn').textContent=psp?'取消透視校正':'開始四點透視校正';
+  if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
+  else if(aln)t=(alNote?alNote+' ':'')+'轉正：請在圖上點'+(aln.length?'第二':'第一')+'個點（這兩點的連線會被轉成'+($('#alMode').value==='v'?'垂直':'水平')+'）。';
+  else if(!img)t='請先在左側上傳曲線圖。';
   else{
     var mp=pts.slice(0,4).findIndex(function(p){return !p});
     var mv=[0,1,2,3].findIndex(function(i){return $('#v'+i).value===''});
-    if(mp>=0)t='下一步：在圖上點選「'+names[mp]+'」的位置（還差 '+pts.filter(function(p){return !p}).length+' 個點）。';
+    if(mp>=0)t='下一步：在圖上點選「'+names[mp]+'」的位置（還差 '+pts.slice(0,4).filter(function(p){return !p}).length+' 個點）。';
     else if(mv>=0)t='請填入「'+names[mv]+'」的刻度數值。';
     else if(!axis('x')||!axis('y'))t='校正有問題：同一軸兩個點的數值不能相同，位置也不能重疊。';
     else if(!nok)t='校正完成。請在「工作點」填入流量和揚程。';
