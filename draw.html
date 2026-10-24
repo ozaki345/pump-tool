@@ -44,9 +44,9 @@ button:hover,.file:hover{border-color:var(--bl)}
 #cv[hidden]{display:none}
 #empty{cursor:pointer;padding:80px 24px;text-align:center;color:var(--mut)}
 .wrap.drag{border-color:var(--bl)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.two{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
 .two span{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
-.pr{display:grid;grid-template-columns:12px minmax(0,1fr) 70px 70px 30px;gap:6px;align-items:center;margin-bottom:6px}
+.pr{display:grid;grid-template-columns:12px minmax(0,1fr) 62px 62px 62px 30px;gap:6px;align-items:center;margin-bottom:6px}
 .pr input{padding:6px}
 .pr.hd{color:var(--mut);font-size:13px;margin-bottom:4px}
 .dot{width:12px;height:12px;border-radius:50%;display:block}
@@ -87,7 +87,13 @@ button:hover,.file:hover{border-color:var(--bl)}
       <div class="lbl"><span>圖上 Y 軸（揚程）單位</span><label><input id="logy" type="checkbox">對數刻度</label></div>
       <select id="yu"><option>m</option><option>ft</option></select>
       <p class="hint">圖上若有雙單位（例如左 ft、右 m），選你點選的那一側。</p>
-      <button id="reset" type="button" style="margin-top:10px">重新校正</button>
+      <div class="lbl" style="margin-top:14px"><span>BHP（Z 軸，選填）</span></div>
+    <p class="hint" style="margin:0 0 8px">圖上若有 BHP（軸功率）曲線與刻度才需要校正，沒有就跳過。</p>
+    <div class="pt"><button id="b4" type="button">Z 軸刻度 1<small></small></button><input id="v4" type="number" step="any" placeholder="數值" aria-label="Z 軸刻度 1 的數值"></div>
+    <div class="pt"><button id="b5" type="button">Z 軸刻度 2<small></small></button><input id="v5" type="number" step="any" placeholder="數值" aria-label="Z 軸刻度 2 的數值"></div>
+    <div class="lbl"><span>圖上 Z 軸（BHP）單位</span><label><input id="logz" type="checkbox">對數刻度</label></div>
+    <select id="zxu"><option>HP</option><option>kW</option></select>
+    <button id="reset" type="button" style="margin-top:10px">重新校正</button>
     </section>
 
     <section class="panel">
@@ -95,12 +101,13 @@ button:hover,.file:hover{border-color:var(--bl)}
       <div class="two">
         <div><span>流量單位</span><select id="qu"><option>m³/h</option><option>GPM</option><option>L/min</option><option>L/s</option><option>m³/min</option></select></div>
         <div><span>揚程單位</span><select id="hu"><option>m</option><option>ft</option></select></div>
+      <div><span>BHP 單位</span><select id="zu"><option>HP</option><option>kW</option></select></div>
       </div>
-      <div class="pr hd"><span></span><span>名稱</span><span>流量 Q</span><span>揚程 H</span><span></span></div>
+      <div class="pr hd"><span></span><span>名稱</span><span>流量 Q</span><span>揚程 H</span><span>BHP</span><span></span></div>
       <div id="rows"></div>
       <button id="add" type="button">＋ 新增一個工作點</button>
       <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（標註只顯示名稱）</label></div>
-      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。</p>
+      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。</p>
       <p id="msg" role="status"></p>
       <button id="dl" type="button" class="primary">下載標記後的圖片</button>
     </section>
@@ -124,8 +131,9 @@ button:hover,.file:hover{border-color:var(--bl)}
 var $=function(s){return document.querySelector(s)};
 var QF={'m³/h':1,'GPM':0.2271247,'L/min':0.06,'L/s':3.6,'m³/min':60};
 var HF={'m':1,'ft':0.3048};
-var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null],act=0;
-var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2'];
+var ZF={'HP':1,'kW':1.34102};
+var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null,null,null],act=0;
+var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2','Z 軸刻度 1','Z 軸刻度 2'];
 var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 function load(f){
@@ -136,7 +144,7 @@ function load(f){
   }
   var u=URL.createObjectURL(f),im=new Image();
   im.onload=function(){img=im;cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
-    pts=[null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';update();URL.revokeObjectURL(u)};
+    pts=[null,null,null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';update();URL.revokeObjectURL(u)};
   im.onerror=function(){var m='這張圖片無法讀取。iPhone 的 HEIC 格式請改存成 JPG 或 PNG。';$('#next').textContent=m;$('#msg').textContent=m};
   im.src=u;
 }
@@ -148,25 +156,25 @@ var w=$('#wrap');
 ['dragleave','drop'].forEach(function(t){w.addEventListener(t,function(e){e.preventDefault();w.classList.remove('drag')})});
 w.addEventListener('drop',function(e){load(e.dataTransfer.files[0])});
 
-for(var i=0;i<4;i++)(function(i){
+for(var i=0;i<6;i++)(function(i){
   $('#b'+i).onclick=function(){act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
   $('#v'+i).oninput=update;
 })(i);
-['xu','yu','logx','logy','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
+['xu','yu','logx','logy','zxu','zu','logz','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
 $('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%'};
-$('#reset').onclick=function(){pts=[null,null,null,null];act=0;update()};
+$('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;update()};
 
 cv.addEventListener('click',function(e){
   if(!img)return;
   var r=cv.getBoundingClientRect();
   pts[act]={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
-  var cur=act,n=pts.findIndex(function(p){return !p});if(n>=0)act=n;
+  var cur=act,n=pts.slice(0,4).findIndex(function(p){return !p});if(n>=0)act=n;else if(cur===4&&!pts[5])act=5;
   update();
   var vi=$('#v'+cur);if(vi.value==='')vi.focus();
 });
 
 function axis(k){
-  var i=k==='x'?0:2,a=pts[i],b=pts[i+1],v1=parseFloat($('#v'+i).value),v2=parseFloat($('#v'+(i+1)).value);
+  var i=k==='x'?0:k==='y'?2:4,a=pts[i],b=pts[i+1],v1=parseFloat($('#v'+i).value),v2=parseFloat($('#v'+(i+1)).value);
   if(!a||!b||isNaN(v1)||isNaN(v2)||v1===v2)return null;
   var lg=$('#log'+k).checked;if(lg&&(v1<=0||v2<=0))return null;
   var f=lg?Math.log10:function(x){return x},p1=k==='x'?a.x:a.y,p2=k==='x'?b.x:b.y;
@@ -194,13 +202,22 @@ function render(exp){
     return {r:r,xv:xv,yv:yv,qm:r.q*QF[qu],hm:r.h*HF[hu],px:px,py:py,ok:isFinite(px)&&isFinite(py)&&px>=0&&py>=0&&px<=cv.width&&py<=cv.height};
   });
   var good=info.filter(function(o){if(!o.ok)bad.push(o.r.name);return o.ok});
+  var Z=axis('z'),zu=$('#zu').value,zxu=$('#zxu').value,zx=Math.max(pts[4]?pts[4].x:0,pts[5]?pts[5].x:0),zi=[];
+  if(Z)good.forEach(function(o){
+    var b=o.r.b;if(isNaN(b))return;
+    var pz=Z(b*ZF[zu]/ZF[zxu]);
+    if(!(isFinite(pz)&&pz>=0&&pz<=cv.height)){bad.push(o.r.name+'（BHP）');return}
+    zi.push({o:o,pz:pz,b:b});
+  });
   msg.textContent=bad.length?'「'+bad.join('、')+'」超出圖片範圍，請檢查單位、數值或刻度校正。':'';
   if(bad.length)$('#next').textContent='有工作點超出圖片範圍。';
   ctx.setLineDash([12*s,8*s]);ctx.lineWidth=3*s;
   if($('#dsh').checked)good.forEach(function(o){
     ctx.strokeStyle=o.r.col;ctx.beginPath();ctx.moveTo(x0,o.py);ctx.lineTo(o.px,o.py);ctx.lineTo(o.px,y0);ctx.stroke();
   });
+  if($('#dsh').checked)zi.forEach(function(z){ctx.strokeStyle=z.o.r.col;ctx.beginPath();ctx.moveTo(zx,z.pz);ctx.lineTo(z.o.px,z.pz);ctx.stroke()});
   ctx.setLineDash([]);
+  zi.forEach(function(z){var c=z.o.r.col,h=12*s;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=4*s;ctx.strokeRect(z.o.px-h,z.pz-h,2*h,2*h);ctx.fillRect(z.o.px-3.5*s,z.pz-3.5*s,7*s,7*s)});
   good.forEach(function(o){
     ctx.strokeStyle=o.r.col;ctx.fillStyle=o.r.col;ctx.lineWidth=4*s;
     ctx.beginPath();ctx.arc(o.px,o.py,13*s,0,7);ctx.stroke();
@@ -232,6 +249,12 @@ function render(exp){
       function(w,h){return [o.px+d,o.py-d-h]},function(w,h){return [o.px+d,o.py+d]},
       function(w,h){return [o.px-d-w,o.py-d-h]},function(w,h){return [o.px-d-w,o.py+d]}],[o.px,o.py]);
   });
+  zi.forEach(function(z){
+    var o=z.o,dd=22*s;
+    place(simp?[o.r.name+' BHP']:[o.r.name+' BHP',fmt(z.b)+' '+zu],o.r.col,[
+      function(w,h){return [o.px+dd+4*s,z.pz-dd-h]},function(w,h){return [o.px+dd+4*s,z.pz+dd]},
+      function(w,h){return [o.px-dd-w,z.pz-dd-h]},function(w,h){return [o.px-dd-w,z.pz+dd]}],[o.px,z.pz]);
+  });
   if($('#axl').checked&&!simp)good.forEach(function(o){
     var lc=[],bc=[];
     for(var k=0;k<5;k++)(function(k){
@@ -241,10 +264,15 @@ function render(exp){
     place([fmt(o.hm)+' m'],o.r.col,lc);
     place([fmt(o.qm)+' m³/h'],o.r.col,bc);
   });
+  if($('#axl').checked&&!simp)zi.forEach(function(z){
+    var right=zx>cv.width/2,zc=[];
+    for(var k=0;k<5;k++)(function(k){zc.push(function(w,h){return [right?zx+6*s:zx-6*s-w,z.pz-h/2+k*(h+2*s)]})})(k);
+    place([fmt(z.b)+' '+zu],z.o.r.col,zc);
+  });
 }
 
 function update(){
-  for(var i=0;i<4;i++){
+  for(var i=0;i<6;i++){
     var b=$('#b'+i),d=!!pts[i];
     b.className=(i===act?'on ':'')+(d?'done':'');
     b.innerHTML=names[i]+'<small>'+(i===act&&!d?'請在圖上點選':d?'已定位':'')+'</small>';
@@ -252,13 +280,18 @@ function update(){
   var rs=getRows(),nok=rs.filter(function(r){return r.ok}).length,t='';
   if(!img)t='請先在左側上傳曲線圖。';
   else{
-    var mp=pts.findIndex(function(p){return !p});
+    var mp=pts.slice(0,4).findIndex(function(p){return !p});
     var mv=[0,1,2,3].findIndex(function(i){return $('#v'+i).value===''});
     if(mp>=0)t='下一步：在圖上點選「'+names[mp]+'」的位置（還差 '+pts.filter(function(p){return !p}).length+' 個點）。';
     else if(mv>=0)t='請填入「'+names[mv]+'」的刻度數值。';
     else if(!axis('x')||!axis('y'))t='校正有問題：同一軸兩個點的數值不能相同，位置也不能重疊。';
     else if(!nok)t='校正完成。請在「工作點」填入流量和揚程。';
-    else t='已標出 '+nok+' 個工作點，可以下載圖片。';
+    else{
+      t='已標出 '+nok+' 個工作點，可以下載圖片。';
+      var wb=rs.filter(function(r){return r.ok&&!isNaN(r.b)}).length;
+      if(wb&&!axis('z'))t+=' 已填 BHP，但 Z 軸尚未校正完成，BHP 點不會標出。';
+      else if(wb)t+='（含 '+wb+' 個 BHP 點）';
+    }
   }
   $('#next').textContent=t;
   $('#msg').textContent='';
@@ -287,14 +320,14 @@ $('#dl').onclick=async function(){
 var COLS=['#d9261c','#1a8a3c','#c46a00','#7b3fb0','#008a8a','#b0306b'];
 function getRows(){
   return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el,i){
-    var q=parseFloat(el.querySelector('.pq').value),h=parseFloat(el.querySelector('.ph').value);
-    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,ok:!isNaN(q)&&!isNaN(h),col:COLS[i%COLS.length]};
+    var q=parseFloat(el.querySelector('.pq').value),h=parseFloat(el.querySelector('.ph').value),b=parseFloat(el.querySelector('.pb').value);
+    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,b:b,ok:!isNaN(q)&&!isNaN(h),col:COLS[i%COLS.length]};
   });
 }
 function recolor(){document.querySelectorAll('#rows .pr').forEach(function(el,i){el.querySelector('.dot').style.background=COLS[i%COLS.length]})}
 function addRow(name){
   var d=document.createElement('div');d.className='pr';
-  d.innerHTML='<i class="dot"></i><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><button type="button" class="x" aria-label="刪除此工作點">×</button>';
+  d.innerHTML='<i class="dot"></i><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="x" aria-label="刪除此工作點">×</button>';
   d.querySelector('.pn').value=name;
   d.addEventListener('input',update);
   d.querySelector('.x').onclick=function(){d.remove();recolor();update()};
