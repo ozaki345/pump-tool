@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>泵浦工作點標記工具</title>
+<style>
+:root{--bg:#ffffff;--pn:#f6f9fc;--ink:#17262e;--mut:#5d6b73;--ln:#cbd3ce;--bl:#1d5c88;--rd:#d3302a;--cv:#e8ebe6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#12181b;--pn:#1a2327;--ink:#e4ebe7;--mut:#9aa9b1;--ln:#33414a;--bl:#6bb0de;--rd:#ff7168;--cv:#0d1214;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+header{padding:20px 20px 8px;max-width:1280px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:.02em}
+header p{margin:0;color:var(--mut)}
+main{max-width:1280px;margin:0 auto;padding:12px 20px 32px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.panel{background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:14px 16px}
+.panel+.panel{margin-top:14px}
+h2{font-size:15px;margin:0 0 10px;font-weight:700}
+.row{display:grid;grid-template-columns:1fr 92px;gap:8px;margin-bottom:8px}
+.pt{display:grid;grid-template-columns:1fr 86px;gap:8px;margin-bottom:8px;align-items:center}
+.pt button{text-align:left;padding:7px 10px}
+.pt button.on{border-color:var(--bl);box-shadow:inset 3px 0 0 var(--bl)}
+.pt button small{color:var(--mut);margin-left:6px}
+.pt button.done small{color:var(--bl)}
+input,select,button,.file{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:4px;padding:7px 8px;width:100%;min-width:0}
+button,.file{cursor:pointer;display:inline-block;text-align:center}
+button:hover,.file:hover{border-color:var(--bl)}
+:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+.file input{display:none}
+.primary{background:var(--bl);border-color:var(--bl);color:#fff;font-weight:700}
+:root[data-theme="dark"] .primary{color:#0b1418}
+.lbl{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:13px;margin:10px 0 4px}
+.lbl label{display:flex;gap:6px;align-items:center}
+.lbl input{width:auto}
+.hint{color:var(--mut);font-size:13px;margin:6px 0 0}
+#msg{color:var(--rd);font-size:13px;min-height:1.4em;margin:8px 0 0}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.bar select{width:auto}
+.wrap{background:var(--cv);border:1px solid var(--ln);border-radius:6px;overflow:auto;max-height:78vh;min-height:300px;position:relative}
+#cv{display:block;width:100%;cursor:crosshair}
+#cv[hidden]{display:none}
+#empty{padding:80px 24px;text-align:center;color:var(--mut)}
+.wrap.drag{border-color:var(--bl)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.two span{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
+.pr{display:grid;grid-template-columns:12px minmax(0,1fr) 70px 70px 30px;gap:6px;align-items:center;margin-bottom:6px}
+.pr input{padding:6px}
+.pr.hd{color:var(--mut);font-size:13px;margin-bottom:4px}
+.dot{width:12px;height:12px;border-radius:50%;display:block}
+.pr .x{padding:3px 0;line-height:1.2;font-size:16px}
+#add{margin:4px 0 10px}
+#next{margin:0 0 10px;padding:8px 12px;border-left:3px solid var(--bl);background:var(--pn);border-radius:4px;font-weight:700}
+.topbar{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}.tb{font:inherit;font-size:14px;color:var(--bl);background:var(--pn);border:1px solid var(--bl);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;width:auto}.tb.on{background:var(--cv);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar"><a class="tb" href="index.html">← 泵浦換算工具</a><button type="button" class="tb" id="thWhite" title="白色背景" aria-label="白色背景"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><button type="button" class="tb" id="thDark" title="深色背景" aria-label="深色背景"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div>
+  <h1>泵浦工作點標記工具</h1>
+  <p>上傳原廠性能曲線圖，點選兩個已知刻度校正座標軸，再輸入流量與揚程，就能把工作點標在圖上。</p>
+</header>
+<main>
+  <div>
+    <section class="panel">
+      <h2>曲線圖</h2>
+      <label class="file primary">選擇圖片<input id="file" type="file" accept="image/*"></label>
+      <p class="hint">支援 PNG、JPG。PDF 請先截圖或轉成圖片。</p>
+    </section>
+
+    <section class="panel">
+      <h2>校正座標軸</h2>
+      <p class="hint" style="margin:0 0 8px">按下一列後，在圖上點該刻度的位置，並填入刻度數值。每個軸需要 2 個點，距離越遠越準。</p>
+      <div class="pt"><button id="b0" type="button">X 軸刻度 1<small></small></button><input id="v0" type="number" step="any" placeholder="數值" aria-label="X 軸刻度 1 的數值"></div>
+      <div class="pt"><button id="b1" type="button">X 軸刻度 2<small></small></button><input id="v1" type="number" step="any" placeholder="數值" aria-label="X 軸刻度 2 的數值"></div>
+      <div class="pt"><button id="b2" type="button">Y 軸刻度 1<small></small></button><input id="v2" type="number" step="any" placeholder="數值" aria-label="Y 軸刻度 1 的數值"></div>
+      <div class="pt"><button id="b3" type="button">Y 軸刻度 2<small></small></button><input id="v3" type="number" step="any" placeholder="數值" aria-label="Y 軸刻度 2 的數值"></div>
+      <div class="lbl"><span>圖上 X 軸（流量）單位</span><label><input id="logx" type="checkbox">對數刻度</label></div>
+      <select id="xu"><option>m³/h</option><option>GPM</option><option>L/min</option><option>L/s</option><option>m³/min</option></select>
+      <div class="lbl"><span>圖上 Y 軸（揚程）單位</span><label><input id="logy" type="checkbox">對數刻度</label></div>
+      <select id="yu"><option>m</option><option>ft</option></select>
+      <p class="hint">圖上若有雙單位（例如左 ft、右 m），選你點選的那一側。</p>
+      <button id="reset" type="button" style="margin-top:10px">重新校正</button>
+    </section>
+
+    <section class="panel">
+      <h2>工作點</h2>
+      <div class="two">
+        <div><span>流量單位</span><select id="qu"><option>m³/h</option><option>GPM</option><option>L/min</option><option>L/s</option><option>m³/min</option></select></div>
+        <div><span>揚程單位</span><select id="hu"><option>m</option><option>ft</option></select></div>
+      </div>
+      <div class="pr hd"><span></span><span>名稱</span><span>流量 Q</span><span>揚程 H</span><span></span></div>
+      <div id="rows"></div>
+      <button id="add" type="button">＋ 新增一個工作點</button>
+      <div class="lbl" style="margin-top:0"><label><input id="axl" type="checkbox" checked>在座標軸上標出數值</label></div>
+      <p class="hint">單位可以和圖上不同，系統會自動換算。點很接近時，可關掉軸上數值讓圖更清楚。</p>
+      <p id="msg" role="status"></p>
+      <button id="dl" type="button" class="primary">下載標記後的圖片</button>
+    </section>
+  </div>
+
+  <div>
+    <div class="bar">
+      <label for="zoom" style="color:var(--mut);font-size:13px">放大</label>
+      <select id="zoom"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option></select>
+      <span id="stat" style="color:var(--mut);font-size:13px"></span>
+    </div>
+    <p id="next" role="status">請先在左側上傳曲線圖。</p>
+    <div class="wrap" id="wrap">
+      <div id="empty">把曲線圖拖到這裡，或按左側「選擇圖片」</div>
+      <canvas id="cv" hidden></canvas>
+    </div>
+  </div>
+</main>
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var QF={'m³/h':1,'GPM':0.2271247,'L/min':0.06,'L/s':3.6,'m³/min':60};
+var HF={'m':1,'ft':0.3048};
+var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null],act=0;
+var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2'];
+var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+
+function load(f){
+  if(!f||!/^image\//.test(f.type))return;
+  var u=URL.createObjectURL(f),im=new Image();
+  im.onload=function(){img=im;cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
+    pts=[null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';update();URL.revokeObjectURL(u)};
+  im.onerror=function(){$('#msg').textContent='這個檔案無法讀取，請換一張圖片。'};
+  im.src=u;
+}
+$('#file').onchange=function(e){load(e.target.files[0])};
+var w=$('#wrap');
+['dragover','dragenter'].forEach(function(t){w.addEventListener(t,function(e){e.preventDefault();w.classList.add('drag')})});
+['dragleave','drop'].forEach(function(t){w.addEventListener(t,function(e){e.preventDefault();w.classList.remove('drag')})});
+w.addEventListener('drop',function(e){load(e.dataTransfer.files[0])});
+
+for(var i=0;i<4;i++)(function(i){
+  $('#b'+i).onclick=function(){act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
+  $('#v'+i).oninput=update;
+})(i);
+['xu','yu','logx','logy','qu','hu','axl'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
+$('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%'};
+$('#reset').onclick=function(){pts=[null,null,null,null];act=0;update()};
+
+cv.addEventListener('click',function(e){
+  if(!img)return;
+  var r=cv.getBoundingClientRect();
+  pts[act]={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
+  var cur=act,n=pts.findIndex(function(p){return !p});if(n>=0)act=n;
+  update();
+  var vi=$('#v'+cur);if(vi.value==='')vi.focus();
+});
+
+function axis(k){
+  var i=k==='x'?0:2,a=pts[i],b=pts[i+1],v1=parseFloat($('#v'+i).value),v2=parseFloat($('#v'+(i+1)).value);
+  if(!a||!b||isNaN(v1)||isNaN(v2)||v1===v2)return null;
+  var lg=$('#log'+k).checked;if(lg&&(v1<=0||v2<=0))return null;
+  var f=lg?Math.log10:function(x){return x},p1=k==='x'?a.x:a.y,p2=k==='x'?b.x:b.y;
+  if(p1===p2)return null;
+  return function(v){return(lg&&v<=0)?NaN:p1+(f(v)-f(v1))*(p2-p1)/(f(v2)-f(v1))};
+}
+function fmt(n){return String(+n.toPrecision(4))}
+
+function render(exp){
+  if(!img)return;
+  ctx.drawImage(img,0,0);
+  var s=Math.max(.8,cv.width/1400),blue='#0a63b8';
+  ctx.lineCap='round';
+  if(!exp)pts.forEach(function(p,i){
+    if(!p)return;ctx.strokeStyle=blue;ctx.lineWidth=2.5*s;
+    ctx.beginPath();ctx.moveTo(p.x-9*s,p.y);ctx.lineTo(p.x+9*s,p.y);ctx.moveTo(p.x,p.y-9*s);ctx.lineTo(p.x,p.y+9*s);ctx.stroke();
+    ctx.fillStyle=blue;ctx.font='bold '+Math.round(16*s)+'px '+FONT;ctx.fillText(String(i+1),p.x+11*s,p.y-8*s);
+  });
+  var msg=$('#msg'),X=axis('x'),Y=axis('y'),rs=getRows().filter(function(r){return r.ok});
+  if(!X||!Y||!rs.length)return;
+  var qu=$('#qu').value,hu=$('#hu').value,xu=$('#xu').value,yu=$('#yu').value;
+  var x0=Math.min(pts[2].x,pts[3].x),y0=Math.max(pts[0].y,pts[1].y),fs=Math.round(20*s),placed=[],bad=[];
+  var info=rs.map(function(r){
+    var xv=r.q*QF[qu]/QF[xu],yv=r.h*HF[hu]/HF[yu],px=X(xv),py=Y(yv);
+    return {r:r,xv:xv,yv:yv,px:px,py:py,ok:isFinite(px)&&isFinite(py)&&px>=0&&py>=0&&px<=cv.width&&py<=cv.height};
+  });
+  var good=info.filter(function(o){if(!o.ok)bad.push(o.r.name);return o.ok});
+  msg.textContent=bad.length?'「'+bad.join('、')+'」超出圖片範圍，請檢查單位、數值或刻度校正。':'';
+  if(bad.length)$('#next').textContent='有工作點超出圖片範圍。';
+  ctx.setLineDash([12*s,8*s]);ctx.lineWidth=3*s;
+  good.forEach(function(o){
+    ctx.strokeStyle=o.r.col;ctx.beginPath();ctx.moveTo(x0,o.py);ctx.lineTo(o.px,o.py);ctx.lineTo(o.px,y0);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  good.forEach(function(o){
+    ctx.strokeStyle=o.r.col;ctx.fillStyle=o.r.col;ctx.lineWidth=4*s;
+    ctx.beginPath();ctx.arc(o.px,o.py,13*s,0,7);ctx.stroke();
+    ctx.beginPath();ctx.arc(o.px,o.py,3.5*s,0,7);ctx.fill();
+  });
+  ctx.font='bold '+fs+'px '+FONT;
+  function hit(a,b){return a[0]<b[0]+b[2]&&b[0]<a[0]+a[2]&&a[1]<b[1]+b[3]&&b[1]<a[1]+a[3]}
+  function place(lines,col,cands,lead){
+    var bw=0;lines.forEach(function(t){bw=Math.max(bw,ctx.measureText(t).width)});bw+=14*s;
+    var lh=fs+4*s,bh=lh*lines.length+6*s,pick=null;
+    for(var i=0;i<cands.length;i++){
+      var c=cands[i](bw,bh),bx=Math.max(2,Math.min(cv.width-bw-2,c[0])),by=Math.max(2,Math.min(cv.height-bh-2,c[1])),bb=[bx,by,bw,bh];
+      if(!pick)pick=bb;
+      if(!placed.some(function(p){return hit(bb,p)})){pick=bb;break}
+    }
+    placed.push(pick);
+    if(lead){
+      var cx=Math.max(pick[0],Math.min(pick[0]+bw,lead[0])),cy=Math.max(pick[1],Math.min(pick[1]+bh,lead[1])),dx=cx-lead[0],dy=cy-lead[1],L=Math.hypot(dx,dy)||1;
+      ctx.strokeStyle=col;ctx.lineWidth=2.5*s;ctx.beginPath();ctx.moveTo(lead[0]+dx/L*13*s,lead[1]+dy/L*13*s);ctx.lineTo(cx,cy);ctx.stroke();
+    }
+    ctx.fillStyle='#fff';ctx.fillRect(pick[0],pick[1],bw,bh);ctx.strokeStyle=col;ctx.lineWidth=2.5*s;ctx.strokeRect(pick[0],pick[1],bw,bh);
+    ctx.textBaseline='middle';ctx.textAlign='left';
+    lines.forEach(function(t,i){ctx.fillStyle=(i===0||lines.length===1)?col:'#17262e';ctx.fillText(t,pick[0]+7*s,pick[1]+3*s+lh*i+lh/2)});
+    ctx.textBaseline='alphabetic';
+  }
+  var d=30*s;
+  good.forEach(function(o){
+    place([o.r.name,fmt(o.r.q)+' '+qu+' · '+fmt(o.r.h)+' '+hu],o.r.col,[
+      function(w,h){return [o.px+d,o.py-d-h]},function(w,h){return [o.px+d,o.py+d]},
+      function(w,h){return [o.px-d-w,o.py-d-h]},function(w,h){return [o.px-d-w,o.py+d]}],[o.px,o.py]);
+  });
+  if($('#axl').checked)good.forEach(function(o){
+    var lc=[],bc=[];
+    for(var k=0;k<5;k++)(function(k){
+      lc.push(function(w,h){return [x0-6*s-w,o.py-h/2+k*(h+2*s)]});
+      bc.push(function(w,h){return [o.px-w/2,y0+6*s+k*(h+2*s)]});
+    })(k);
+    place([fmt(o.yv)+' '+yu],o.r.col,lc);
+    place([fmt(o.xv)+' '+xu],o.r.col,bc);
+  });
+}
+
+function update(){
+  for(var i=0;i<4;i++){
+    var b=$('#b'+i),d=!!pts[i];
+    b.className=(i===act?'on ':'')+(d?'done':'');
+    b.innerHTML=names[i]+'<small>'+(i===act&&!d?'請在圖上點選':d?'已定位':'')+'</small>';
+  }
+  var rs=getRows(),nok=rs.filter(function(r){return r.ok}).length,t='';
+  if(!img)t='請先在左側上傳曲線圖。';
+  else{
+    var mp=pts.findIndex(function(p){return !p});
+    var mv=[0,1,2,3].findIndex(function(i){return $('#v'+i).value===''});
+    if(mp>=0)t='下一步：在圖上點選「'+names[mp]+'」的位置（還差 '+pts.filter(function(p){return !p}).length+' 個點）。';
+    else if(mv>=0)t='請填入「'+names[mv]+'」的刻度數值。';
+    else if(!axis('x')||!axis('y'))t='校正有問題：同一軸兩個點的數值不能相同，位置也不能重疊。';
+    else if(!nok)t='校正完成。請在「工作點」填入流量和揚程。';
+    else t='已標出 '+nok+' 個工作點，可以下載圖片。';
+  }
+  $('#next').textContent=t;
+  $('#msg').textContent='';
+  render(false);
+}
+
+$('#dl').onclick=async function(){
+  var msg=$('#msg');
+  if(!img){msg.textContent='請先上傳曲線圖。';return}
+  render(true);
+  var blob=await new Promise(function(r){cv.toBlob(r,'image/png')});
+  render(false);
+  try{
+    var d=(typeof claude!=='undefined')?await claude.use('downloads'):null;
+    if(!d){
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='泵浦工作點.png';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(a.href)},1500);return;
+    }
+    await d.save({filename:'泵浦工作點.png',data:blob});
+  }catch(e){
+    if(e&&e.code==='declined')return;
+    msg.textContent='此環境無法直接下載，請在圖片上按右鍵（手機長按）另存。';
+  }
+};
+var COLS=['#d9261c','#1a8a3c','#c46a00','#7b3fb0','#008a8a','#b0306b'];
+function getRows(){
+  return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el,i){
+    var q=parseFloat(el.querySelector('.pq').value),h=parseFloat(el.querySelector('.ph').value);
+    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,ok:!isNaN(q)&&!isNaN(h),col:COLS[i%COLS.length]};
+  });
+}
+function recolor(){document.querySelectorAll('#rows .pr').forEach(function(el,i){el.querySelector('.dot').style.background=COLS[i%COLS.length]})}
+function addRow(name){
+  var d=document.createElement('div');d.className='pr';
+  d.innerHTML='<i class="dot"></i><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><button type="button" class="x" aria-label="刪除此工作點">×</button>';
+  d.querySelector('.pn').value=name;
+  d.addEventListener('input',update);
+  d.querySelector('.x').onclick=function(){d.remove();recolor();update()};
+  $('#rows').appendChild(d);recolor();
+}
+$('#add').onclick=function(){addRow('泵浦 '+(document.querySelectorAll('#rows .pr').length+1));update()};
+['泵浦 1','泵浦 2','泵浦 3'].forEach(addRow);
+update();
+})();
+</script>
+<script>
+(function(){
+var W=document.getElementById('thWhite'),D=document.getElementById('thDark');
+function setTheme(k){document.documentElement.setAttribute('data-theme',k==='dark'?'dark':'light');W.classList.toggle('on',k!=='dark');D.classList.toggle('on',k==='dark');try{localStorage.setItem('pumpTheme',k)}catch(e){}}
+var st='white';try{st=localStorage.getItem('pumpTheme')||'white'}catch(e){}
+setTheme(st==='dark'?'dark':'white');
+W.onclick=function(){setTheme('white')};D.onclick=function(){setTheme('dark')};
+})();
+</script>
+</body>
+</html>
