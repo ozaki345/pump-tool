@@ -267,7 +267,7 @@ function doPersp(){
 }
 $('#psBtn').onclick=function(){
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
-  aln=null;psp=psp?null:[];update();
+  aln=null;alNote='';psp=psp?null:[];update();
 };
 function doAlign(){
   var a=aln[0],b=aln[1],dx=b.x-a.x,dy=b.y-a.y;
@@ -294,7 +294,7 @@ function rotateImg(al){
 }
 $('#alBtn').onclick=function(){
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
-  psp=null;aln=aln?null:[];update();
+  psp=null;alNote='';aln=aln?null:[];update();
 };
 $('#alUndo').onclick=function(){
   if(!orig)return;
