@@ -46,11 +46,13 @@ button:hover,.file:hover{border-color:var(--bl)}
 .wrap.drag{border-color:var(--bl)}
 .two{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
 .two span{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
-.pr{display:grid;grid-template-columns:12px minmax(0,1fr) 62px 62px 62px 30px;gap:6px;align-items:center;margin-bottom:6px}
+.pr{display:grid;grid-template-columns:12px minmax(0,1fr) 62px 62px 62px 30px 30px;gap:6px;align-items:center;margin-bottom:6px}
 .pr input{padding:6px}
 .pr.hd{color:var(--mut);font-size:13px;margin-bottom:4px}
 .dot{width:12px;height:12px;border-radius:50%;display:block}
 .pr .x{padding:3px 0;line-height:1.2;font-size:16px}
+.pr .eye{padding:3px 0;line-height:1.2;display:flex;align-items:center;justify-content:center}
+.pr.hid>*:not(.eye){opacity:.45}
 #add{margin:4px 0 10px}
 .chk{display:grid;gap:6px;margin:4px 0 8px}
 .chk label{display:flex;gap:8px;align-items:center}
@@ -113,11 +115,11 @@ button:hover,.file:hover{border-color:var(--bl)}
         <div><span>揚程單位</span><select id="hu"><option>m</option><option>ft</option></select></div>
       <div><span>BHP 單位</span><select id="zu"><option>HP</option><option>kW</option></select></div>
       </div>
-      <div class="pr hd"><span></span><span>名稱</span><span>流量 Q</span><span>揚程 H</span><span>BHP</span><span></span></div>
+      <div class="pr hd"><span></span><span>名稱</span><span>流量 Q</span><span>揚程 H</span><span>BHP</span><span></span><span></span></div>
       <div id="rows"></div>
       <button id="add" type="button">＋ 新增一個工作點</button>
-      <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（標註只顯示名稱）</label></div>
-      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。</p>
+      <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（不標座標軸上的數值）</label></div>
+      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。每個工作點右側的眼睛圖示可以暫時隱藏該點（資料會保留），圖面太亂時很好用。</p>
       <p id="msg" role="status"></p>
       <button id="dl" type="button" class="primary">下載標記後的圖片</button>
     </section>
@@ -343,7 +345,7 @@ function render(exp){
     var xv=r.q*QF[qu]/QF[xu],yv=r.h*HF[hu]/HF[yu],px=X(xv),py=Y(yv);
     return {r:r,xv:xv,yv:yv,qm:r.q*QF[qu],hm:r.h*HF[hu],px:px,py:py,ok:isFinite(px)&&isFinite(py)&&px>=0&&py>=0&&px<=cv.width&&py<=cv.height};
   });
-  var good=info.filter(function(o){if(!o.ok)bad.push(o.r.name);return o.ok});
+  var good=info.filter(function(o){if(o.r.hid)return false;if(!o.ok)bad.push(o.r.name);return o.ok});
   var Z=axis('z'),zu=$('#zu').value,zxu=$('#zxu').value,zx=Math.max(pts[4]?pts[4].x:0,pts[5]?pts[5].x:0),zi=[];
   if(Z)good.forEach(function(o){
     var b=o.r.b;if(isNaN(b))return;
@@ -387,13 +389,13 @@ function render(exp){
   }
   var d=30*s,simp=$('#smp').checked;
   good.forEach(function(o){
-    place(simp?[o.r.name]:[o.r.name,fmt(o.qm)+' m³/h · '+fmt(o.hm)+' m'],o.r.col,[
+    place([o.r.name],o.r.col,[
       function(w,h){return [o.px+d,o.py-d-h]},function(w,h){return [o.px+d,o.py+d]},
       function(w,h){return [o.px-d-w,o.py-d-h]},function(w,h){return [o.px-d-w,o.py+d]}],[o.px,o.py]);
   });
   zi.forEach(function(z){
     var o=z.o,dd=22*s;
-    place(simp?[o.r.name+' BHP']:[o.r.name+' BHP',fmt(z.b)+' '+zu],o.r.col,[
+    place([o.r.name+' BHP'],o.r.col,[
       function(w,h){return [o.px+dd+4*s,z.pz-dd-h]},function(w,h){return [o.px+dd+4*s,z.pz+dd]},
       function(w,h){return [o.px-dd-w,z.pz-dd-h]},function(w,h){return [o.px-dd-w,z.pz+dd]}],[o.px,z.pz]);
   });
@@ -419,7 +421,7 @@ function update(){
     b.className=(i===act?'on ':'')+(d?'done':'');
     b.innerHTML=names[i]+'<small>'+(i===act&&!d?'請在圖上點選':d?'已定位':'')+'</small>';
   }
-  var rs=getRows(),nok=rs.filter(function(r){return r.ok}).length,t='';
+  var rs=getRows(),nok=rs.filter(function(r){return r.ok&&!r.hid}).length,nhid=rs.filter(function(r){return r.ok&&r.hid}).length,t='';
   $('#alBtn').textContent=aln?'取消轉正':'開始兩點轉正';
   $('#psBtn').textContent=psp?'取消透視校正':'開始四點透視校正';
   if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
@@ -431,10 +433,10 @@ function update(){
     if(mp>=0)t='下一步：在圖上點選「'+names[mp]+'」的位置（還差 '+pts.slice(0,4).filter(function(p){return !p}).length+' 個點）。';
     else if(mv>=0)t='請填入「'+names[mv]+'」的刻度數值。';
     else if(!axis('x')||!axis('y'))t='校正有問題：同一軸兩個點的數值不能相同，位置也不能重疊。';
-    else if(!nok)t='校正完成。請在「工作點」填入流量和揚程。';
+    else if(!nok)t=nhid?'校正完成。所有工作點都已隱藏，按右側的眼睛圖示可以重新顯示。':'校正完成。請在「工作點」填入流量和揚程。';
     else{
-      t='已標出 '+nok+' 個工作點，可以下載圖片。';
-      var wb=rs.filter(function(r){return r.ok&&!isNaN(r.b)}).length;
+      t='已標出 '+nok+' 個工作點'+(nhid?'（另有 '+nhid+' 個已隱藏）':'')+'，可以下載圖片。';
+      var wb=rs.filter(function(r){return r.ok&&!r.hid&&!isNaN(r.b)}).length;
       if(wb&&!axis('z'))t+=' 已填 BHP，但 Z 軸尚未校正完成，BHP 點不會標出。';
       else if(wb)t+='（含 '+wb+' 個 BHP 點）';
     }
@@ -503,15 +505,19 @@ var COLS=['#d9261c','#1a8a3c','#c46a00','#7b3fb0','#008a8a','#b0306b'];
 function getRows(){
   return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el,i){
     var q=parseFloat(el.querySelector('.pq').value),h=parseFloat(el.querySelector('.ph').value),b=parseFloat(el.querySelector('.pb').value);
-    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,b:b,ok:!isNaN(q)&&!isNaN(h),col:COLS[i%COLS.length]};
+    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,b:b,ok:!isNaN(q)&&!isNaN(h),hid:el.classList.contains('hid'),col:COLS[i%COLS.length]};
   });
 }
 function recolor(){document.querySelectorAll('#rows .pr').forEach(function(el,i){el.querySelector('.dot').style.background=COLS[i%COLS.length]})}
+var EYE='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYEOFF='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
 function addRow(name){
   var d=document.createElement('div');d.className='pr';
-  d.innerHTML='<i class="dot"></i><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="x" aria-label="刪除此工作點">×</button>';
+  d.innerHTML='<i class="dot"></i><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="eye" aria-label="隱藏此工作點" aria-pressed="false" title="隱藏此工作點"></button><button type="button" class="x" aria-label="刪除此工作點">×</button>';
   d.querySelector('.pn').value=name;
   d.addEventListener('input',update);
+  var eye=d.querySelector('.eye');eye.innerHTML=EYE;
+  eye.onclick=function(){var h=d.classList.toggle('hid');eye.innerHTML=h?EYEOFF:EYE;eye.setAttribute('aria-pressed',h?'true':'false');eye.title=h?'顯示此工作點':'隱藏此工作點';eye.setAttribute('aria-label',eye.title);update()};
   d.querySelector('.x').onclick=function(){d.remove();recolor();update()};
   $('#rows').appendChild(d);recolor();
 }
