@@ -44,6 +44,7 @@ h2.s5{border-left-color:var(--c4)}
 #motor .card{border-left:4px solid var(--c2)}
 #field .card{border-left:4px solid var(--c3)}
 #fluid .card{border-left:4px solid var(--cf)}
+#nameplate .card.res{border-left:4px solid var(--c4)}
 input,select{border-color:var(--l2)}
 .card.res{background:var(--rb);border-color:var(--c4);border-left:4px solid var(--c4)}
 .card.res input{background:transparent;border-color:transparent;font-size:22px;font-weight:700;color:var(--c4);padding-left:0;opacity:1}
@@ -127,7 +128,7 @@ const Q={
  current:[["A",1],["mA",1e-3]],
  freq:[["Hz",1]]
 };
-const S={nQ:100/3600,nH:50,pPm:15000,pN:2900,pV:380,pI:28,pHz:50,pEta:90,pPF:0.85,mQ:95/3600,mH:46,mN:2870,mPm:14000,mNPSH:4,eV:380,eI:26,eP:14000,rho:1000};
+const S={nQ:100/3600,nH:50,pPm:15000,pN:2900,pV:380,pI:28,pHz:50,pEta:90,pPF:0.85,mQ:95/3600,mH:46,mN:2870,mPm:14000,mNPSH:4,eV:380,eI:26,eP:14000,nEta:70,nShaft:19500,rho:1000};
 const calc=()=>{
  ["n","m"].forEach(p=>{S[p+"P"]=S.rho*G*S[p+"H"];S[p+"hyd"]=S.rho*G*S[p+"Q"]*S[p+"H"]});
  S.mEta=S.mPm>0?S.mhyd/S.mPm*100:NaN;
@@ -135,6 +136,7 @@ const calc=()=>{
  S.pumpEta=S.eP*S.pEta>0?S.mhyd/(S.eP*S.pEta/100)*100:NaN;
  S.dP1=S.eP>0?(S.shaftE/S.eP-1)*100:NaN;
  S.P2=S.eP*S.pEta/100;
+ S.nShaft=S.nEta>0?S.nhyd/(S.nEta/100):NaN;
  S.dQ=(S.mQ/S.nQ-1)*100;S.dH=(S.mH/S.nH-1)*100;S.dN=(S.mN/S.pN-1)*100;S.load=S.mPm/S.pPm*100;
 };
 calc();
@@ -158,7 +160,9 @@ const cards=[
  {key:"shaftE",t:"P1 軸功率 (由電表算出)",q:"power",u:0,box:"results",ro:true,hint:"√3 × V × I × cosφ"},
  {key:"P2",t:"P2 軸功率",q:"power",u:0,box:"results",ro:true,hint:"= P1 (實測) × 馬達額定效率"},
  {key:"mhyd",t:"P3 水馬力功率",q:"power",u:0,box:"results",ro:true,hint:"ρ·g·實測Q·實測H"},
- {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P2"}
+ {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P2"},
+ {key:"nEta",t:"泵浦原廠效率 η",q:null,suf:"%",box:"nameplate"},
+ {key:"nShaft",t:"泵浦原廠軸功率",q:"power",u:0,box:"nameplate",ro:true,hint:"= ρ·g·Q·H ÷ η"}
 ];
 const fmt=x=>{if(!isFinite(x))return"—";if(x===0)return"0";const a=Math.abs(x);if(a>=1e9||a<1e-4)return x.toExponential(4);return String(parseFloat(x.toPrecision(6)))};
 const toast=document.getElementById("toast");
