@@ -141,6 +141,8 @@ button:hover,.file:hover{border-color:var(--bl)}
       <button id="add" type="button">＋ 新增一個工作點</button>
       <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（不標座標軸上的數值）</label></div>
       <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。每個工作點右側的眼睛圖示可以暫時隱藏該點（資料會保留），圖面太亂時很好用。</p>
+    <p class="hint" style="margin:6px 0 0">圖片、校正與工作點會自動儲存在這個瀏覽器，重新整理後仍會保留。<span id="saveInfo"></span></p>
+    <button id="wipe" type="button" style="margin-top:8px">清除儲存並重設</button>
       <p id="msg" role="status"></p>
       <button id="dl" type="button" class="primary">下載標記後的圖片</button>
     </section>
@@ -154,6 +156,7 @@ var ZF={'HP':1,'kW':1.34102};
 var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null,null,null],act=0;
 var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2','Z 軸刻度 1','Z 軸刻度 2'];
 var aln=null,psp=null,orig=null,rotDeg=0,alNote='';
+var LS='pumpDrawState',origBlob=null,curBlob=null,curBlobFor=null,saveTimer=null,restoring=true,noSave=false,idb=null;
 var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 function load(f,done){
@@ -165,7 +168,7 @@ function load(f,done){
   }
   $('#fileInfo').textContent='正在讀取：'+(f.name||'圖片')+' …';
   var u=URL.createObjectURL(f),im=new Image();
-  im.onload=function(){trash=null;img=im;orig=im;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
+  im.onload=function(){trash=null;img=im;orig=im;origBlob=f;curBlob=null;curBlobFor=null;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
     pts=[null,null,null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';$('#fileInfo').textContent='目前圖片：'+(f.name||'圖片')+'（'+im.naturalWidth+' × '+im.naturalHeight+' px）';update();URL.revokeObjectURL(u);done()};
   im.onerror=function(){var m='這張圖片無法讀取。iPhone 的 HEIC 格式請改存成 JPG 或 PNG。';$('#next').textContent=m;$('#msg').textContent=m;$('#fileInfo').textContent=m;done()};
   im.src=u;
@@ -183,7 +186,7 @@ for(var i=0;i<6;i++)(function(i){
   $('#v'+i).oninput=update;
 })(i);
 ['xu','yu','logx','logy','zxu','zu','logz','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
-$('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%'};
+$('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%';scheduleSave()};
 $('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;update()};
 
 cv.addEventListener('click',function(e){
@@ -423,6 +426,7 @@ function render(exp){
 }
 
 function update(){
+  scheduleSave();
   for(var i=0;i<6;i++){
     var b=$('#b'+i),d=!!pts[i];
     b.className=(i===act?'on ':'')+(d?'done':'');
@@ -531,6 +535,96 @@ function addRow(name){
 $('#add').onclick=function(){addRow('泵浦 '+(document.querySelectorAll('#rows .pr').length+1));update()};
 ['泵浦 1','泵浦 2','泵浦 3'].forEach(addRow);
 update();
+
+// ===== 自動儲存／還原 =====
+function pad2(n){return String(n).padStart(2,'0')}
+function rowsRaw(){return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el){return{n:el.querySelector('.pn').value,q:el.querySelector('.pq').value,h:el.querySelector('.ph').value,b:el.querySelector('.pb').value,hid:el.classList.contains('hid')}})}
+function collectMeta(){
+  var inp={};
+  ['v0','v1','v2','v3','v4','v5','xu','yu','zxu','zu','qu','hu','zoom','alMode'].forEach(function(id){inp[id]=$('#'+id).value});
+  ['logx','logy','logz','axl','dsh','smp'].forEach(function(id){inp[id]=$('#'+id).checked});
+  return {v:1,t:Date.now(),inp:inp,pts:pts,rot:rotDeg,hasImg:!!img,rows:rowsRaw()};
+}
+function scheduleSave(){if(restoring||noSave)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,600)}
+function saveNow(){
+  saveTimer=null;if(restoring||noSave)return;
+  var meta=collectMeta(),ok=false;
+  try{localStorage.setItem(LS,JSON.stringify(meta));ok=true}catch(e){}
+  var finish=function(){var d=new Date();$('#saveInfo').textContent='（已自動儲存 '+pad2(d.getHours())+':'+pad2(d.getMinutes())+'）'};
+  if(!idb){if(ok)finish();return}
+  var put=function(cur){
+    var rec={meta:meta,orig:img?origBlob:null,cur:cur||null};
+    try{var tx=idb.transaction('kv','readwrite');tx.oncomplete=finish;tx.onerror=function(){$('#saveInfo').textContent='（自動儲存失敗，可能是空間不足）'};tx.objectStore('kv').put(rec,'last')}catch(e){}
+  };
+  if(img&&img!==orig){
+    if(curBlobFor===img){put(curBlob);return}
+    var target=img;
+    try{target.toBlob(function(b){curBlob=b;curBlobFor=target;put(b)},'image/png')}catch(e){put(null)}
+  }else put(null);
+}
+function blobToImg(b,cb){var u=URL.createObjectURL(b),im=new Image();im.onload=function(){URL.revokeObjectURL(u);cb(im)};im.onerror=function(){URL.revokeObjectURL(u);cb(null)};im.src=u}
+function applyRows(list){
+  Array.prototype.slice.call(document.querySelectorAll('#rows .pr')).forEach(function(el){el.remove()});
+  list.forEach(function(r){
+    addRow(r.n||'');
+    var all=document.querySelectorAll('#rows .pr'),el=all[all.length-1];
+    el.querySelector('.pq').value=r.q;el.querySelector('.ph').value=r.h;el.querySelector('.pb').value=r.b;
+    if(r.hid)el.querySelector('.eye').onclick();
+  });
+}
+function applyMeta(m,ob,cb){
+  if(!m){restoring=false;return}
+  var inp=m.inp||{};
+  Object.keys(inp).forEach(function(id){var el=$('#'+id);if(!el)return;if(typeof inp[id]==='boolean')el.checked=inp[id];else el.value=inp[id]});
+  cv.style.width=((parseFloat($('#zoom').value)||1)*100)+'%';
+  if(m.rows)applyRows(m.rows);
+  var noImg=function(msg){restoring=false;$('#fileInfo').textContent=msg;update()};
+  if(!m.hasImg){noImg('已還原上次的工作點與設定。');return}
+  var use=cb||ob;
+  if(!use){noImg('已還原工作點與設定，但上次的圖片無法還原，請重新上傳。');return}
+  blobToImg(use,function(imC){
+    if(!imC){noImg('已還原工作點與設定，但上次的圖片無法讀取，請重新上傳。');return}
+    var fin=function(imO){
+      img=imC;orig=imO||imC;origBlob=(imO&&ob)?ob:use;curBlob=(imO&&cb)?cb:null;curBlobFor=curBlob?imC:null;
+      cv.width=imC.naturalWidth;cv.height=imC.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
+      var sp=m.pts||[];pts=[0,1,2,3,4,5].map(function(i){var p=sp[i];return p&&isFinite(p.x)&&isFinite(p.y)?{x:p.x,y:p.y}:null});
+      rotDeg=m.rot||0;
+      var n=pts.slice(0,4).findIndex(function(p){return !p});act=n>=0?n:-1;
+      $('#stat').textContent=imC.naturalWidth+' × '+imC.naturalHeight+' px';
+      $('#alInfo').textContent=rotDeg?('已轉正（累計 '+rotDeg.toFixed(2)+'°）。'):'';
+      $('#fileInfo').textContent='已自動還原上次的圖片、校正與工作點。';
+      restoring=false;update();
+    };
+    if(cb&&ob)blobToImg(ob,function(imO){fin(imO)});else fin(null);
+  });
+}
+function startRestore(){
+  var meta=null;try{meta=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
+  try{
+    var r=indexedDB.open('pumpDraw',1);
+    r.onupgradeneeded=function(){r.result.createObjectStore('kv')};
+    r.onsuccess=function(){
+      idb=r.result;
+      try{
+        var g=idb.transaction('kv','readonly').objectStore('kv').get('last');
+        g.onsuccess=function(){var rec=g.result;if(rec&&rec.meta)applyMeta(rec.meta,rec.orig,rec.cur);else applyMeta(meta,null,null)};
+        g.onerror=function(){applyMeta(meta,null,null)};
+      }catch(e){applyMeta(meta,null,null)}
+    };
+    r.onerror=function(){applyMeta(meta,null,null)};
+  }catch(e){applyMeta(meta,null,null)}
+  setTimeout(function(){restoring=false},8000);
+}
+$('#alMode').addEventListener('change',scheduleSave);
+$('#wipe').onclick=function(){
+  var b=$('#wipe');
+  if(!b.dataset.arm){b.dataset.arm='1';b.textContent='再按一次確認：清除並重設';setTimeout(function(){delete b.dataset.arm;b.textContent='清除儲存並重設'},3000);return}
+  noSave=true;clearTimeout(saveTimer);
+  try{localStorage.removeItem(LS)}catch(e){}
+  var fin=function(){location.reload()};
+  if(idb){try{var tx=idb.transaction('kv','readwrite');tx.oncomplete=fin;tx.onerror=fin;tx.objectStore('kv').delete('last')}catch(e){fin()}}else fin();
+};
+startRestore();
 })();
 </script>
 <script>
