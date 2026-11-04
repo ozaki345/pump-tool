@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>大型雙吸式離心泵浦換型尺寸量測表</title>
+<style>
+:root{--bg:#fff;--pn:#f6f9fc;--ln:#d5dee6;--ink:#17262e;--mut:#5d6f7b;--bl:#0b7bc1;--ok:#0a8a5a;--wn:#c46a00;--hl:#e4f2fb;color-scheme:light;box-sizing:border-box}
+:root[data-theme="dark"]{--bg:#10161c;--pn:#18212a;--ln:#2a3846;--ink:#e6edf3;--mut:#8fa1b2;--bl:#4db3f0;--ok:#4cd39b;--wn:#ffa94d;--hl:#14303f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+main{max-width:1150px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:21px;margin:0}
+h2{font-size:15px;margin:22px 0 8px;padding-left:8px;border-left:4px solid var(--bl)}
+.sub{color:var(--mut);font-size:13px;margin:2px 0 0}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{font:inherit;font-size:14px;color:var(--bl);background:var(--pn);border:1px solid var(--bl);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+button.on{background:var(--hl);font-weight:700}
+button.danger{color:#d93838;border-color:#d93838;background:var(--pn)}
+button.danger:hover{background:#fdf2f2}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+input:focus,select:focus{outline:2px solid var(--bl);border-color:transparent}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:12px 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.grid label{font-size:12px;color:var(--mut);display:block;margin-bottom:2px}
+.spec-box{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:8px;font-size:12px;color:var(--mut);margin-top:4px}
+svg{width:100%;height:auto;display:block;background:var(--pn);border:1px solid var(--ln);border-radius:8px;margin-bottom:16px}
+svg .sh{fill:var(--bg);stroke:var(--ink);stroke-width:1.5}
+svg .cl{stroke:var(--mut);stroke-dasharray:6 4;fill:none}
+svg .dl{stroke:var(--bl);stroke-width:1.2;fill:none}
+svg .mk{fill:var(--wn);transition:all 0.2s}
+svg .mk.filled{fill:var(--bl)}
+svg .mt{fill:#fff;font:bold 11px sans-serif;text-anchor:middle}
+svg .tx{fill:var(--mut);font:12px sans-serif}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--ln);padding:6px;text-align:left;vertical-align:middle}
+th{color:var(--mut);font-size:12px;font-weight:500}
+td.n{width:40px;text-align:center;font-weight:700;color:var(--bl)}
+td.i{width:160px}
+tr.g td{background:var(--hl);font-weight:700;font-size:13px}
+.rbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.rbar .rnm{flex:1;min-width:220px}
+button.pri{background:var(--bl);color:var(--bg)}
+details summary{cursor:pointer;font-weight:600;margin-top:10px}
+.rec{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px dashed var(--ln);flex-wrap:wrap}
+.rec-actions{display:flex;gap:6px}
+.sec-title{font-weight:700;font-size:14px;color:var(--bl);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+@media print{
+  .noprint{display:none!important}
+  :root,:root[data-theme="dark"]{--bg:#fff;--pn:#fff;--ink:#000;--mut:#444;--ln:#999;--hl:#eee}
+  input,select{border:0;border-bottom:1px solid #999;border-radius:0}
+}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <div>
+    <h1>大型雙吸式離心泵浦換型尺寸量測表</h1>
+    <p class="sub">M&V 節能工程現場專用：現場實測座標與土建結構資料表。</p>
+  </div>
+  <div class="nav noprint">
+    <a class="btn" href="index.html">← 泵浦換算工具</a>
+    <button type="button" id="themeToggle" title="切換深色背景" aria-label="切換深色背景"></button>
+    <button type="button" id="prt">列印／存成 PDF</button>
+  </div>
+</div>
+
+<div class="card noprint" style="margin-top:12px">
+  <div class="rbar">
+    <div class="rnm"><label>紀錄名稱</label><input id="rname" type="text" placeholder="例如：台塑 PA47-B 更換前廠勘"></div>
+    <button type="button" id="rsave" class="pri">儲存紀錄</button>
+    <button type="button" id="rnew">新建空白表單</button>
+  </div>
+  <details id="rbox"><summary>已儲存紀錄（<span id="rcnt">0</span>）</summary>
+    <div id="rl"></div>
+  </details>
+</div>
+
+<h2>1. 案廠基本資料</h2>
+<div class="card"><div class="grid" id="basic"></div></div>
+
+<h2>2. 馬達銘牌與泵浦銘牌可得知資料</h2>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap:12px;">
+  <div class="card">
+    <div class="sec-title">⚡ 馬達銘牌與 IEC 標準規格</div>
+    <div class="grid" style="grid-template-columns: 1fr;">
+      <div>
+        <label>馬達製造商 / 品牌</label>
+        <select id="motorBrand" data-k="np_m_brand">
+          <option value="">請選擇品牌...</option>
+          <optgroup label="國內常見大廠">
+            <option value="TECO">東元 (TECO)</option>
+            <option value="TATUNG">大同 (TATUNG)</option>
+            <option value="LS">六和 (LS)</option>
+            <option value="TAIE">台安 (TAIE)</option>
+            <option value="SHIH_LIN">士林電機 (SHIH LIN)</option>
+          </optgroup>
+          <optgroup label="國際品牌">
+            <option value="SIEMENS">西門子 (SIEMENS)</option>
+            <option value="ABB">ABB</option>
+            <option value="WEG">WEG</option>
+            <option value="MITSUBISHI">三菱 (MITSUBISHI)</option>
+            <option value="TOSHIBA">東芝 (TOSHIBA)</option>
+            <option value="HITACHI">日立 (HITACHI)</option>
+          </optgroup>
+          <option value="custom">✏️ 其他 / 自訂品牌</option>
+        </select>
+      </div>
+      <div>
+        <label>馬達框號 (IEC Frame)</label>
+        <select id="motorFrame" data-k="motorFrame">
+          <option value="">請選擇框號...</option>
+          <optgroup label="中型工業框號 (132 ~ 250)">
+            <option value="132S">132S (軸高 132mm / 7.5HP)</option>
+            <option value="132M">132M (軸高 132mm / 10HP)</option>
+            <option value="160M">160M (軸高 160mm / 15HP)</option>
+            <option value="160L">160L (軸高 160mm / 20HP)</option>
+            <option value="180M">180M (軸高 180mm / 25HP)</option>
+            <option value="180L">180L (軸高 180mm / 30HP)</option>
+            <option value="200L">200L (軸高 200mm / 40HP)</option>
+            <option value="225S">225S (軸高 225mm / 50HP)</option>
+            <option value="225M">225M (軸高 225mm / 60HP)</option>
+            <option value="250M">250M (軸高 250mm / 75HP)</option>
+          </optgroup>
+          <optgroup label="重型/大型框號 (280 ~ 450)">
+            <option value="280S">280S (軸高 280mm / 100HP)</option>
+            <option value="280M">280M (軸高 280mm / 125HP)</option>
+            <option value="315S">315S (軸高 315mm / 150HP)</option>
+            <option value="315M">315M (軸高 315mm / 200HP)</option>
+            <option value="315L">315L (軸高 315mm / 270HP)</option>
+            <option value="355M">355M (軸高 355mm / 330HP)</option>
+            <option value="355L">355L (軸高 355mm / 420HP)</option>
+            <option value="400">400 (軸高 400mm / 500HP+)</option>
+            <option value="450">450 (軸高 450mm / 重型)</option>
+          </optgroup>
+          <option value="custom">✏️ 其他 / 自訂特殊框號</option>
+        </select>
+        <div class="spec-box" id="motorSpec">選擇框號後顯示標準尺寸...</div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label>額定功率</label>
+          <div style="display:flex; gap:4px;">
+            <input type="number" step="any" data-k="np_m_kw" id="motorPowerInput" placeholder="如 200">
+            <select id="motorPowerUnit" data-k="np_m_punit" style="width:75px; flex-shrink:0;">
+              <option value="kW">kW</option>
+              <option value="HP">HP</option>
+            </select>
+          </div>
+        </div>
+        <div><label>額定轉速 (RPM)</label><input type="number" step="any" data-k="np_m_rpm" placeholder="如 1480"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div><label>額定電壓 (V)</label><input type="number" step="any" data-k="np_m_v" placeholder="如 380"></div>
+        <div><label>額定電流 (A)</label><input type="number" step="any" data-k="np_m_a" placeholder="如 365"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+        <div><label>額定效率 (%)</label><input type="number" step="any" data-k="np_m_eta" placeholder="95.5"></div>
+        <div><label>功率因數(cosφ)</label><input type="number" step="any" data-k="np_m_pf" placeholder="0.85"></div>
+        <div><label>極數/頻率</label><input type="text" data-k="np_m_p" placeholder="4P/60Hz"></div>
+      </div>
+      <div class="spec-box" id="motorPowerConv" style="margin-top:0">功率換算提示：請輸入數值</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">🌀 泵浦銘牌與出入口管徑/法蘭規格</div>
+    <div class="grid" style="grid-template-columns: 1fr;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label>現場入口管徑 (Suction Pipe)</label>
+          <select data-k="sucPipeSize">
+            <option value="">請選擇管徑...</option>
+            <option value="4">4" (DN100)</option>
+            <option value="6">6" (DN150)</option>
+            <option value="8">8" (DN200)</option>
+            <option value="10">10" (DN250)</option>
+            <option value="12">12" (DN300)</option>
+            <option value="14">14" (DN350)</option>
+            <option value="16">16" (DN400)</option>
+            <option value="18">18" (DN450)</option>
+            <option value="20">20" (DN500)</option>
+            <option value="24">24" (DN600)</option>
+          </select>
+        </div>
+        <div>
+          <label>泵浦入口法蘭規格</label>
+          <select id="sucFlange" data-k="sucFlange">
+            <option value="">請選擇法蘭...</option>
+            <optgroup label="ANSI 150LB">
+              <option value="ansi_4_150">4" | ANSI 150</option>
+              <option value="ansi_6_150">6" | ANSI 150</option>
+              <option value="ansi_8_150">8" | ANSI 150</option>
+              <option value="ansi_10_150">10" | ANSI 150</option>
+              <option value="ansi_12_150">12" | ANSI 150</option>
+              <option value="ansi_14_150">14" | ANSI 150</option>
+              <option value="ansi_16_150">16" | ANSI 150</option>
+              <option value="ansi_18_150">18" | ANSI 150</option>
+              <option value="ansi_20_150">20" | ANSI 150</option>
+              <option value="ansi_24_150">24" | ANSI 150</option>
+            </optgroup>
+            <optgroup label="JIS 10K">
+              <option value="jis_100_10k">100A | JIS 10K</option>
+              <option value="jis_150_10k">150A | JIS 10K</option>
+              <option value="jis_200_10k">200A | JIS 10K</option>
+              <option value="jis_250_10k">250A | JIS 10K</option>
+              <option value="jis_300_10k">300A | JIS 10K</option>
+              <option value="jis_350_10k">350A | JIS 10K</option>
+              <option value="jis_400_10k">400A | JIS 10K</option>
+              <option value="jis_500_10k">500A | JIS 10K</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="spec-box" id="sucSpec" style="margin-top:0">入口法蘭規格外徑與 PCD 資訊...</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+        <div>
+          <label>現場出口管徑 (Discharge Pipe)</label>
+          <select data-k="disPipeSize">
+            <option value="">請選擇管徑...</option>
+            <option value="3">3" (DN80)</option>
+            <option value="4">4" (DN100)</option>
+            <option value="6">6" (DN150)</option>
+            <option value="8">8" (DN200)</option>
+            <option value="10">10" (DN250)</option>
+            <option value="12">12" (DN300)</option>
+            <option value="14">14" (DN350)</option>
+            <option value="16">16" (DN400)</option>
+          </select>
+        </div>
+        <div>
+          <label>泵浦出口法蘭規格</label>
+          <select id="disFlange" data-k="disFlange">
+            <option value="">請選擇法蘭...</option>
+            <optgroup label="ANSI 150LB">
+              <option value="ansi_3_150">3" | ANSI 150</option>
+              <option value="ansi_4_150">4" | ANSI 150</option>
+              <option value="ansi_6_150">6" | ANSI 150</option>
+              <option value="ansi_8_150">8" | ANSI 150</option>
+              <option value="ansi_10_150">10" | ANSI 150</option>
+              <option value="ansi_12_150">12" | ANSI 150</option>
+              <option value="ansi_14_150">14" | ANSI 150</option>
+            </optgroup>
+            <optgroup label="JIS 10K">
+              <option value="jis_80_10k">80A | JIS 10K</option>
+              <option value="jis_100_10k">100A | JIS 10K</option>
+              <option value="jis_150_10k">150A | JIS 10K</option>
+              <option value="jis_200_10k">200A | JIS 10K</option>
+              <option value="jis_250_10k">250A | JIS 10K</option>
+              <option value="jis_300_10k">300A | JIS 10K</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="spec-box" id="disSpec" style="margin-top:0">出口法蘭規格外徑與 PCD 資訊...</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+        <div><label>額定流量 Q (m³/h)</label><input type="number" step="any" data-k="np_p_q" placeholder="如 1200"></div>
+        <div><label>額定揚程 H (m)</label><input type="number" step="any" data-k="np_p_h" placeholder="如 45"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div><label>原廠效率 η (%)</label><input type="number" step="any" data-k="np_p_eta" placeholder="如 82"></div>
+        <div><label>泵浦型號 / 序號</label><input type="text" data-k="np_p_model" placeholder="如 PA-47"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>3. 現場 2D 工程簡圖 (號碼與輸入即時連動)</h2>
+<svg id="dwg" viewBox="0 0 1150 480">
+  <style>
+    .sh { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+    .cl { stroke: var(--mut); stroke-dasharray: 6 4; fill: none; }
+    .dl { stroke: var(--bl); stroke-width: 1; fill: none; }
+    .ext { stroke: var(--mut); stroke-width: 0.75; stroke-dasharray: 2 2; fill: none; }
+    .mk { fill: var(--wn); transition: all 0.2s; cursor: pointer; }
+    .mk.filled { fill: var(--bl); }
+    .mt { fill: #fff; font: bold 11px sans-serif; text-anchor: middle; dominant-baseline: central; }
+    .tx { fill: var(--mut); font: 12px sans-serif; }
+    .arrow { fill: var(--bl); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrow"/>
+    </marker>
+  </defs>
+
+  <!-- 側視圖 Side View -->
+  <text class="tx" x="20" y="25" font-weight="bold">側視圖 (Side View - ISO 標準工程標註)</text>
+  <rect class="sh" fill="#eee" x="50" y="350" width="460" height="60"/>
+  <rect class="sh" x="80" y="320" width="400" height="30"/>
+  <rect class="sh" x="320" y="180" width="140" height="140" rx="4"/>
+  <path class="sh" d="M110 320 L130 240 H230 L250 320 Z"/>
+  <circle class="sh" cx="180" cy="220" r="50"/>
+  <line class="cl" x1="40" y1="220" x2="490" y2="220"/>
+  <rect class="sh" x="160" y="120" width="40" height="50"/>
+  <rect class="sh" x="145" y="105" width="70" height="15"/>
+  <rect class="sh" x="235" y="205" width="85" height="30"/>
+  
+  <path class="ext" d="M 135 220 H 20"/>
+  <path class="ext" d="M 80 320 H 20"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 30 220 V 320"/>
+  <g id="g1"><circle class="mk" cx="30" cy="270" r="11"/><text class="mt" x="30" y="270">1</text></g>
+
+  <path class="ext" d="M 145 105 H 100"/>
+  <path class="ext" d="M 180 220 H 100"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 110 105 V 220"/>
+  <g id="g2"><circle class="mk" cx="110" cy="162" r="11"/><text class="mt" x="110" y="162">2</text></g>
+
+  <path class="ext" d="M 320 220 H 360"/>
+  <path class="ext" d="M 320 320 H 360"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 350 220 V 320"/>
+  <g id="g3"><circle class="mk" cx="350" cy="270" r="11"/><text class="mt" x="350" y="270">3</text></g>
+
+  <path class="ext" d="M 235 180 V 160"/>
+  <path class="ext" d="M 320 180 V 160"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 235 170 H 320"/>
+  <g id="g5"><circle class="mk" cx="277" cy="170" r="11"/><text class="mt" x="277" y="170">5</text></g>
+
+  <path class="ext" d="M 50 350 H 15"/>
+  <path class="ext" d="M 50 410 H 15"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 25 350 V 410"/>
+  <g id="g11"><circle class="mk" cx="25" cy="380" r="11"/><text class="mt" x="25" y="380">11</text></g>
+
+  <path class="ext" d="M 480 320 H 510"/>
+  <path class="ext" d="M 480 350 H 510"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 500 320 V 350"/>
+  <g id="g12"><circle class="mk" cx="500" cy="335" r="11"/><text class="mt" x="500" y="335">12</text></g>
+
+  <!-- 俯視圖 Top View -->
+  <text class="tx" x="560" y="25" font-weight="bold">俯視圖 (Top View - ISO 標準工程標註)</text>
+  <rect class="sh" fill="#eee" x="590" y="70" width="500" height="340"/>
+  <rect class="sh" fill="#fff" stroke-dasharray="4 4" x="620" y="95" width="440" height="290"/>
+  <rect class="sh" x="660" y="145" width="100" height="190"/>
+  <rect class="sh" x="870" y="130" width="150" height="220"/>
+  <g fill="#fff" stroke="#17262e" stroke-width="2">
+    <circle cx="640" cy="115" r="5"/><circle cx="760" cy="115" r="5"/><circle cx="920" cy="115" r="5"/><circle cx="1040" cy="115" r="5"/>
+    <circle cx="640" cy="365" r="5"/><circle cx="760" cy="365" r="5"/><circle cx="920" cy="365" r="5"/><circle cx="1040" cy="365" r="5"/>
+  </g>
+
+  <path class="ext" d="M 660 145 V 125"/>
+  <path class="ext" d="M 710 145 V 125"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 660 133 H 710"/>
+  <g id="g4"><circle class="mk" cx="685" cy="133" r="11"/><text class="mt" x="685" y="133">4</text></g>
+
+  <path class="ext" d="M 620 385 V 430"/>
+  <path class="ext" d="M 1060 385 V 430"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 620 420 H 1060"/>
+  <g id="g6"><circle class="mk" cx="840" cy="420" r="11"/><text class="mt" x="840" y="420">6</text></g>
+
+  <path class="ext" d="M 1060 95 H 1100"/>
+  <path class="ext" d="M 1060 385 H 1100"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 1090 95 V 385"/>
+  <g id="g7"><circle class="mk" cx="1090" cy="240" r="11"/><text class="mt" x="1090" y="240">7</text></g>
+
+  <path class="ext" d="M 620 115 H 575"/>
+  <path class="ext" d="M 620 365 H 575"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 585 115 V 365"/>
+  <g id="g8a"><circle class="mk" cx="585" cy="240" r="11"/><text class="mt" x="585" y="240" font-size="9">8a</text></g>
+
+  <path class="ext" d="M 640 95 V 60"/>
+  <path class="ext" d="M 760 95 V 60"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 640 70 H 760"/>
+  <g id="g8b"><circle class="mk" cx="700" cy="70" r="11"/><text class="mt" x="700" y="70" font-size="9">8b</text></g>
+
+  <path class="ext" d="M 590 70 V 45"/>
+  <path class="ext" d="M 1090 70 V 45"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 590 55 H 1090"/>
+  <g id="g9"><circle class="mk" cx="840" cy="55" r="11"/><text class="mt" x="840" y="55">9</text></g>
+
+  <path class="ext" d="M 1090 70 H 1125"/>
+  <path class="ext" d="M 1090 410 H 1125"/>
+  <path class="dl" marker-start="url(#arrow)" marker-end="url(#arrow)" d="M 1115 70 V 410"/>
+  <g id="g10"><circle class="mk" cx="1115" cy="240" r="11"/><text class="mt" x="1115" y="240">10</text></g>
+</svg>
+
+<h2>4. 現場關鍵尺寸量測表 (單位 mm)</h2>
+<div class="card tw">
+  <table id="dim">
+    <thead>
+      <tr><th>#</th><th>現場量測項目</th><th>實測數據 (mm)</th><th>備註 / 狀態說明</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+</main>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var BASIC=[['案名/廠區'],['設備編號 (如 PA-47)'],['量測日期','date'],['量測人員']];
+var DIM=[
+  ['【子區塊 A】機腳架/底座與管路對接尺寸',[
+    [1,'入口法蘭中心至鋼底座上緣高度'],
+    [2,'出口法蘭面至泵浦中心高度'],
+    [3,'泵浦軸心高 (Shaft Centerline Height)'],
+    [4,'入口法蘭面至泵浦中心距離'],
+    [5,'兩軸端距離 (DBSE - Spacer 長度)'],
+    [6,'鋼底座總長度 (Baseplate Length)'],
+    [7,'鋼底座總寬度 (Baseplate Width)'],
+    ['8a','地腳螺栓縱向螺栓孔距 (Pitch X)'],
+    ['8b','地腳螺栓橫向螺栓孔距 (Pitch Y)'],
+    [12,'鋼底座總厚度 (Baseplate Thickness)']
+  ]],
+  ['【子區塊 B】水泥基座 / 土建尺寸',[
+    [9,'水泥墩台頂面長度 (Lf)'],
+    [10,'水泥墩台頂面寬度 (Wf)'],
+    [11,'水泥墩台凸起高度 (Hf)']
+  ]]
+];
+
+$('#basic').innerHTML = BASIC.map(function(b, i){
+  var type = b[1] === 'date' ? 'date' : 'text';
+  return '<div><label>'+b[0]+'</label><input type="'+type+'" data-k="b'+i+'"></div>';
+}).join('');
+
+var rows = '';
+DIM.forEach(function(sec){
+  rows += '<tr class="g"><td colspan="4">'+sec[0]+'</td></tr>';
+  sec[1].forEach(function(d){
+    rows += '<tr><td class="n">'+d[0]+'</td><td>'+d[1]+'</td><td class="i"><input type="number" data-k="m'+d[0]+'" id="in'+d[0]+'"></td><td><input type="text" data-k="r'+d[0]+'"></td></tr>';
+  });
+});
+$('#dim tbody').innerHTML = rows;
+
+var kwIn = $('#motorPowerInput'), unitSel = $('#motorPowerUnit'), convBox = $('#motorPowerConv');
+function updatePowerConv(){
+  var val = parseFloat(kwIn.value);
+  var unit = unitSel.value;
+  if(isNaN(val)){
+    convBox.textContent = '功率換算提示：請輸入數值';
+    return;
+  }
+  if(unit === 'kW'){
+    var hp = val * 1.34102;
+    var w = val * 1000;
+    convBox.textContent = '換算提示：' + val + ' kW = ' + hp.toFixed(1) + ' HP (' + w.toLocaleString() + ' W)';
+  } else {
+    var kw = val / 1.34102;
+    var w = kw * 1000;
+    convBox.textContent = '換算提示：' + val + ' HP = ' + kw.toFixed(2) + ' kW (' + w.toLocaleString() + ' W)';
+  }
+}
+kwIn.oninput = updatePowerConv;
+unitSel.onchange = function(){
+  var val = parseFloat(kwIn.value);
+  if(!isNaN(val)){
+    if(unitSel.value === 'HP'){
+      kwIn.value = (val * 1.34102).toFixed(1);
+    } else {
+      kwIn.value = (val / 1.34102).toFixed(2);
+    }
+  }
+  updatePowerConv();
+};
+
+var motorSpecs = {
+  '132S': '軸高: 132mm | 孔距: 216x140mm | 軸徑: 38mm (7.5HP)',
+  '132M': '軸高: 132mm | 孔距: 216x178mm | 軸徑: 38mm (10HP)',
+  '160M': '軸高: 160mm | 孔距: 254x210mm | 軸徑: 42mm (15HP)',
+  '160L': '軸高: 160mm | 孔距: 254x254mm | 軸徑: 42mm (20HP)',
+  '180M': '軸高: 180mm | 孔距: 279x241mm | 軸徑: 48mm (25HP)',
+  '180L': '軸高: 180mm | 孔距: 279x279mm | 軸徑: 48mm (30HP)',
+  '200L': '軸高: 200mm | 孔距: 318x305mm | 軸徑: 55mm (40HP)',
+  '225S': '軸高: 225mm | 孔距: 356x286mm | 軸徑: 60mm (50HP)',
+  '225M': '軸高: 225mm | 孔距: 356x311mm | 軸徑: 60mm (60HP)',
+  '250M': '軸高: 250mm | 孔距: 406x349mm | 軸徑: 65mm (75HP)',
+  '280S': '軸高: 280mm | 孔距: 457x368mm | 軸徑: 75mm (100HP)',
+  '280M': '軸高: 280mm | 孔距: 457x419mm | 軸徑: 75mm (125HP)',
+  '315S': '軸高: 315mm | 孔距: 508x406mm | 軸徑: 80mm (150HP)',
+  '315M': '軸高: 315mm | 孔距: 508x457mm | 軸徑: 80mm (200HP)',
+  '315L': '軸高: 315mm | 孔距: 508x508mm | 軸徑: 80mm (270HP)',
+  '355M': '軸高: 355mm | 孔距: 610x560mm | 軸徑: 95mm (330HP)',
+  '355L': '軸高: 355mm | 孔距: 610x630mm | 軸徑: 95mm (420HP)',
+  '400':  '軸高: 400mm | 孔距: 686x710mm | 軸徑: 100mm (500HP+)',
+  '450':  '軸高: 450mm | 孔距: 750x800mm | 軸徑: 110mm (重型極數機組)',
+  'custom':'✏️ 非標框號：請於備註欄填寫實際軸高 H 與機腳孔距 (A x B)'
+};
+
+var flangeSpecs = {
+  'ansi_4_150':  '外徑: 228.6mm | PCD: 190.5mm | 孔數: 8 x 19.0mm',
+  'ansi_6_150':  '外徑: 279.4mm | PCD: 241.3mm | 孔數: 8 x 22.2mm',
+  'ansi_8_150':  '外徑: 342.9mm | PCD: 298.5mm | 孔數: 8 x 22.2mm',
+  'ansi_10_150': '外徑: 406.4mm | PCD: 362.0mm | 孔數: 12 x 25.4mm',
+  'ansi_12_150': '外徑: 482.6mm | PCD: 431.8mm | 孔數: 12 x 25.4mm',
+  'ansi_14_150': '外徑: 533.4mm | PCD: 476.3mm | 孔數: 12 x 28.6mm',
+  'ansi_16_150': '外徑: 596.9mm | PCD: 539.8mm | 孔數: 16 x 28.6mm',
+  'ansi_18_150': '外徑: 635.0mm | PCD: 577.9mm | 孔數: 16 x 31.8mm',
+  'ansi_20_150': '外徑: 698.5mm | PCD: 635.0mm | 孔數: 20 x 31.8mm',
+  'ansi_24_150': '外徑: 812.8mm | PCD: 749.3mm | 孔數: 20 x 34.9mm',
+  'jis_100_10k':'外徑: 210.0mm | PCD: 175.0mm | 孔數: 8 x 19.0mm',
+  'jis_150_10k':'外徑: 280.0mm | PCD: 240.0mm | 孔數: 8 x 23.0mm',
+  'jis_200_10k':'外徑: 330.0mm | PCD: 290.0mm | 孔數: 12 x 23.0mm',
+  'jis_250_10k':'外徑: 400.0mm | PCD: 355.0mm | 孔數: 12 x 25.0mm',
+  'jis_300_10k':'外徑: 445.0mm | PCD: 400.0mm | 孔數: 16 x 25.0mm',
+  'jis_350_10k':'外徑: 490.0mm | PCD: 445.0mm | 孔數: 16 x 25.0mm',
+  'jis_400_10k':'外徑: 560.0mm | PCD: 510.0mm | 孔數: 16 x 27.0mm',
+  'jis_500_10k':'外徑: 675.0mm | PCD: 620.0mm | 孔數: 20 x 27.0mm',
+  'ansi_3_150':  '外徑: 190.5mm | PCD: 152.4mm | 孔數: 4 x 19.0mm',
+  'jis_80_10k':  '外徑: 185.0mm | PCD: 150.0mm | 孔數: 8 x 19.0mm'
+};
+
+function refreshSpecs(){
+  $('#motorSpec').textContent = motorSpecs[$('#motorFrame').value] || '選擇框號後顯示標準尺寸...';
+  $('#sucSpec').textContent = flangeSpecs[$('#sucFlange').value] || '選擇法蘭後顯示標準外徑/PCD...';
+  $('#disSpec').textContent = flangeSpecs[$('#disFlange').value] || '選擇法蘭後顯示標準外徑/PCD...';
+}
+$('#motorFrame').onchange = function(){ $('#motorSpec').textContent = motorSpecs[this.value] || '選擇框號後顯示標準尺寸...'; };
+$('#sucFlange').onchange = function(){ $('#sucSpec').textContent = flangeSpecs[this.value] || '選擇法蘭後顯示標準外徑/PCD...'; };
+$('#disFlange').onchange = function(){ $('#disSpec').textContent = flangeSpecs[this.value] || '選擇法蘭後顯示標準外徑/PCD...'; };
+
+document.addEventListener('input', function(e){
+  var id = e.target.id;
+  if(id && id.indexOf('in')===0){
+    var num = id.replace('in','');
+    var val = e.target.value;
+    var g = $('#g' + num);
+    if(g){
+      var circle = g.querySelector('circle');
+      var text = g.querySelector('text');
+      if(val){
+        circle.classList.add('filled');
+        text.textContent = val;
+        var n = String(val).length;
+        text.style.fontSize = n>=5 ? '6.5px' : n===4 ? '7.5px' : n===3 ? '9px' : '';
+      }else{
+        circle.classList.remove('filled');
+        text.textContent = num;
+        text.style.fontSize = '';
+      }
+    }
+  }
+});
+
+var RK='pa47SurveyRecs_v8', DK='pa47SurveyDraft_v8';
+function collect(){
+  var o={};
+  document.querySelectorAll('[data-k]').forEach(function(e){ if(e.value) o[e.getAttribute('data-k')] = e.value; });
+  return o;
+}
+function fill(o){
+  document.querySelectorAll('[data-k]').forEach(function(e){
+    e.value = o[e.getAttribute('data-k')] || '';
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  updatePowerConv();
+  refreshSpecs();
+}
+function renderRecs(){
+  var a = JSON.parse(localStorage.getItem(RK)||"[]");
+  $('#rcnt').textContent = a.length;
+  $('#rl').innerHTML = a.map(function(r){
+    return '<div class="rec"><div><b>'+String(r.name).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})+'</b></div><div class="rec-actions"><button type="button" data-load="'+r.id+'">載入</button><button type="button" class="danger" data-del="'+r.id+'">刪除</button></div></div>';
+  }).join('');
+}
+document.addEventListener('input', function(){ localStorage.setItem(DK, JSON.stringify({name:$('#rname').value, d:collect()})); });
+$('#rsave').onclick=function(){
+  var name = $('#rname').value;
+  if(!name){
+    var sb = $('#rsave'); sb.textContent = '請先輸入紀錄名稱'; $('#rname').focus();
+    setTimeout(function(){ sb.textContent = '儲存紀錄'; }, 2000);
+    return;
+  }
+  var a = JSON.parse(localStorage.getItem(RK)||"[]");
+  a.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2,8), name: name, d: collect()});
+  localStorage.setItem(RK, JSON.stringify(a));
+  renderRecs();
+};
+$('#rnew').onclick=function(){ $('#rname').value=''; fill({}); localStorage.removeItem(DK); };
+$('#rl').addEventListener('click', function(e){
+  if(e.target.tagName==='BUTTON'){
+    var idLoad = e.target.getAttribute('data-load');
+    var idDel = e.target.getAttribute('data-del');
+    var a = JSON.parse(localStorage.getItem(RK)||"[]");
+    if(idLoad){
+      var r = a.find(x=>x.id===idLoad);
+      if(r){ $('#rname').value = r.name; fill(r.d); }
+    } else if(idDel){
+      var b = e.target;
+      if(b.getAttribute('data-arm')){
+        a = a.filter(x=>x.id!==idDel);
+        localStorage.setItem(RK, JSON.stringify(a));
+        renderRecs();
+      } else {
+        b.setAttribute('data-arm','1');
+        b.textContent = '再按一次確認刪除';
+        setTimeout(function(){ if(b.isConnected!==false){ b.removeAttribute('data-arm'); b.textContent = '刪除'; } }, 3000);
+      }
+    }
+  }
+});
+$('#prt').onclick=function(){ window.print(); };
+
+var dr = JSON.parse(localStorage.getItem(DK)||'null');
+if(dr){ $('#rname').value = dr.name||''; fill(dr.d||{}); }
+
+var themeBtn = $('#themeToggle');
+var SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
+var MOON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="#818CF8" stroke="#4F46E5" stroke-width="1.6"/><path d="M18 3.2l.55 1.25 1.25.55-1.25.55L18 6.8l-.55-1.25L16.2 5l1.25-.55z" fill="#FBBF24" stroke="#F59E0B" stroke-width=".6"/></svg>';
+function applyTheme(dark){
+  var root = document.documentElement, t = dark ? '切換淺色背景' : '切換深色背景';
+  if(dark){ root.setAttribute('data-theme','dark'); } else { root.removeAttribute('data-theme'); }
+  themeBtn.innerHTML = dark ? SUN : MOON; themeBtn.title = t; themeBtn.setAttribute('aria-label', t);
+  try{ localStorage.setItem('pumpTheme', dark ? 'dark' : 'white'); localStorage.setItem('pa47Theme', dark ? 'dark' : 'light'); }catch(e){}
+}
+var savedT='white'; try{ savedT = localStorage.getItem('pumpTheme') || localStorage.getItem('pa47Theme') || 'white'; }catch(e){}
+applyTheme(savedT === 'dark');
+themeBtn.onclick = function(){ applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark'); };
+
+renderRecs();
+})();
+</script>
+</body>
+</html>
