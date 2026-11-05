@@ -129,7 +129,7 @@ button:hover,.file:hover{border-color:var(--bl)}
 
     <section class="panel" id="trPanel">
       <h2>性能曲線描點（推算用，選填）</h2>
-      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。</p>
+      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。點完後可以按住任一點拖曳微調，調好按「✓ 確定」才會重新推算。之後要再修改，按「調整…曲線」即可。</p>
       <div class="pt"><button id="trH" type="button">描 H-Q 揚程曲線<small></small></button><button id="trHu" type="button" title="刪除最後一個描點">退回</button></div>
       <div class="pt"><button id="trB" type="button">描 BHP 曲線<small></small></button><button id="trBu" type="button" title="刪除最後一個描點">退回</button></div>
       <button id="trClr" type="button">清除全部描點</button>
@@ -219,8 +219,25 @@ $('#trClr').onclick=function(){var b=$('#trClr');if(!TR.h.length&&!TR.b.length)r
 $('#trShow').onchange=update;
 $('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;trc=null;update()};
 
+var drag=null,skipClick=false;
+function cvPt(e){var r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height,k:cv.width/r.width}}
+function nearTr(p){if(!trc)return -1;var best=-1,bd=14*p.k;TR[trc].forEach(function(q,i){var d=Math.hypot(q.x-p.x,q.y-p.y);if(d<=bd){bd=d;best=i}});return best}
+cv.addEventListener('pointerdown',function(e){
+  skipClick=false;if(!img||!trc||psp||aln)return;
+  var p=cvPt(e),i=nearTr(p);if(i<0)return;
+  drag={i:i,id:e.pointerId};skipClick=true;e.preventDefault();
+  try{cv.setPointerCapture(e.pointerId)}catch(x){}
+  cv.style.cursor='grabbing';render(false);
+});
+cv.addEventListener('pointermove',function(e){
+  if(drag){var p=cvPt(e);TR[trc][drag.i]={x:Math.max(0,Math.min(cv.width,p.x)),y:Math.max(0,Math.min(cv.height,p.y))};render(false);return}
+  if(trc&&img)cv.style.cursor=nearTr(cvPt(e))>=0?'grab':'crosshair';
+});
+function endDrag(){if(!drag)return;drag=null;cv.style.cursor='grab';update()}
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 cv.addEventListener('click',function(e){
   if(!img)return;
+  if(skipClick){skipClick=false;return}
   var r=cv.getBoundingClientRect();
   var p={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
   if(psp){alNote='';psp.push(p);if(psp.length===4)doPersp();update();return}
@@ -444,15 +461,20 @@ function render(exp){
   }
   if(!exp&&$('#trShow').checked)[['h','#7b3fb0','y'],['b','#c46a00','z']].forEach(function(a){
     var tp=TR[a[0]];if(!tp.length)return;
-    var C=CVS[a[0]],FX=axis('x'),FY=axis(a[2]);
-    ctx.strokeStyle=a[1];ctx.fillStyle=a[1];ctx.lineWidth=2.5*s;ctx.setLineDash([]);
+    var ed=trc===a[0],C=ed?buildCurve(a[0]):CVS[a[0]],FX=axis('x'),FY=axis(a[2]);
+    ctx.strokeStyle=a[1];ctx.fillStyle=a[1];ctx.lineWidth=2.5*s;ctx.setLineDash(ed?[10*s,6*s]:[]);
     ctx.beginPath();
     if(C&&FX&&FY){for(var i=0;i<=120;i++){var xv=C.x0+(C.x1-C.x0)*i/120,px=FX(xv),py=FY(C.f(xv));if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py)}}
     else{tp.slice().sort(function(p,q){return p.x-q.x}).forEach(function(p,i){if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y)})}
     ctx.stroke();
-    tp.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,5*s,0,7);ctx.fill()});
+    ctx.setLineDash([]);
+    tp.forEach(function(p,i){
+      if(ed){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,8*s,0,7);ctx.fill();ctx.lineWidth=3*s;ctx.strokeStyle=(drag&&drag.i===i)?'#0a63b8':a[1];ctx.stroke();ctx.fillStyle=a[1];ctx.beginPath();ctx.arc(p.x,p.y,3*s,0,7);ctx.fill()}
+      else{ctx.beginPath();ctx.arc(p.x,p.y,5*s,0,7);ctx.fill()}
+    });
+    ctx.fillStyle=a[1];
     var lp=tp.reduce(function(m,p){return p.x>m.x?p:m},tp[0]);
-    ctx.font='bold '+Math.round(15*s)+'px '+FONT;ctx.fillText(a[0]==='h'?'H-Q 描點':'BHP 描點',lp.x+8*s,lp.y-8*s);
+    ctx.font='bold '+Math.round(15*s)+'px '+FONT;var lt=(a[0]==='h'?'H-Q 描點':'BHP 描點')+(ed?'（調整中）':''),lw=ctx.measureText(lt).width,lx=lp.x+8*s+lw>cv.width-4?lp.x-8*s-lw:lp.x+8*s;ctx.fillText(lt,lx,Math.max(16*s,lp.y-10*s));
   });
   var msg=$('#msg'),X=axis('x'),Y=axis('y'),rs=getRows().filter(function(r){return r.ok});
   if(!X||!Y||!rs.length)return;
@@ -540,19 +562,23 @@ function showEst(){
     var parts=[],qu=$('#qu').value,hu=$('#hu').value,zu=$('#zu').value;
     if(r.eq)parts.push('流量 ≈ '+fmt(r.q)+' '+qu);if(r.eh)parts.push('揚程 ≈ '+fmt(r.h)+' '+hu);if(r.eb)parts.push('BHP ≈ '+fmt(r.b)+' '+zu);
     var t=parts.length?'推算：'+parts.join('、')+(r.est.qsrc?'（流量由'+r.est.qsrc+'反推'+(r.est.multi?'；曲線有 '+r.est.multi+' 個交點，取流量較大的一側':'')+'）':''):'';
+    if(trc&&(isNaN(parseFloat(el.querySelector('.pq').value))||isNaN(parseFloat(el.querySelector('.ph').value))||isNaN(parseFloat(el.querySelector('.pb').value))))r.est.warn='';
+    var edt=trc&&!r.eq&&!r.eh&&!r.eb&&[el.querySelector('.pq'),el.querySelector('.ph'),el.querySelector('.pb')].some(function(x){return x.value===''})&&[el.querySelector('.pq'),el.querySelector('.ph'),el.querySelector('.pb')].some(function(x){return x.value!==''});
+    if(edt)t='曲線調整中，按「✓ 確定」後才會推算';
     var nt=el.querySelector('.pnote');nt.innerHTML=(t?'<span>'+t+'</span>':'')+(r.est.warn?'<span class="w">'+(t?'<br>':'')+'⚠ '+r.est.warn+'</span>':'');
   });
 }
 function trUI(){
-  [['h','#trH','描 H-Q 揚程曲線'],['b','#trB','描 BHP 曲線']].forEach(function(a){
+  [['h','#trH','H-Q 揚程曲線'],['b','#trB','BHP 曲線']].forEach(function(a){
     var b=$(a[1]),n=TR[a[0]].length,on=trc===a[0];
     b.className=on?'on':'';
-    b.innerHTML=a[2]+'<small>'+(on?'描點中（'+n+' 點），再按一次結束':n?n+' 點':'')+'</small>';
+    b.innerHTML=on?('✓ 確定 '+a[2]+'<small>'+n+' 點</small>'):((n?'調整 ':'描 ')+a[2]+'<small>'+(n?n+' 點・已確定':'')+'</small>');
   });
 }
 function update(){
   scheduleSave();
-  CVS.h=buildCurve('h');CVS.b=buildCurve('b');
+  CVS.h=trc==='h'?null:buildCurve('h');CVS.b=trc==='b'?null:buildCurve('b');
+  cv.style.touchAction=trc?'none':'';if(!trc)cv.style.cursor='';
   showEst();trUI();
   for(var i=0;i<6;i++){
     var b=$('#b'+i),d=!!pts[i];
@@ -563,7 +589,7 @@ function update(){
   $('#alBtn').textContent=aln?'取消轉正':'開始兩點轉正';
   $('#psBtn').textContent=psp?'取消透視校正':'開始四點透視校正';
   if(trc){var tn=trc==='h'?'H-Q 揚程':'BHP',ok2=trc==='h'?(axis('x')&&axis('y')):(axis('x')&&axis('z'));
-    t='描點中：沿著 '+tn+' 曲線在圖上點選（已點 '+TR[trc].length+' 點）。完成後再按一次左側的「描 '+tn+' 曲線」結束。'+(ok2?'':'（'+(trc==='h'?'X、Y':'X、Z')+' 軸尚未校正完成，描好後仍需校正才能推算）');}
+    t='描點／調整中（'+tn+' 曲線，'+TR[trc].length+' 點）：點圖上空白處新增點；按住已有的點可拖曳到想要的位置。調整好後按左側「✓ 確定 '+tn+' 曲線」才會重新推算。'+(ok2?'':'（'+(trc==='h'?'X、Y':'X、Z')+' 軸尚未校正完成，確定後仍需校正才能推算）');}
   else if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
   else if(aln)t=(alNote?alNote+' ':'')+'轉正：請在圖上點'+(aln.length?'第二':'第一')+'個點（這兩點的連線會被轉成'+($('#alMode').value==='v'?'垂直':'水平')+'）。';
   else if(!img)t='請先在左側上傳曲線圖。';
