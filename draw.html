@@ -68,6 +68,10 @@ button:hover,.file:hover{border-color:var(--bl)}
 .pr .x{padding:3px 0;line-height:1.2;font-size:18px}
 .pr .eye{padding:3px 0;line-height:1.2;display:flex;align-items:center;justify-content:center}
 .pr.hid>*:not(.eye){opacity:.45}
+.pr input.est::placeholder{color:var(--bl);font-style:italic;opacity:1}
+.pr .pnote{grid-column:1/-1;font-size:14px;color:var(--bl);margin:-2px 0 4px 28px;line-height:1.4}.pr .pnote .w{color:var(--rd)}.pr .pnote:empty{display:none}
+#trPanel .pt{grid-template-columns:1fr 70px}
+#trPanel .pt button.on{border-color:var(--bl);box-shadow:inset 3px 0 0 var(--bl);font-weight:700}
 #add{margin:4px 0 10px}
 .chk{display:grid;gap:6px;margin:4px 0 8px}
 .chk label{display:flex;gap:8px;align-items:center}
@@ -123,6 +127,16 @@ button:hover,.file:hover{border-color:var(--bl)}
     <button id="reset" type="button" style="margin-top:10px">重新校正</button>
     </section>
 
+    <section class="panel" id="trPanel">
+      <h2>性能曲線描點（推算用，選填）</h2>
+      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。</p>
+      <div class="pt"><button id="trH" type="button">描 H-Q 揚程曲線<small></small></button><button id="trHu" type="button" title="刪除最後一個描點">退回</button></div>
+      <div class="pt"><button id="trB" type="button">描 BHP 曲線<small></small></button><button id="trBu" type="button" title="刪除最後一個描點">退回</button></div>
+      <button id="trClr" type="button">清除全部描點</button>
+      <div class="chk" style="margin-top:8px"><label><input id="trShow" type="checkbox" checked>在圖上顯示描點曲線（下載的圖片不會有）</label></div>
+      <p class="hint" style="margin:0">揚程曲線需要先校正 X、Y 軸；BHP 曲線需要先校正 X、Z 軸。圖上有多條曲線（不同葉輪或轉速）時，請描實際使用的那一條。</p>
+    </section>
+
   </div>
 
   <div class="colM">
@@ -148,7 +162,7 @@ button:hover,.file:hover{border-color:var(--bl)}
       <div id="rows"></div>
       <button id="add" type="button">＋ 新增一個工作點</button>
       <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（不標座標軸上的數值）</label></div>
-      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。每個工作點右側的眼睛圖示可以暫時隱藏該點（資料會保留），圖面太亂時很好用。點每列最左邊的圓形色點，可以從標準色彩中選擇該工作點的顏色。</p>
+      <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。每個工作點右側的眼睛圖示可以暫時隱藏該點（資料會保留），圖面太亂時很好用。點每列最左邊的圓形色點，可以從標準色彩中選擇該工作點的顏色。<br><b style="color:var(--ink)">只有兩項（或一項）也可以：</b>在左側描好性能曲線後，空白的欄位會自動用曲線推算，推算值會以藍色斜體填在空白欄位，完整數值寫在該列下方；圖上的數值也會加「≈」。有流量時，揚程、BHP 直接查曲線；沒有流量時，先由揚程（沒有揚程就用 BHP）反推流量。</p>
     <button id="resetCol" type="button" style="margin-top:8px">全部還原預設色</button>
     <p class="hint" style="margin:6px 0 0">圖片、校正與工作點會自動儲存在這個瀏覽器，重新整理後仍會保留。<span id="saveInfo"></span></p>
     <button id="wipe" type="button" style="margin-top:8px">清除儲存並重設</button>
@@ -166,6 +180,7 @@ var ZF={'HP':1,'kW':1.34102};
 var cv=$('#cv'),ctx=cv.getContext('2d'),img=null,pts=[null,null,null,null,null,null],act=0;
 var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2','Z 軸刻度 1','Z 軸刻度 2'];
 var aln=null,psp=null,orig=null,rotDeg=0,alNote='';
+var TR={h:[],b:[]},trc=null,CVS={h:null,b:null},trArm=false;
 var LS='pumpDrawState',origBlob=null,curBlob=null,curBlobFor=null,saveTimer=null,restoring=true,noSave=false,idb=null;
 var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
@@ -179,7 +194,7 @@ function load(f,done){
   $('#fileInfo').textContent='正在讀取：'+(f.name||'圖片')+' …';
   var u=URL.createObjectURL(f),im=new Image();
   im.onload=function(){trash=null;img=im;orig=im;origBlob=f;curBlob=null;curBlobFor=null;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
-    pts=[null,null,null,null,null,null];act=0;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';$('#fileInfo').textContent='目前圖片：'+(f.name||'圖片')+'（'+im.naturalWidth+' × '+im.naturalHeight+' px）';update();URL.revokeObjectURL(u);done()};
+    pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';$('#fileInfo').textContent='目前圖片：'+(f.name||'圖片')+'（'+im.naturalWidth+' × '+im.naturalHeight+' px）';update();URL.revokeObjectURL(u);done()};
   im.onerror=function(){var m='這張圖片無法讀取。iPhone 的 HEIC 格式請改存成 JPG 或 PNG。';$('#next').textContent=m;$('#msg').textContent=m;$('#fileInfo').textContent=m;done()};
   im.src=u;
 }
@@ -192,12 +207,17 @@ var w=$('#wrap');
 w.addEventListener('drop',function(e){load(e.dataTransfer.files[0])});
 
 for(var i=0;i<6;i++)(function(i){
-  $('#b'+i).onclick=function(){aln=null;psp=null;act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
+  $('#b'+i).onclick=function(){aln=null;psp=null;trc=null;act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
   $('#v'+i).oninput=update;
 })(i);
 ['xu','yu','logx','logy','zxu','zu','logz','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
 $('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%';scheduleSave()};
-$('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;update()};
+function trToggle(k){if(!img){$('#next').textContent='請先上傳曲線圖。';return}aln=null;psp=null;trc=trc===k?null:k;if(trc)act=-1;else{var n0=pts.slice(0,4).findIndex(function(p){return !p});act=n0>=0?n0:-1}update();if(trc&&innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})}
+$('#trH').onclick=function(){trToggle('h')};$('#trB').onclick=function(){trToggle('b')};
+$('#trHu').onclick=function(){TR.h.pop();update()};$('#trBu').onclick=function(){TR.b.pop();update()};
+$('#trClr').onclick=function(){var b=$('#trClr');if(!TR.h.length&&!TR.b.length)return;if(!trArm){trArm=true;b.textContent='再按一次確認清除';setTimeout(function(){trArm=false;b.textContent='清除全部描點'},3000);return}trArm=false;b.textContent='清除全部描點';TR={h:[],b:[]};trc=null;update()};
+$('#trShow').onchange=update;
+$('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;trc=null;update()};
 
 cv.addEventListener('click',function(e){
   if(!img)return;
@@ -205,6 +225,7 @@ cv.addEventListener('click',function(e){
   var p={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
   if(psp){alNote='';psp.push(p);if(psp.length===4)doPersp();update();return}
   if(aln){alNote='';aln.push(p);if(aln.length===2)doAlign();update();return}
+  if(trc){TR[trc].push(p);update();return}
   if(act<0){$('#msg').textContent='校正已完成，這次點擊沒有改動任何刻度。要重新定位，請先按左側對應的「刻度」按鈕。';return}
   pts[act]=p;
   var cur=act,n=pts.slice(0,4).findIndex(function(p){return !p});
@@ -220,6 +241,70 @@ function axis(k){
   var f=lg?Math.log10:function(x){return x},p1=k==='x'?a.x:a.y,p2=k==='x'?b.x:b.y;
   if(p1===p2)return null;
   return function(v){return(lg&&v<=0)?NaN:p1+(f(v)-f(v1))*(p2-p1)/(f(v2)-f(v1))};
+}
+function axInv(k){
+  var i=k==='x'?0:k==='y'?2:4,a=pts[i],b=pts[i+1],v1=parseFloat($('#v'+i).value),v2=parseFloat($('#v'+(i+1)).value);
+  if(!a||!b||isNaN(v1)||isNaN(v2)||v1===v2)return null;
+  var lg=$('#log'+k).checked;if(lg&&(v1<=0||v2<=0))return null;
+  var f=lg?Math.log10:function(x){return x},p1=k==='x'?a.x:a.y,p2=k==='x'?b.x:b.y;
+  if(p1===p2)return null;
+  return function(px){var fv=f(v1)+(px-p1)*(f(v2)-f(v1))/(p2-p1);return lg?Math.pow(10,fv):fv};
+}
+function pchip(xs,ys){
+  var n=xs.length,h=[],d=[],m=[],i;
+  for(i=0;i<n-1;i++){h[i]=xs[i+1]-xs[i];d[i]=(ys[i+1]-ys[i])/h[i]}
+  var sgn=function(v){return v>0?1:v<0?-1:0};
+  var end=function(h0,h1,d0,d1){var t=((2*h0+h1)*d0-h0*d1)/(h0+h1);if(sgn(t)!==sgn(d0))t=0;else if(sgn(d0)!==sgn(d1)&&Math.abs(t)>Math.abs(3*d0))t=3*d0;return t};
+  if(n===2){m[0]=m[1]=d[0]}
+  else{
+    for(i=1;i<n-1;i++){if(d[i-1]*d[i]<=0)m[i]=0;else{var w1=2*h[i]+h[i-1],w2=h[i]+2*h[i-1];m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i])}}
+    m[0]=end(h[0],h[1],d[0],d[1]);m[n-1]=end(h[n-2],h[n-3],d[n-2],d[n-3]);
+  }
+  return function(x){
+    if(!(x>=xs[0]&&x<=xs[n-1]))return NaN;
+    var k=0;while(k<n-2&&x>xs[k+1])k++;
+    var t=(x-xs[k])/h[k],t2=t*t,t3=t2*t;
+    return (2*t3-3*t2+1)*ys[k]+(t3-2*t2+t)*h[k]*m[k]+(-2*t3+3*t2)*ys[k+1]+(t3-t2)*h[k]*m[k+1];
+  };
+}
+function buildCurve(k){
+  var X=axInv('x'),Y=axInv(k==='h'?'y':'z');if(!X||!Y||TR[k].length<2)return null;
+  var a=TR[k].map(function(p){return {x:X(p.x),y:Y(p.y)}}).filter(function(p){return isFinite(p.x)&&isFinite(p.y)}).sort(function(p,q){return p.x-q.x});
+  var xs=[],ys=[];
+  a.forEach(function(p){var j=xs.length-1;if(j>=0&&Math.abs(p.x-xs[j])<1e-9*Math.max(1,Math.abs(p.x))){ys[j]=(ys[j]+p.y)/2}else{xs.push(p.x);ys.push(p.y)}});
+  if(xs.length<2)return null;
+  var f=pchip(xs,ys);
+  return {f:f,x0:xs[0],x1:xs[xs.length-1],n:xs.length,inv:function(y){
+    var N=800,r=[],px=xs[0],pv=f(px)-y;
+    if(pv===0)r.push(px);
+    for(var i=1;i<=N;i++){var x=xs[0]+(xs[xs.length-1]-xs[0])*i/N,v=f(x)-y;if(v===0)r.push(x);else if(pv*v<0)r.push(px+(x-px)*pv/(pv-v));px=x;pv=v}
+    return r;
+  }};
+}
+function estimate(q,h,b){
+  var e={q:NaN,h:NaN,b:NaN,note:'',warn:'',qsrc:'',multi:0},H=CVS.h,B=CVS.b;
+  var qu=$('#qu').value,hu=$('#hu').value,zu=$('#zu').value,xu=$('#xu').value,yu=$('#yu').value,zxu=$('#zxu').value;
+  var toQc=function(v){return v*QF[qu]/QF[xu]},fromQc=function(v){return v*QF[xu]/QF[qu]};
+  var toHc=function(v){return v*HF[hu]/HF[yu]},fromHc=function(v){return v*HF[yu]/HF[hu]};
+  var toBc=function(v){return v*ZF[zu]/ZF[zxu]},fromBc=function(v){return v*ZF[zxu]/ZF[zu]};
+  var notes=[],warns=[];
+  if(isNaN(q)){
+    if(!isNaN(h)&&H){var r=H.inv(toHc(h));if(r.length){e.q=fromQc(r[r.length-1]);e.qsrc='揚程';notes.push('流量由揚程反推');if(r.length>1)e.multi=r.length}else warns.push('揚程 '+h+' 不在 H-Q 描點範圍內，無法反推流量')}
+    else if(!isNaN(b)&&B){var r2=B.inv(toBc(b));if(r2.length){e.q=fromQc(r2[r2.length-1]);e.qsrc='BHP';notes.push('流量由 BHP 反推');if(r2.length>1)e.multi=r2.length}else warns.push('BHP '+b+' 不在 BHP 描點範圍內，無法反推流量')}
+    else if(!isNaN(h)||!isNaN(b))warns.push('沒有流量：請先在左側描 '+(!isNaN(h)?'H-Q 揚程':'BHP')+' 曲線，才能反推流量');
+    if(isFinite(e.q)&&!isNaN(h)&&!isNaN(b)&&B&&notes[0].indexOf('揚程')>=0){
+      var r3=B.inv(toBc(b));if(r3.length){var qb=fromQc(r3[r3.length-1]),df=(qb-e.q)/e.q*100;if(Math.abs(df)>5)warns.push('由 BHP 反推的流量約 '+fmt(qb)+'，和由揚程反推的差 '+(df>0?'+':'')+df.toFixed(1)+'%，請確認讀值或曲線')}
+    }
+  }
+  var qq=isNaN(q)?e.q:q;
+  if(isFinite(qq)){
+    var miss=[];
+    if(isNaN(h)){if(H){var hv=H.f(toQc(qq));if(isFinite(hv)){e.h=fromHc(hv);miss.push('揚程')}else warns.push('流量超出 H-Q 描點範圍，無法推算揚程')}}
+    if(isNaN(b)&&B){var bv=B.f(toQc(qq));if(isFinite(bv)){e.b=fromBc(bv);miss.push('BHP')}else if(!isNaN(h)||isFinite(e.h))warns.push('流量超出 BHP 描點範圍，無法推算 BHP')}
+    if(miss.length)notes.push(miss.join('、')+'由曲線推算');
+  }
+  e.note=notes.join('；');e.warn=warns.join('；');
+  return e;
 }
 function fmt(n){return String(+n.toPrecision(4))}
 function homog(P){
@@ -290,13 +375,13 @@ function doPersp(){
   var oc=document.createElement('canvas');oc.width=r.w;oc.height=r.h;
   var o=oc.getContext('2d'),od=o.createImageData(r.w,r.h);od.data.set(r.data);o.putImageData(od,0,0);
   img=oc;cv.width=r.w;cv.height=r.h;
-  pts=[null,null,null,null,null,null];act=0;
+  pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;
   $('#stat').textContent=r.w+' × '+r.h+' px';
   $('#alInfo').textContent='已套用四點透視校正。請重新點選座標軸的刻度。';
 }
 $('#psBtn').onclick=function(){
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
-  aln=null;alNote='';psp=psp?null:[];update();
+  aln=null;trc=null;alNote='';psp=psp?null:[];update();
 };
 function doAlign(){
   var a=aln[0],b=aln[1],dx=b.x-a.x,dy=b.y-a.y;
@@ -317,18 +402,18 @@ function rotateImg(al){
   o.translate(nw/2,nh/2);o.rotate(al);o.drawImage(img,-w/2,-h/2);
   img=oc;cv.width=nw;cv.height=nh;
   rotDeg+=al*180/Math.PI;
-  pts=[null,null,null,null,null,null];act=0;
+  pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;
   $('#stat').textContent=nw+' × '+nh+' px';
   $('#alInfo').textContent='已轉正（累計 '+rotDeg.toFixed(2)+'°）。請重新點選座標軸的刻度。';
 }
 $('#alBtn').onclick=function(){
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
-  psp=null;alNote='';aln=aln?null:[];update();
+  psp=null;trc=null;alNote='';aln=aln?null:[];update();
 };
 $('#alUndo').onclick=function(){
   if(!orig)return;
   img=orig;cv.width=orig.naturalWidth;cv.height=orig.naturalHeight;
-  rotDeg=0;aln=null;psp=null;pts=[null,null,null,null,null,null];act=0;
+  rotDeg=0;aln=null;psp=null;pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;
   $('#stat').textContent=orig.naturalWidth+' × '+orig.naturalHeight+' px';
   $('#alInfo').textContent='已還原原圖，請重新校正座標軸。';
   update();
@@ -357,6 +442,18 @@ function render(exp){
       if(i>0){ctx.beginPath();ctx.moveTo(psp[i-1].x,psp[i-1].y);ctx.lineTo(p.x,p.y);ctx.stroke()}
     });
   }
+  if(!exp&&$('#trShow').checked)[['h','#7b3fb0','y'],['b','#c46a00','z']].forEach(function(a){
+    var tp=TR[a[0]];if(!tp.length)return;
+    var C=CVS[a[0]],FX=axis('x'),FY=axis(a[2]);
+    ctx.strokeStyle=a[1];ctx.fillStyle=a[1];ctx.lineWidth=2.5*s;ctx.setLineDash([]);
+    ctx.beginPath();
+    if(C&&FX&&FY){for(var i=0;i<=120;i++){var xv=C.x0+(C.x1-C.x0)*i/120,px=FX(xv),py=FY(C.f(xv));if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py)}}
+    else{tp.slice().sort(function(p,q){return p.x-q.x}).forEach(function(p,i){if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y)})}
+    ctx.stroke();
+    tp.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,5*s,0,7);ctx.fill()});
+    var lp=tp.reduce(function(m,p){return p.x>m.x?p:m},tp[0]);
+    ctx.font='bold '+Math.round(15*s)+'px '+FONT;ctx.fillText(a[0]==='h'?'H-Q 描點':'BHP 描點',lp.x+8*s,lp.y-8*s);
+  });
   var msg=$('#msg'),X=axis('x'),Y=axis('y'),rs=getRows().filter(function(r){return r.ok});
   if(!X||!Y||!rs.length)return;
   var qu=$('#qu').value,hu=$('#hu').value,xu=$('#xu').value,yu=$('#yu').value;
@@ -427,18 +524,36 @@ function render(exp){
       lc.push(function(w,h){return [x0-6*s-w,o.py-h/2+k*(h+2*s)]});
       bc.push(function(w,h){return [o.px-w/2,y0+6*s+k*(h+2*s)]});
     })(k);
-    place([fmt(o.hm)+' m'],o.r.col,lc);
-    place([fmt(o.qm)+' m³/h'],o.r.col,bc);
+    place([(o.r.eh?'≈':'')+fmt(o.hm)+' m'],o.r.col,lc);
+    place([(o.r.eq?'≈':'')+fmt(o.qm)+' m³/h'],o.r.col,bc);
   });
   if($('#axl').checked&&!simp)zi.forEach(function(z){
     var right=zx>cv.width/2,zc=[];
     for(var k=0;k<5;k++)(function(k){zc.push(function(w,h){return [right?zx+6*s:zx-6*s-w,z.pz-h/2+k*(h+2*s)]})})(k);
-    place([fmt(z.b)+' '+zu],z.o.r.col,zc);
+    place([(z.o.r.eb?'≈':'')+fmt(z.b)+' '+zu],z.o.r.col,zc);
   });
 }
 
+function showEst(){
+  getRows().forEach(function(r){
+    var el=r.el;[['.pq','eq','q'],['.ph','eh','h'],['.pb','eb','b']].forEach(function(a){var inp=el.querySelector(a[0]);if(r[a[1]]){inp.placeholder=fmt(r[a[2]]);inp.classList.add('est')}else{inp.placeholder='';inp.classList.remove('est')}});
+    var parts=[],qu=$('#qu').value,hu=$('#hu').value,zu=$('#zu').value;
+    if(r.eq)parts.push('流量 ≈ '+fmt(r.q)+' '+qu);if(r.eh)parts.push('揚程 ≈ '+fmt(r.h)+' '+hu);if(r.eb)parts.push('BHP ≈ '+fmt(r.b)+' '+zu);
+    var t=parts.length?'推算：'+parts.join('、')+(r.est.qsrc?'（流量由'+r.est.qsrc+'反推'+(r.est.multi?'；曲線有 '+r.est.multi+' 個交點，取流量較大的一側':'')+'）':''):'';
+    var nt=el.querySelector('.pnote');nt.innerHTML=(t?'<span>'+t+'</span>':'')+(r.est.warn?'<span class="w">'+(t?'<br>':'')+'⚠ '+r.est.warn+'</span>':'');
+  });
+}
+function trUI(){
+  [['h','#trH','描 H-Q 揚程曲線'],['b','#trB','描 BHP 曲線']].forEach(function(a){
+    var b=$(a[1]),n=TR[a[0]].length,on=trc===a[0];
+    b.className=on?'on':'';
+    b.innerHTML=a[2]+'<small>'+(on?'描點中（'+n+' 點），再按一次結束':n?n+' 點':'')+'</small>';
+  });
+}
 function update(){
   scheduleSave();
+  CVS.h=buildCurve('h');CVS.b=buildCurve('b');
+  showEst();trUI();
   for(var i=0;i<6;i++){
     var b=$('#b'+i),d=!!pts[i];
     b.className=(i===act?'on ':'')+(d?'done':'');
@@ -447,7 +562,9 @@ function update(){
   var rs=getRows(),nok=rs.filter(function(r){return r.ok&&!r.hid}).length,nhid=rs.filter(function(r){return r.ok&&r.hid}).length,t='';
   $('#alBtn').textContent=aln?'取消轉正':'開始兩點轉正';
   $('#psBtn').textContent=psp?'取消透視校正':'開始四點透視校正';
-  if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
+  if(trc){var tn=trc==='h'?'H-Q 揚程':'BHP',ok2=trc==='h'?(axis('x')&&axis('y')):(axis('x')&&axis('z'));
+    t='描點中：沿著 '+tn+' 曲線在圖上點選（已點 '+TR[trc].length+' 點）。完成後再按一次左側的「描 '+tn+' 曲線」結束。'+(ok2?'':'（'+(trc==='h'?'X、Y':'X、Z')+' 軸尚未校正完成，描好後仍需校正才能推算）');}
+  else if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
   else if(aln)t=(alNote?alNote+' ':'')+'轉正：請在圖上點'+(aln.length?'第二':'第一')+'個點（這兩點的連線會被轉成'+($('#alMode').value==='v'?'垂直':'水平')+'）。';
   else if(!img)t='請先在左側上傳曲線圖。';
   else{
@@ -475,9 +592,9 @@ function setDelUI(on){
   else{$('#delImg').textContent='移除圖片（Delete）';$('#fileInfo').textContent=delSaved}
 }
 function clearImage(){
-  trash={img:img,orig:orig,pts:pts.slice(),rotDeg:rotDeg,w:cv.width,h:cv.height,info:$('#fileInfo').textContent,stat:$('#stat').textContent};
+  trash={img:img,orig:orig,pts:pts.slice(),tr:TR,rotDeg:rotDeg,w:cv.width,h:cv.height,info:$('#fileInfo').textContent,stat:$('#stat').textContent};
   img=null;orig=null;rotDeg=0;aln=null;psp=null;alNote='';
-  pts=[null,null,null,null,null,null];act=0;
+  pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;
   cv.hidden=true;$('#empty').hidden=false;
   $('#stat').textContent='';$('#alInfo').textContent='';
   $('#fileInfo').textContent='已刪除圖片。可以重新選擇圖片，或按 Ctrl+Z 復原。';
@@ -485,7 +602,7 @@ function clearImage(){
 }
 function restoreImage(){
   if(!trash||img)return;
-  img=trash.img;orig=trash.orig;pts=trash.pts;rotDeg=trash.rotDeg;
+  img=trash.img;orig=trash.orig;pts=trash.pts;TR=trash.tr||{h:[],b:[]};rotDeg=trash.rotDeg;
   var n0=pts.slice(0,4).findIndex(function(p){return !p});act=n0>=0?n0:-1;
   cv.width=trash.w;cv.height=trash.h;cv.hidden=false;$('#empty').hidden=true;
   $('#stat').textContent=trash.stat;$('#fileInfo').textContent=trash.info;
@@ -528,7 +645,9 @@ var COLS=['#d9261c','#1a8a3c','#c46a00','#7b3fb0','#008a8a','#b0306b'];
 function getRows(){
   return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el,i){
     var q=parseFloat(el.querySelector('.pq').value),h=parseFloat(el.querySelector('.ph').value),b=parseFloat(el.querySelector('.pb').value);
-    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,b:b,ok:!isNaN(q)&&!isNaN(h),hid:el.classList.contains('hid'),col:(el.dataset.custom?el.dataset.col:COLS[i%COLS.length])};
+    var e=estimate(q,h,b),eq=isNaN(q)&&isFinite(e.q),eh=isNaN(h)&&isFinite(e.h),eb=isNaN(b)&&isFinite(e.b);
+    if(eq)q=e.q;if(eh)h=e.h;if(eb)b=e.b;
+    return {name:el.querySelector('.pn').value.trim()||('工作點 '+(i+1)),q:q,h:h,b:b,eq:eq,eh:eh,eb:eb,est:e,el:el,ok:!isNaN(q)&&!isNaN(h),hid:el.classList.contains('hid'),col:(el.dataset.custom?el.dataset.col:COLS[i%COLS.length])};
   });
 }
 function recolor(){document.querySelectorAll('#rows .pr').forEach(function(el,i){el.querySelector('.dot').style.background=el.dataset.custom?el.dataset.col:COLS[i%COLS.length]})}
@@ -561,7 +680,7 @@ var EYE='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="cur
 var EYEOFF='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
 function addRow(name){
   var d=document.createElement('div');d.className='pr';
-  d.innerHTML='<button type="button" class="dot" aria-label="選擇此工作點的顏色" aria-haspopup="dialog" title="點一下選擇顏色"></button><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="eye" aria-label="隱藏此工作點" aria-pressed="false" title="隱藏此工作點"></button><button type="button" class="x" aria-label="刪除此工作點">×</button>';
+  d.innerHTML='<button type="button" class="dot" aria-label="選擇此工作點的顏色" aria-haspopup="dialog" title="點一下選擇顏色"></button><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="eye" aria-label="隱藏此工作點" aria-pressed="false" title="隱藏此工作點"></button><button type="button" class="x" aria-label="刪除此工作點">×</button><div class="pnote" role="status"></div>';
   d.querySelector('.pn').value=name;
   d.querySelector('.dot').onclick=function(e){if(e&&e.stopPropagation)e.stopPropagation();openPal(d)};
   d.addEventListener('input',update);
@@ -581,8 +700,8 @@ function rowsRaw(){return Array.prototype.map.call(document.querySelectorAll('#r
 function collectMeta(){
   var inp={};
   ['v0','v1','v2','v3','v4','v5','xu','yu','zxu','zu','qu','hu','zoom','alMode'].forEach(function(id){inp[id]=$('#'+id).value});
-  ['logx','logy','logz','axl','dsh','smp'].forEach(function(id){inp[id]=$('#'+id).checked});
-  return {v:1,t:Date.now(),inp:inp,pts:pts,rot:rotDeg,hasImg:!!img,rows:rowsRaw()};
+  ['logx','logy','logz','axl','dsh','smp','trShow'].forEach(function(id){inp[id]=$('#'+id).checked});
+  return {v:1,t:Date.now(),inp:inp,pts:pts,tr:TR,rot:rotDeg,hasImg:!!img,rows:rowsRaw()};
 }
 function scheduleSave(){if(restoring||noSave)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,600)}
 function saveNow(){
@@ -629,6 +748,7 @@ function applyMeta(m,ob,cb){
       img=imC;orig=imO||imC;origBlob=(imO&&ob)?ob:use;curBlob=(imO&&cb)?cb:null;curBlobFor=curBlob?imC:null;
       cv.width=imC.naturalWidth;cv.height=imC.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
       var sp=m.pts||[];pts=[0,1,2,3,4,5].map(function(i){var p=sp[i];return p&&isFinite(p.x)&&isFinite(p.y)?{x:p.x,y:p.y}:null});
+      var cl=function(a){return Array.isArray(a)?a.filter(function(p){return p&&isFinite(p.x)&&isFinite(p.y)}).map(function(p){return {x:p.x,y:p.y}}):[]};TR={h:cl(m.tr&&m.tr.h),b:cl(m.tr&&m.tr.b)};
       rotDeg=m.rot||0;
       var n=pts.slice(0,4).findIndex(function(p){return !p});act=n>=0?n:-1;
       $('#stat').textContent=imC.naturalWidth+' × '+imC.naturalHeight+' px';
