@@ -8,28 +8,28 @@
 :root{--s0:#0e7490;--s1:#7c3aed;--s2:#b45309;--s3:#be123c;--s4:#15803d;--s5:#1d4ed8;--bg:#fff;--pn:#f6f9fc;--ln:#d5dee6;--ink:#17262e;--mut:#5d6f7b;--bl:#0b7bc1;--ok:#0a8a5a;--wn:#b45f06;--bad:#c0392b;--hl:#e4f2fb;color-scheme:light}
 :root[data-theme="dark"]{--s0:#67e8f9;--s1:#c4b5fd;--s2:#fcd34d;--s3:#fda4af;--s4:#86efac;--s5:#93c5fd;--bg:#10161c;--pn:#18212a;--ln:#2a3846;--ink:#e6edf3;--mut:#8fa1b2;--bl:#4db3f0;--ok:#4cd39b;--wn:#ffa94d;--bad:#ff7b6b;--hl:#14303f;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 main{max-width:1150px;margin:0 auto;padding:16px 16px 48px}
-h1{font-size:21px;margin:0}
-h2{font-size:15px;margin:22px 0 8px;padding-left:8px;border-left:4px solid var(--bl)}
-.sub{color:var(--mut);font-size:13px;margin:2px 0 0}
+h1{font-size:24px;margin:0}
+h2{font-size:17px;margin:22px 0 8px;padding-left:8px;border-left:4px solid var(--bl)}
+.sub{color:var(--mut);font-size:15px;margin:2px 0 0}
 .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
 .nav{display:flex;gap:8px;flex-wrap:wrap}
-button,.btn{font:inherit;font-size:14px;color:var(--bl);background:var(--pn);border:1px solid var(--bl);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+button,.btn{font:inherit;font-size:16px;color:var(--bl);background:var(--pn);border:1px solid var(--bl);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
 button:hover,.btn:hover{background:var(--hl)}
 button.pri{background:var(--bl);color:var(--bg)}
-button.sm{font-size:13px;padding:4px 10px}
+button.sm{font-size:15px;padding:4px 10px}
 button.danger{color:var(--bad);border-color:var(--bad)}
 button svg{width:18px;height:18px;display:block;flex:none}
 #thToggle{padding:7px 10px}
-input,select{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
 input:focus,select:focus{outline:2px solid var(--bl);border-color:transparent}
 .card{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:12px 14px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-label.f{display:block;font-size:12px;color:var(--mut)}
+label.f{display:block;font-size:14px;color:var(--mut)}
 label.f input,label.f select{margin-top:2px}
-.note{font-size:12px;color:var(--mut);margin:8px 0 0}
-.msg{font-size:13px;color:var(--bl);margin:8px 0 0;min-height:1em}
+.note{font-size:14px;color:var(--mut);margin:8px 0 0}
+.msg{font-size:15px;color:var(--bl);margin:8px 0 0;min-height:1em}
 .rbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .rbar .rnm{flex:1;min-width:220px}
 details summary{cursor:pointer;font-weight:600}
@@ -41,33 +41,37 @@ details summary{cursor:pointer;font-weight:600}
 .chip{display:flex;align-items:center;gap:4px;border:1px solid var(--ln);background:var(--bg);border-radius:20px;padding:2px 4px 2px 10px}
 .chip input{border:0;background:transparent;padding:4px 2px;width:7.5em}
 .chip input:focus{outline:none;border-bottom:1px solid var(--bl);border-radius:0}
-.chip .cnt{font-size:12px;color:var(--mut);white-space:nowrap}
-.chip button{border:0;background:none;color:var(--mut);padding:2px 6px;font-size:14px}
-.chip button.arm{color:var(--bad);font-size:12px}
+.chip .cnt{font-size:14px;color:var(--mut);white-space:nowrap}
+.chip button{border:0;background:none;color:var(--mut);padding:2px 6px;font-size:16px}
+.chip button.arm{color:var(--bad);font-size:14px}
 .addsys{display:flex;gap:6px}
 .addsys input{width:10em}
 /* 平衡表 */
 .tw{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:16px}
 th,td{border-bottom:1px solid var(--ln);padding:7px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 th:first-child,td:first-child,th:last-child,td:last-child{text-align:left}
-th{color:var(--mut);font-size:12px;font-weight:500}
+th{color:var(--mut);font-size:14px;font-weight:500}
 td:last-child{white-space:normal;min-width:180px}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:var(--hl)}
-.ah{font-size:15px;margin:18px 0 8px}
-.ab-st{font-size:14px;margin-top:8px}
+.ah{font-size:17px;margin:18px 0 8px}
+.ab-st{font-size:16px;margin-top:8px}
 .ab table.at th:last-child,.ab table.at td:last-child{text-align:right;min-width:0}
 .ab{border:1px solid var(--ln);border-left:4px solid var(--c);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .ab-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.ab-h .sdot{width:10px;height:10px;border-radius:50%;background:var(--c)}
 .ab table tbody tr{cursor:default}.ab table tbody tr:hover td{background:transparent}
+.ab table tbody tr[data-go]{cursor:pointer}.ab table tbody tr[data-go]:hover td{background:var(--hl)}.ab tr[data-go]:hover .gol{color:var(--bl);text-decoration:underline}
+.gon{color:var(--bl);cursor:pointer;text-decoration:none}.gon:hover{text-decoration:underline}
+.pt.flash{animation:ptf 1.8s ease-out}@keyframes ptf{0%,40%{box-shadow:0 0 0 3px var(--bl)}100%{box-shadow:0 0 0 0 transparent}}
 .ab td.an{white-space:normal;min-width:120px}
 .ab td.pc{min-width:170px;white-space:nowrap}
 .bar{display:inline-block;vertical-align:middle;width:110px;height:8px;border-radius:4px;background:var(--ln);overflow:hidden;margin-right:8px}.bar i{display:block;height:100%;background:var(--c)}
 .ab tfoot td{font-weight:600;border-bottom:none}.ab tfoot tr:first-child td{border-top:2px solid var(--ln)}
 .ok{color:var(--ok)}.wn{color:var(--wn)}.bad{color:var(--bad)}.mut{color:var(--mut)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-right:6px}
-.thr{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 0 8px}
+.thr{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--mut);margin:0 0 8px}
+.thr>span:first-child{white-space:nowrap}
 .thr input{width:70px}
 /* 量測點 */
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
@@ -77,40 +81,40 @@ tbody tr:hover td{background:var(--hl)}
 .pt.main{border-left-color:var(--bl);box-shadow:inset 0 0 0 1px var(--hl)}
 .pt-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .pt-h .sp{flex:1}
-.pt-no{font-size:15px}
-.badge{font-size:13px;font-weight:700;line-height:1.4;padding:2px 11px;border-radius:12px;border:1.5px solid var(--mut);color:var(--ink);background:var(--hl);white-space:nowrap}
+.pt-no{font-size:17px}
+.badge{font-size:15px;font-weight:700;line-height:1.4;padding:2px 11px;border-radius:12px;border:1.5px solid var(--mut);color:var(--ink);background:var(--hl);white-space:nowrap}
 .badge.main{color:#fff;background:var(--bl);border-color:var(--bl)}
 .badge.r-pump{color:#fff;background:var(--wn);border-color:var(--wn)}.badge.r-hdr{color:#fff;background:var(--s1);border-color:var(--s1)}.badge.r-hb{color:var(--s1);border-color:var(--s1);background:transparent}
 :root[data-theme="dark"] .badge.r-pump,:root[data-theme="dark"] .badge.r-hdr{color:#0b1a22}
-.ab h4{font-size:13px;color:var(--mut);font-weight:600;margin:12px 0 4px}
+.ab h4{font-size:15px;color:var(--mut);font-weight:600;margin:12px 0 4px}
 .ab .cmp{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px}.ab .cmp div{flex:1 1 150px;border:1px solid var(--ln);border-radius:8px;padding:8px 10px}
-.ab .cmp small{display:block;color:var(--mut);font-size:12px}.ab .cmp b{font-size:18px;font-variant-numeric:tabular-nums}.ab .cmp em{display:block;font-style:normal;font-size:13px;margin-top:2px}
+.ab .cmp small{display:block;color:var(--mut);font-size:14px}.ab .cmp b{font-size:21px;font-variant-numeric:tabular-nums}.ab .cmp em{display:block;font-style:normal;font-size:15px;margin-top:2px}
 :root[data-theme="dark"] .badge.main{color:#0b1a22}
 .badge.sysb{color:var(--c);border-color:var(--c);background:transparent;position:relative;overflow:hidden;padding-left:22px}
 .badge.sysb::before{content:"";position:absolute;inset:0;background:var(--c);opacity:.12}
 .badge.sysb::after{content:"";position:absolute;left:9px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--c)}
 .sc0{--c:var(--s0)}.sc1{--c:var(--s1)}.sc2{--c:var(--s2)}.sc3{--c:var(--s3)}.sc4{--c:var(--s4)}.sc5{--c:var(--s5)}
 .chip .sdot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
-.pt-no{font-size:16px}
+.pt-no{font-size:18px}
 .g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
 .g4 .w2{grid-column:span 2}
 .matx[hidden]{display:none!important}
 .g4.gp{grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr))}.g4.gp .w2{grid-column:span 1}
 @media (max-width:640px){.g4,.g4.gp{grid-template-columns:repeat(2,minmax(0,1fr))}.g4 .w2,.g4.gp .w2{grid-column:span 2}}
-.pt details{margin:2px 0 8px;font-size:13px}
+.pt details{margin:2px 0 8px;font-size:15px}
 .pt details summary{font-weight:500;color:var(--bl)}
 .pt details .g4{margin-top:8px}
-.res{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:8px 10px;font-size:13px}
-.res b{font-size:15px}
+.res{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:8px 10px;font-size:15px}
+.res b{font-size:17px}
 .res ul{margin:4px 0 0;padding-left:18px}
-.txb{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px dashed var(--ln);border-radius:6px;padding:8px 10px;margin:0 0 8px;font-size:13px}
+.txb{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px dashed var(--ln);border-radius:6px;padding:8px 10px;margin:0 0 8px;font-size:15px}
 .txb svg{width:250px;height:110px;flex:none;display:block}
 .txb .tt{flex:1;min-width:220px}
-.txb .tt b{font-size:14px}
+.txb .tt b{font-size:16px}
 .txb .on{color:var(--bl);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .tw-p{fill:var(--hl);stroke:none}.tw-w{stroke:var(--ink);stroke-width:1.6;fill:none}
 .tw-t{fill:var(--wn);stroke:var(--ink);stroke-width:1}.tw-s{stroke:var(--bl);stroke-width:1.6;fill:none;stroke-dasharray:4 3}
-.tw-a{stroke:var(--ink);stroke-width:1;fill:none}.tw-l{fill:var(--ink);font:12px sans-serif;text-anchor:middle}
+.tw-a{stroke:var(--ink);stroke-width:1;fill:none}.tw-l{fill:var(--ink);font:14px sans-serif;text-anchor:middle}
 .txp{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
 .txp label{width:150px}
 .empty{color:var(--mut);text-align:center;padding:28px 10px;border:1px dashed var(--ln);border-radius:8px}
@@ -166,7 +170,7 @@ tbody tr:hover td{background:var(--hl)}
   <div style="height:12px"></div>
   <div class="thr"><span>允許差異 ±</span><input id="th" type="number" min="0" step="0.5" inputmode="decimal"><span>%（綠色：在範圍內；橘色：2 倍以內；紅色：超過 2 倍）</span></div>
   <h3 class="ah">各系統明細</h3>
-  <p class="note" style="margin-top:0">① 各泵浦合計＝類別「泵浦」加總；② 主集管＝類別「主集管」加總；③ 各區合計＝各區（主管＋支管）流量加總。主集管支管只在「主集管」表內和主集管比對。沒有主集管時，③ 直接和 ① 比。</p>
+  <p class="note" style="margin-top:0">① 各泵浦合計＝類別「泵浦」加總；② 主集管＝類別「主集管」加總；③ 各區合計＝各區（主管＋支管）流量加總。主集管支管只在「主集管」表內和主集管比對。沒有主集管時，③ 直接和 ① 比。點表格任一列（或 #編號）可直接跳到該量測點。</p>
   <div id="areas"></div>
 </div>
 
@@ -289,10 +293,10 @@ function balance(){
     var L={pump:{q:0,n:0,miss:0,items:[]},hdr:{q:0,n:0,miss:0,items:[]},hb:{q:0,n:0,miss:0,items:[]}},ar=[],am={},miss=0;
     ps.forEach(function(p){
       var c=calc(p),no=S.points.indexOf(p)+1,ok=isFinite(c.avg);if(!ok)miss++;
-      if(L[p.role]){var g=L[p.role];g.items.push({name:String(p.area||'').trim()||('#'+no),no:no,q:ok?c.avg:NaN});if(ok){g.q+=c.avg;g.n++}else g.miss++;return}
+      if(L[p.role]){var g=L[p.role];g.items.push({name:String(p.area||'').trim()||('#'+no),no:no,id:p.id,q:ok?c.avg:NaN});if(ok){g.q+=c.avg;g.n++}else g.miss++;return}
       var k=String(p.area||'').trim(),key=k||('#'+no),a=am[key];
-      if(!a){a=am[key]={name:k||'（未填生產區）',nos:[],mn:0,nmn:0,br:0,nbr:0,miss:0};ar.push(a)}
-      a.nos.push(no);if(!ok){a.miss++;return}
+      if(!a){a=am[key]={name:k||'（未填生產區）',nos:[],ids:[],mn:0,nmn:0,br:0,nbr:0,miss:0};ar.push(a)}
+      a.nos.push(no);a.ids.push(p.id);if(!ok){a.miss++;return}
       if(p.role==='main'){a.mn+=c.avg;a.nmn++}else{a.br+=c.avg;a.nbr++}
     });
     var A=0,nA=0;
@@ -341,34 +345,35 @@ function sg(x,d){return isFinite(x)?(x>0?'+':'')+fmt(x,d==null?1:d):'—'}
 function renderBal(){
   var bt=$('#bal tbody');if(bt)bt.innerHTML=balance().map(function(b){
     var f=function(x){return isFinite(x)?fmt(x,1):'—'};
-    return '<tr data-sid="'+esc(b.s.id)+'" title="只看此系統的量測點"><td><b>'+esc(b.s.name||'（未命名）')+'</b> <span class="mut" style="font-size:12px">'+b.n+' 點</span></td><td>'+f(b.P)+'</td><td>'+f(b.H)+'</td><td>'+f(b.A)+'</td><td class="'+b.j1.cls+'">'+sg(b.j1.pct)+'</td><td class="'+b.j2.cls+'">'+sg(b.j2.pct)+(isFinite(b.j2.pct)&&b.j2.vs==='①'?' <span class="mut" style="font-size:11px">(比①)</span>':'')+'</td><td class="'+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</td></tr>';
+    return '<tr data-sid="'+esc(b.s.id)+'" title="只看此系統的量測點"><td><b>'+esc(b.s.name||'（未命名）')+'</b> <span class="mut" style="font-size:14px">'+b.n+' 點</span></td><td>'+f(b.P)+'</td><td>'+f(b.H)+'</td><td>'+f(b.A)+'</td><td class="'+b.j1.cls+'">'+sg(b.j1.pct)+'</td><td class="'+b.j2.cls+'">'+sg(b.j2.pct)+(isFinite(b.j2.pct)&&b.j2.vs==='①'?' <span class="mut" style="font-size:13px">(比①)</span>':'')+'</td><td class="'+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</td></tr>';
   }).join('');
   renderAreas();
 }
 function renderAreas(){
   var box=$('#areas');if(!box)return;
   var f=function(x){return isFinite(x)?fmt(x,1):'—'};
+  var gl=function(t){return '<span class="gol">'+esc(t)+'</span>'};
   var bar=function(pc){return isFinite(pc)?'<span class="bar"><i style="width:'+Math.min(100,Math.max(0,pc)).toFixed(1)+'%"></i></span>'+fmt(pc,1)+'%':'—'};
   var h=balance().filter(function(b){return b.n}).map(function(b){
     var T=b.T,tl=isFinite(b.P)?'各泵浦合計':isFinite(b.H)?'主集管':'各區合計';
     var cmp='<div class="cmp"><div><small>① 各泵浦合計（'+b.pump.items.length+' 台）</small><b>'+f(b.P)+'</b> m³/h</div>'
       +'<div><small>② 主集管</small><b>'+f(b.H)+'</b> m³/h<em class="'+b.j1.cls+'">'+(isFinite(b.j1.pct)?'比 ①：'+sg(b.H-b.P)+' m³/h（'+sg(b.j1.pct)+'%）':'&nbsp;')+'</em></div>'
       +'<div><small>③ 各區合計（'+b.areas.length+' 區）</small><b>'+f(b.A)+'</b> m³/h<em class="'+b.j2.cls+'">'+(isFinite(b.j2.pct)?'比 '+b.j2.vs+'：'+sg(b.A-(b.j2.vs==='②'?b.H:b.P))+' m³/h（'+sg(b.j2.pct)+'%）':'&nbsp;')+'</em></div></div>';
-    var pumps=b.pump.items.length?'<h4>各泵浦</h4><div class="tw"><table><thead><tr><th>泵浦</th><th>流量 m³/h</th><th>佔泵浦合計</th></tr></thead><tbody>'+b.pump.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>'+f(x.q)+'</td><td class="pc">'+bar(isFinite(x.q)&&b.P>0?x.q/b.P*100:NaN)+'</td></tr>'}).join('')+'</tbody></table></div>':'';
+    var pumps=b.pump.items.length?'<h4>各泵浦</h4><div class="tw"><table><thead><tr><th>泵浦</th><th>流量 m³/h</th><th>佔泵浦合計</th></tr></thead><tbody>'+b.pump.items.map(function(x){return '<tr data-go="'+esc(x.id)+'" title="跳到此量測點"><td class="an">'+gl(x.name)+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td>'+f(x.q)+'</td><td class="pc">'+bar(isFinite(x.q)&&b.P>0?x.q/b.P*100:NaN)+'</td></tr>'}).join('')+'</tbody></table></div>':'';
     var hp=function(x,base){return bar(isFinite(x.q)&&base>0?x.q/base*100:NaN)};
     var hdr=(b.hdr.items.length||b.hb.items.length)?'<h4>主集管</h4><div class="tw"><table><thead><tr><th>名稱</th><th>類別</th><th>流量 m³/h</th><th>佔主集管合計</th></tr></thead><tbody>'
-      +b.hdr.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>主集管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
-      +b.hb.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>主集管支管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
+      +b.hdr.items.map(function(x){return '<tr data-go="'+esc(x.id)+'" title="跳到此量測點"><td class="an">'+gl(x.name)+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td>主集管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
+      +b.hb.items.map(function(x){return '<tr data-go="'+esc(x.id)+'" title="跳到此量測點"><td class="an">'+gl(x.name)+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td>主集管支管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
       +'</tbody><tfoot><tr><td>主集管合計</td><td></td><td>'+f(b.H)+'</td><td class="pc">'+(isFinite(b.H)?'100%':'—')+'</td></tr>'
       +'<tr><td>主集管支管合計</td><td></td><td>'+f(b.HB)+'</td><td class="pc">'+(isFinite(b.HB)&&b.H>0?fmt(b.HB/b.H*100,1)+'%':'—')+'</td></tr>'
       +'<tr><td>差異（支管合計 − 主集管合計）</td><td></td><td class="'+b.j3.cls+'">'+(isFinite(b.j3.pct)?sg(b.HB-b.H):'—')+'</td><td class="pc '+b.j3.cls+'">'+(isFinite(b.j3.pct)?sg(b.j3.pct)+'%':'—')+'</td></tr></tfoot></table></div>':'';
     var areas='<h4>各區流量</h4><div class="tw"><table class="at"><thead><tr><th>生產區</th><th>主管 m³/h</th><th>支管 m³/h</th><th>合計 m³/h</th></tr></thead><tbody>'
-      +(b.areas.length?b.areas.map(function(a){return '<tr><td class="an">'+esc(a.name)+' <span class="mut" style="font-size:12px">#'+a.nos.join('、#')+(a.miss?'（'+a.miss+' 點未填讀值）':'')+'</span></td><td>'+(a.nmn?f(a.mn):'—')+'</td><td>'+(a.nbr?f(a.br):'—')+'</td><td><b>'+f(a.q)+'</b></td></tr>'}).join('')
+      +(b.areas.length?b.areas.map(function(a){return '<tr data-go="'+esc(a.ids.join(','))+'" title="跳到此區的量測點"><td class="an">'+gl(a.name)+' <span class="mut" style="font-size:14px">'+a.nos.map(function(n,k){return '<a class="gon" data-go="'+esc(a.ids[k])+'">#'+n+'</a>'}).join('、')+(a.miss?'（'+a.miss+' 點未填讀值）':'')+'</span></td><td>'+(a.nmn?f(a.mn):'—')+'</td><td>'+(a.nbr?f(a.br):'—')+'</td><td><b>'+f(a.q)+'</b></td></tr>'}).join('')
         :'<tr><td class="an mut" colspan="4">這個系統還沒有各區（主管／支管）量測點。</td></tr>')
       +'</tbody><tfoot><tr><td>各區合計</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nmn?a.mn:0)},0)||NaN)+'</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nbr?a.br:0)},0)||NaN)+'</td><td><b>'+f(b.A)+'</b></td></tr></tfoot></table></div>';
     return '<div class="ab '+sysCls(b.s.id)+'"><div class="ab-h"><span class="sdot"></span><b>'+esc(b.s.name||'（未命名）')+'</b></div>'+cmp+pumps+hdr+areas+'<div class="ab-st '+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</div></div>';
   }).join('');
-  box.innerHTML=h||'<div class="mut" style="font-size:14px">還沒有量測點。</div>';
+  box.innerHTML=h||'<div class="mut" style="font-size:16px">還沒有量測點。</div>';
 }
 
 /* ---------- 畫面：量測點 ---------- */
@@ -476,6 +481,14 @@ function addSys(){
 }
 
 /* ---------- 事件：平衡表、篩選 ---------- */
+$('#areas').addEventListener('click',function(e){
+  var t=e.target.closest('[data-go]');if(!t)return;
+  var ids=t.getAttribute('data-go').split(',').filter(Boolean);if(!ids.length)return;
+  if(flt&&!ids.every(function(id){var p=findP(id);return p&&p.sys===flt})){flt='';$('#flt').value='';renderPts()}
+  var els=ids.map(function(id){return document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]')}).filter(Boolean);if(!els.length)return;
+  els[0].scrollIntoView({behavior:'smooth',block:'center'});
+  els.forEach(function(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')});
+});
 if($('#bal'))$('#bal').addEventListener('click',function(e){var tr=e.target.closest('tr[data-sid]');if(!tr)return;flt=tr.getAttribute('data-sid');$('#flt').value=flt;renderPts();$('#flt').scrollIntoView({behavior:'smooth',block:'start'})});
 $('#flt').addEventListener('change',function(){flt=this.value;renderPts()});
 
