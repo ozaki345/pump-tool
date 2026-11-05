@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>廠區流量量測表</title>
+<style>
+:root{--s0:#0e7490;--s1:#7c3aed;--s2:#b45309;--s3:#be123c;--s4:#15803d;--s5:#1d4ed8;--bg:#fff;--pn:#f6f9fc;--ln:#d5dee6;--ink:#17262e;--mut:#5d6f7b;--bl:#0b7bc1;--ok:#0a8a5a;--wn:#b45f06;--bad:#c0392b;--hl:#e4f2fb;color-scheme:light}
+:root[data-theme="dark"]{--s0:#67e8f9;--s1:#c4b5fd;--s2:#fcd34d;--s3:#fda4af;--s4:#86efac;--s5:#93c5fd;--bg:#10161c;--pn:#18212a;--ln:#2a3846;--ink:#e6edf3;--mut:#8fa1b2;--bl:#4db3f0;--ok:#4cd39b;--wn:#ffa94d;--bad:#ff7b6b;--hl:#14303f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+main{max-width:1150px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:21px;margin:0}
+h2{font-size:15px;margin:22px 0 8px;padding-left:8px;border-left:4px solid var(--bl)}
+.sub{color:var(--mut);font-size:13px;margin:2px 0 0}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{font:inherit;font-size:14px;color:var(--bl);background:var(--pn);border:1px solid var(--bl);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+button:hover,.btn:hover{background:var(--hl)}
+button.pri{background:var(--bl);color:var(--bg)}
+button.sm{font-size:13px;padding:4px 10px}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button svg{width:18px;height:18px;display:block;flex:none}
+#thToggle{padding:7px 10px}
+input,select{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+input:focus,select:focus{outline:2px solid var(--bl);border-color:transparent}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:12px 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+label.f{display:block;font-size:12px;color:var(--mut)}
+label.f input,label.f select{margin-top:2px}
+.note{font-size:12px;color:var(--mut);margin:8px 0 0}
+.msg{font-size:13px;color:var(--bl);margin:8px 0 0;min-height:1em}
+.rbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.rbar .rnm{flex:1;min-width:220px}
+details summary{cursor:pointer;font-weight:600}
+.rec{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px dashed var(--ln);flex-wrap:wrap}
+.rec small{color:var(--mut);margin-left:6px}
+.rec .ops{display:flex;gap:6px}
+/* 系統 */
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:flex;align-items:center;gap:4px;border:1px solid var(--ln);background:var(--bg);border-radius:20px;padding:2px 4px 2px 10px}
+.chip input{border:0;background:transparent;padding:4px 2px;width:7.5em}
+.chip input:focus{outline:none;border-bottom:1px solid var(--bl);border-radius:0}
+.chip .cnt{font-size:12px;color:var(--mut);white-space:nowrap}
+.chip button{border:0;background:none;color:var(--mut);padding:2px 6px;font-size:14px}
+.chip button.arm{color:var(--bad);font-size:12px}
+.addsys{display:flex;gap:6px}
+.addsys input{width:10em}
+/* 平衡表 */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--ln);padding:7px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child,th:last-child,td:last-child{text-align:left}
+th{color:var(--mut);font-size:12px;font-weight:500}
+td:last-child{white-space:normal;min-width:180px}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--hl)}
+.ok{color:var(--ok)}.wn{color:var(--wn)}.bad{color:var(--bad)}.mut{color:var(--mut)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-right:6px}
+.thr{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 0 8px}
+.thr input{width:70px}
+/* 量測點 */
+.pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.pbar select{width:auto}
+.pts{display:grid;gap:12px}
+.pt{background:var(--pn);border:1px solid var(--ln);border-left:4px solid var(--mut);border-radius:8px;padding:10px 14px}
+.pt.main{border-left-color:var(--bl);box-shadow:inset 0 0 0 1px var(--hl)}
+.pt-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pt-h .sp{flex:1}
+.pt-no{font-size:15px}
+.badge{font-size:13px;font-weight:700;line-height:1.4;padding:2px 11px;border-radius:12px;border:1.5px solid var(--mut);color:var(--ink);background:var(--hl);white-space:nowrap}
+.badge.main{color:#fff;background:var(--bl);border-color:var(--bl)}
+:root[data-theme="dark"] .badge.main{color:#0b1a22}
+.badge.sysb{color:var(--c);border-color:var(--c);background:transparent;position:relative;overflow:hidden;padding-left:22px}
+.badge.sysb::before{content:"";position:absolute;inset:0;background:var(--c);opacity:.12}
+.badge.sysb::after{content:"";position:absolute;left:9px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--c)}
+.sc0{--c:var(--s0)}.sc1{--c:var(--s1)}.sc2{--c:var(--s2)}.sc3{--c:var(--s3)}.sc4{--c:var(--s4)}.sc5{--c:var(--s5)}
+.chip .sdot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.pt-no{font-size:16px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.g4 .w2{grid-column:span 2}
+.g4.gp{grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr))}.g4.gp .w2{grid-column:span 1}
+@media (max-width:640px){.g4,.g4.gp{grid-template-columns:repeat(2,minmax(0,1fr))}.g4 .w2,.g4.gp .w2{grid-column:span 2}}
+.pt details{margin:2px 0 8px;font-size:13px}
+.pt details summary{font-weight:500;color:var(--bl)}
+.pt details .g4{margin-top:8px}
+.res{background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:8px 10px;font-size:13px}
+.res b{font-size:15px}
+.res ul{margin:4px 0 0;padding-left:18px}
+.txb{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px dashed var(--ln);border-radius:6px;padding:8px 10px;margin:0 0 8px;font-size:13px}
+.txb svg{width:250px;height:110px;flex:none;display:block}
+.txb .tt{flex:1;min-width:220px}
+.txb .tt b{font-size:14px}
+.txb .on{color:var(--bl);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.tw-p{fill:var(--hl);stroke:none}.tw-w{stroke:var(--ink);stroke-width:1.6;fill:none}
+.tw-t{fill:var(--wn);stroke:var(--ink);stroke-width:1}.tw-s{stroke:var(--bl);stroke-width:1.6;fill:none;stroke-dasharray:4 3}
+.tw-a{stroke:var(--ink);stroke-width:1;fill:none}.tw-l{fill:var(--ink);font:12px sans-serif;text-anchor:middle}
+.txp{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
+.txp label{width:150px}
+.empty{color:var(--mut);text-align:center;padding:28px 10px;border:1px dashed var(--ln);border-radius:8px}
+.addrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media print{
+  .noprint{display:none!important}
+  :root,:root[data-theme="dark"]{--bg:#fff;--pn:#fff;--ink:#000;--mut:#444;--ln:#999;--hl:#eee}
+  main{padding:0}
+  input,select{border:0;border-bottom:1px solid #bbb;border-radius:0;-webkit-appearance:none;appearance:none}
+  .pt{break-inside:avoid}
+  tbody tr{cursor:default}
+}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <div>
+    <h1>廠區流量量測表</h1>
+    <p class="sub">超音波夾式流量計逐點記錄各生產區流量，自動計算平均流量、流速，並比對主管與各區加總是否平衡。</p>
+  </div>
+  <div class="nav noprint">
+    <a class="btn" href="index.html">← 泵浦換算工具</a>
+    <button type="button" id="thToggle" title="切換深色背景" aria-label="切換深色背景"></button>
+    <button type="button" id="csv">匯出 Excel（.csv）</button>
+    <button type="button" id="prt">列印／存成 PDF</button>
+  </div>
+</div>
+
+<div class="card noprint" style="margin-top:12px">
+  <div class="rbar">
+    <div class="rnm"><label class="f" for="rname">紀錄名稱（存檔用，例如：A 廠 2026-11 冰水量測）</label><input id="rname" type="text" placeholder="例如：A 廠 2026-11 冰水量測"></div>
+    <button type="button" id="rsave" class="pri">儲存紀錄</button>
+    <button type="button" id="rnew">新建空白表單</button>
+  </div>
+  <p class="msg" id="msg" role="status">資料會自動暫存；要長期保存請按「儲存紀錄」，下次從「已儲存紀錄」載入。同名稱再存一次會更新該筆。</p>
+  <details id="rbox"><summary>已儲存紀錄（<span id="rcnt">0</span>）</summary><div id="rl"></div></details>
+</div>
+
+<h2>1. 基本資料</h2>
+<div class="card"><div class="grid">
+  <label class="f">案名／廠區<input data-i="name" placeholder="例如：○○ 廠 A 棟"></label>
+  <label class="f">量測日期<input data-i="date" type="date"></label>
+  <label class="f">量測人員<input data-i="who"></label>
+  <label class="f">流量計型號／序號<input data-i="meter" placeholder="例如：超音波夾式 ○○ 型"></label>
+  <label class="f">天氣／運轉狀況備註<input data-i="cond" placeholder="例如：滿載生產、冰機 3 台運轉"></label>
+</div></div>
+
+<h2>2. 系統與平衡比對</h2>
+<div class="card">
+  <div class="chips" id="sys"></div>
+  <p class="note noprint">每個系統分開比對。名稱可直接點選修改；有量測點的系統不能刪除。</p>
+  <div style="height:12px"></div>
+  <div class="thr"><span>允許差異 ±</span><input id="th" type="number" min="0" step="0.5" inputmode="decimal"><span>%（綠色：在範圍內；橘色：2 倍以內；紅色：超過 2 倍）</span></div>
+  <div class="tw"><table id="bal"><thead><tr><th>系統</th><th>主管流量<br>m³/h</th><th>各區支管合計<br>m³/h</th><th>差異<br>m³/h</th><th>差異<br>%</th><th>判讀</th></tr></thead><tbody></tbody></table></div>
+  <p class="note">差異 = 支管合計 − 主管。支管合計少於主管，通常是還有區域沒量到、或有漏水／旁通；多於主管，請檢查讀值、單位或管徑設定。夾式流量計單點誤差約 ±1～3%，多點加總後 ±5% 內一般可視為平衡。點表格任一列可只看該系統的量測點。</p>
+</div>
+
+<h2>3. 量測點</h2>
+<div class="pbar noprint">
+  <label class="f" style="display:flex;align-items:center;gap:6px">顯示<select id="flt"></select></label>
+  <span class="note" style="margin:0">建議先量主管，再量各生產區支管。管徑不確定時，可用 <a href="pipe.html">管路厚度計算</a> 由外周長推算。</span>
+</div>
+<details class="card noprint" style="margin:0 0 12px"><summary>探頭間距估算參數（依流量計探頭規格，不確定可不改）</summary>
+  <div class="txp">
+    <label class="f">楔塊聲速（m/s）<input id="txcw" type="text" inputmode="decimal"></label>
+    <label class="f">楔塊入射角（°）<input id="txang" type="text" inputmode="decimal"></label>
+    <button type="button" class="sm" id="txdef">恢復預設（2730 m/s／38°）</button>
+  </div>
+  <p class="note">估算方式：以 Snell 折射定律算出聲波在管壁與水中的角度，間距 ≈ 趟數 × 內徑 × tan(水中角) ＋ 2 × 壁厚 × tan(管壁角)；Z 法 1 趟、V 法 2 趟、W 法 4 趟。水的聲速以 20°C 計算。未扣除探頭本體的偏移量，只適合用來檢查流量計顯示的間距是否合理，<b>安裝時請以流量計顯示的間距為準</b>。非水流體（如含乙二醇）不適用。</p>
+</details>
+<div class="pts" id="pts"></div>
+<div class="addrow noprint"><button type="button" id="add" class="pri">＋ 新增量測點</button></div>
+</main>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var esc=function(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
+var UNITS=[['m³/h',1],['L/min',0.06],['L/s',3.6],['m³/min',60],['GPM (US)',0.2271247]];
+var UF={};UNITS.forEach(function(u){UF[u[0]]=u[1]});
+var PIPES=[
+ [0,'50A','2"',60.5,3.8],[0,'65A','2-1/2"',76.3,4.2],[0,'80A','3"',89.1,4.2],[0,'100A','4"',114.3,4.5],[0,'125A','5"',139.8,4.5],[0,'150A','6"',165.2,5.0],
+ [0,'200A','8"',216.3,5.8],[0,'250A','10"',267.4,6.6],[0,'300A','12"',318.5,6.9],[0,'350A','14"',355.6,7.9],[0,'400A','16"',406.4,7.9],[0,'450A','18"',457.2,7.9],[0,'500A','20"',508.0,7.9],[0,'600A','24"',609.6,9.5],
+ [1,'2"','50A',60.3,3.91],[1,'2-1/2"','65A',73.0,5.16],[1,'3"','80A',88.9,5.49],[1,'4"','100A',114.3,6.02],[1,'5"','125A',141.3,6.55],[1,'6"','150A',168.3,7.11],
+ [1,'8"','200A',219.1,8.18],[1,'10"','250A',273.1,9.27],[1,'12"','300A',323.9,9.53],[1,'14"','350A',355.6,9.53],[1,'16"','400A',406.4,9.53],[1,'18"','450A',457.2,9.53],[1,'20"','500A',508.0,9.53],[1,'24"','600A',609.6,9.53]
+].map(function(x){return {g:x[0],k:(x[0]?'asme:':'sgp:')+x[1],n:x[0]?'NPS '+x[1]+'（'+x[2]+'）STD':'SGP '+x[1]+'（'+x[2]+'）',od:x[3],t:x[4]}});
+var PK={};PIPES.forEach(function(p){PK[p.k]=p});
+var MATS=['碳鋼','不鏽鋼','鍍鋅鋼','球墨鑄鐵','銅','PVC','HDPE','其他'];
+var INST=[['','請選擇'],['V','V 法（1 次反射，聲波走 2 趟）'],['Z','Z 法（直射，聲波走 1 趟）'],['W','W 法（3 次反射，聲波走 4 趟）']];
+var NTRAV={Z:1,V:2,W:4};
+var CSH={'碳鋼':3230,'鍍鋅鋼':3230,'不鏽鋼':3100,'球墨鑄鐵':2650,'銅':2260,'PVC':1060,'HDPE':540,'其他':3230};   // 管壁橫波聲速 m/s（近似值）
+function cWater(T){if(!isFinite(T))T=20;T=Math.min(Math.max(T,0),95);return 1402.385+5.038813*T-5.799136e-2*T*T+3.287156e-4*Math.pow(T,3)-1.398845e-6*Math.pow(T,4)+2.78786e-9*Math.pow(T,5)}
+
+/* ---------- 狀態 ---------- */
+function blank(){return {info:{},th:5,tx:{cw:2730,ang:38},systems:[{id:uid(),name:'冰水'},{id:uid(),name:'冷卻水'}],points:[]}}
+function newPoint(sys){return {id:uid(),sys:sys,role:'branch',area:'',time:'',size:'',circ:'',od:'',odin:'',t:'',mat:'碳鋼',r:['','',''],u:'m³/h',up:'',down:'',inst:'',sm:'',sig:'',note:''}}
+function norm(o){
+  var s=blank();if(!o||typeof o!=='object')return s;
+  s.info=o.info&&typeof o.info==='object'?o.info:{};
+  s.th=isFinite(+o.th)&&+o.th>=0?+o.th:5;
+  if(o.tx&&+o.tx.cw>0&&+o.tx.ang>0&&+o.tx.ang<90)s.tx={cw:+o.tx.cw,ang:+o.tx.ang};
+  if(Array.isArray(o.systems)&&o.systems.length)s.systems=o.systems.filter(function(x){return x&&x.id}).map(function(x){return {id:String(x.id),name:String(x.name||'')}});
+  if(!s.systems.length)s.systems=blank().systems;
+  s.points=Array.isArray(o.points)?o.points.filter(function(p){return p&&p.id}).map(function(p){var q=newPoint(s.systems[0].id);Object.keys(q).forEach(function(k){if(p[k]!=null)q[k]=p[k]});if(!Array.isArray(q.r))q.r=['','',''];while(q.r.length<3)q.r.push('');q.r=q.r.slice(0,3);if(!s.systems.some(function(x){return x.id===q.sys}))q.sys=s.systems[0].id;if(q.role!=='main')q.role='branch';if(!(q.u in UF))q.u='m³/h';q.inst=/^[VZW]/.test(String(q.inst))?String(q.inst)[0]:'';if(q.circ===''&&num(q.od)>0)q.circ=String(+(num(q.od)*Math.PI).toFixed(1));if(q.odin===''&&num(q.od)>0)q.odin=String(+(num(q.od)/25.4).toFixed(3));return q}):[];
+  return s;
+}
+var S=blank(),flt='',base='';
+var DK='flowSurveyDraft',RK='flowSurveyRecs';
+function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+var dt=null;function draft(){clearTimeout(dt);dt=setTimeout(function(){lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base})},300)}
+function msg(t){$('#msg').textContent=t}
+
+/* ---------- 計算 ---------- */
+var num=function(v){var x=parseFloat(String(v).replace(/,/g,''));return isFinite(x)?x:NaN};
+function fmt(x,d){if(!isFinite(x))return '—';return x.toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function calc(p){
+  var f=UF[p.u]||1,rs=p.r.map(num).filter(function(x){return isFinite(x)});
+  var avg=rs.length?rs.reduce(function(a,b){return a+b},0)/rs.length*f:NaN;
+  var spread=rs.length>1&&avg>0?(Math.max.apply(null,rs)-Math.min.apply(null,rs))*f/avg*100:NaN;
+  var od=num(p.od),t=num(p.t),id=(od>0&&t>=0&&od-2*t>0)?od-2*t:NaN;
+  var v=isFinite(avg)&&id>0?avg/3600/(Math.PI/4*Math.pow(id/1000,2)):NaN;
+  var up=num(p.up),dn=num(p.down),w=[];
+  if(isFinite(v)){if(v<0.3)w.push(['bad','流速偏低（< 0.3 m/s），夾式量測誤差會變大']);else if(v>3)w.push(['wn','流速偏高（> 3 m/s），請確認管徑與讀值'])}
+  if(isFinite(spread)&&spread>5)w.push(['wn','讀值差異 '+fmt(spread,1)+'%，建議多讀幾次或檢查訊號']);
+  if(isFinite(up)&&up<10)w.push(['wn','上游直管段 '+up+'D，建議至少 10D']);
+  if(isFinite(dn)&&dn<5)w.push(['wn','下游直管段 '+dn+'D，建議至少 5D']);
+  if(isFinite(avg)&&!(id>0))w.push(['mut','未填外徑／壁厚，無法計算流速']);
+  return {avg:avg,n:rs.length,spread:spread,id:id,v:v,warn:w,sp:spacing(p,id),rec:recommend(id)};
+}
+function spacing(p,id){
+  var cw=num(S.tx.cw),ang=num(S.tx.ang)*Math.PI/180,t=num(p.t);
+  if(!(id>0)||!(cw>0)||!(ang>0)||!(t>=0))return null;
+  var cf=cWater(20),sf=cf*Math.sin(ang)/cw;if(!(sf<1))return null;
+  var af=Math.asin(sf),cs=CSH[p.mat]||3230,sp=cs*Math.sin(ang)/cw;if(!(sp<1))return null;
+  var wall=2*t*Math.tan(Math.asin(sp)),o={cf:cf,af:af*180/Math.PI};
+  ['Z','V','W'].forEach(function(m){o[m]=NTRAV[m]*id*Math.tan(af)+wall});
+  return o;
+}
+function recommend(id){if(!(id>0))return '';return id<=50?'W':id<=300?'V':'Z'}
+function txSVG(m,lab){
+  var L=30,Y1=34,Y2=72,ln='<rect class="tw-p" x="6" y="'+Y1+'" width="238" height="'+(Y2-Y1)+'"/><path class="tw-w" d="M6 '+Y1+'H244M6 '+Y2+'H244"/>';
+  var x2,path,tr;
+  if(m==='Z'){x2=L+90;path='M'+(L+9)+' '+Y1+'L'+(x2+9)+' '+Y2;tr='<rect class="tw-t" x="'+L+'" y="'+(Y1-11)+'" width="18" height="11"/><rect class="tw-t" x="'+x2+'" y="'+Y2+'" width="18" height="11"/>'}
+  else if(m==='W'){x2=L+176;var q=(x2-L)/4;path='M'+(L+9)+' '+Y1+'L'+(L+9+q)+' '+Y2+'L'+(L+9+2*q)+' '+Y1+'L'+(L+9+3*q)+' '+Y2+'L'+(x2+9)+' '+Y1;tr='<rect class="tw-t" x="'+L+'" y="'+(Y1-11)+'" width="18" height="11"/><rect class="tw-t" x="'+x2+'" y="'+(Y1-11)+'" width="18" height="11"/>'}
+  else{x2=L+130;path='M'+(L+9)+' '+Y1+'L'+((L+x2)/2+9)+' '+Y2+'L'+(x2+9)+' '+Y1;tr='<rect class="tw-t" x="'+L+'" y="'+(Y1-11)+'" width="18" height="11"/><rect class="tw-t" x="'+x2+'" y="'+(Y1-11)+'" width="18" height="11"/>'}
+  var ay=m==='Z'?92:12,ext=m==='Z'?'<path class="tw-a" d="M'+(L+9)+' '+(Y1-11)+'V'+(ay+4)+'M'+(x2+9)+' '+(Y2+11)+'V'+(ay+4)+'"/>':'<path class="tw-a" d="M'+(L+9)+' 16V23M'+(x2+9)+' 16V23"/>';
+  var arr='<path class="tw-a" d="M'+(L+9)+' '+ay+'H'+(x2+9)+'M'+(L+13)+' '+(ay-3)+'L'+(L+9)+' '+ay+'L'+(L+13)+' '+(ay+3)+'M'+(x2+5)+' '+(ay-3)+'L'+(x2+9)+' '+ay+'L'+(x2+5)+' '+(ay+3)+'"/>';
+  var lb='<text class="tw-l" x="'+((L+x2)/2+9)+'" y="'+(m==='Z'?ay+13:ay-3)+'">'+esc(lab)+'</text>';
+  return '<svg viewBox="0 0 250 110" role="img" aria-label="'+(m||'V')+' 法探頭安裝示意">'+ln+'<path class="tw-s" d="'+path+'"/>'+tr+ext+arr+lb+'</svg>';
+}
+function txHTML(p,c){
+  var m=p.inst||'',sm=num(p.sm),lab=isFinite(sm)?'建議 '+fmt(sm,0)+' mm':'探頭間距';
+  var h='<div class="tt">';
+  if(c.sp){
+    var mm=['V','Z','W'].map(function(k){return '<span class="'+(k===m?'on':'')+'">'+k+' 法 '+fmt(c.sp[k],0)+' mm</span>'}).join(' ・ ');
+    h+='估算間距（理論值）：'+mm+'<br>依內徑 '+fmt(c.id,1)+' mm，一般建議 <b>'+c.rec+' 法</b>（小管 W、中管 V、大管 Z；訊號弱或結垢時可改 Z 法）';
+    if(m&&m!==c.rec)h+='<br><span class="wn">目前選 '+m+' 法，與一般建議不同；若訊號穩定可沿用。</span>';
+    h+='<br><span class="mut">以 20°C 的水（聲速 '+fmt(c.sp.cf,0)+' m/s）估算，未扣探頭本體偏移；安裝請以流量計顯示為準。</span>';
+  }else h+='<span class="mut">填入外徑與壁厚後，會估算 V／Z／W 三種方式的探頭間距，並建議適合的安裝方式。</span>';
+  return txSVG(m||'V',lab)+h+'</div>';
+}
+function balance(){
+  var th=S.th;
+  return S.systems.map(function(s){
+    var ps=S.points.filter(function(p){return p.sys===s.id}),M=0,B=0,hasM=false,nb=0,miss=0;
+    ps.forEach(function(p){var c=calc(p);if(!isFinite(c.avg)){miss++;return}if(p.role==='main'){M+=c.avg;hasM=true}else{B+=c.avg;nb++}});
+    var d=B-M,pct=hasM&&M>0?d/M*100:NaN,st,cls;
+    if(!ps.length){st='尚無量測點';cls='mut'}
+    else if(!hasM){st='尚未量主管';cls='mut'}
+    else if(!nb){st='尚未量支管';cls='mut'}
+    else if(!isFinite(pct)){st='主管流量為 0';cls='mut'}
+    else if(Math.abs(pct)<=th){st='平衡良好';cls='ok'}
+    else if(Math.abs(pct)<=2*th){st=d<0?'支管偏少：可能還有區域未量到':'支管偏多：請檢查讀值或單位';cls='wn'}
+    else{st=d<0?'差異大：可能有未量區域、漏水或旁通':'差異大：支管多於主管，請檢查讀值、單位與管徑';cls='bad'}
+    if(miss&&ps.length)st+='（'+miss+' 點未填讀值）';
+    return {s:s,n:ps.length,M:M,B:B,d:d,pct:pct,hasM:hasM,nb:nb,st:st,cls:cls};
+  });
+}
+
+/* ---------- 畫面：系統 ---------- */
+function usedCount(id){return S.points.filter(function(p){return p.sys===id}).length}
+function renderSys(){
+  $('#sys').innerHTML=S.systems.map(function(s){var n=usedCount(s.id);return '<span class="chip sc'+(S.systems.indexOf(s)%6)+'" data-sid="'+esc(s.id)+'"><span class="sdot"></span><input value="'+esc(s.name)+'" aria-label="系統名稱"><span class="cnt">'+n+' 點</span><button type="button" class="noprint" data-act="delsys" title="刪除此系統" aria-label="刪除此系統">✕</button></span>'}).join('')
+   +'<span class="addsys noprint"><input id="newsys" placeholder="新增系統名稱"><button type="button" class="sm" id="addsys">＋ 新增系統</button></span>';
+  renderFilter();
+}
+function renderFilter(){
+  var f=$('#flt'),cur=flt;
+  f.innerHTML='<option value="">全部系統（'+S.points.length+' 點）</option>'+S.systems.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name||'（未命名）')+'（'+usedCount(s.id)+' 點）</option>'}).join('');
+  if(cur&&!S.systems.some(function(s){return s.id===cur}))cur='';
+  flt=cur;f.value=cur;
+}
+function sysCls(id){var i=S.systems.findIndex(function(x){return x.id===id});return 'sc'+((i<0?0:i)%6)}
+function sysName(id){var s=S.systems.find(function(x){return x.id===id});return s?(s.name||'（未命名）'):''}
+
+/* ---------- 畫面：平衡表 ---------- */
+function renderBal(){
+  $('#bal tbody').innerHTML=balance().map(function(b){
+    var sg=function(x){return isFinite(x)?(x>0?'+':'')+fmt(x,1):'—'};
+    return '<tr data-sid="'+esc(b.s.id)+'" title="只看此系統的量測點"><td><b>'+esc(b.s.name||'（未命名）')+'</b> <span class="mut" style="font-size:12px">'+b.n+' 點</span></td><td>'+(b.hasM?fmt(b.M,1):'—')+'</td><td>'+(b.nb?fmt(b.B,1):'—')+'</td><td>'+(b.hasM&&b.nb?sg(b.d):'—')+'</td><td class="'+b.cls+'">'+(b.hasM&&b.nb?sg(b.pct):'—')+'</td><td class="'+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</td></tr>';
+  }).join('');
+}
+
+/* ---------- 畫面：量測點 ---------- */
+function opts(list,cur){return list.map(function(x){var v=Array.isArray(x)?x[0]:x,t=Array.isArray(x)?x[1]:x;return '<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(t||'—')+'</option>'}).join('')}
+function cardHTML(p){
+  var i=S.points.indexOf(p);
+  var sysO=S.systems.map(function(s){return [s.id,s.name||'（未命名）']});
+  var sizeO='<option value="">自訂（手動輸入外徑與壁厚）</option><optgroup label="SGP（JIS G3452，台灣常用）">'+PIPES.filter(function(x){return !x.g}).map(function(x){return '<option value="'+x.k+'">'+x.n+'</option>'}).join('')+'</optgroup><optgroup label="ASME B36.10 STD（SCH40）">'+PIPES.filter(function(x){return x.g}).map(function(x){return '<option value="'+x.k+'">'+x.n+'</option>'}).join('')+'</optgroup>';
+  return '<div class="pt'+(p.role==='main'?' main':'')+'" data-id="'+esc(p.id)+'">'
+   +'<div class="pt-h"><b class="pt-no">#'+(i+1)+'</b><span class="badge'+(p.role==='main'?' main':'')+'" data-b="role">'+(p.role==='main'?'主管':'支管')+'</span><span class="badge sysb '+sysCls(p.sys)+'" data-b="sys">'+esc(sysName(p.sys))+'</span><span class="sp"></span>'
+   +'<button type="button" class="sm noprint" data-act="dup">複製這一點</button><button type="button" class="sm danger noprint" data-act="del">刪除</button></div>'
+   +'<div class="g4">'
+   +'<label class="f">系統<select data-f="sys">'+opts(sysO,p.sys)+'</select></label>'
+   +'<label class="f">類別<select data-f="role">'+opts([['main','主管'],['branch','支管']],p.role)+'</select></label>'
+   +'<label class="f w2">生產區／量測位置<input data-f="area" placeholder="例如：A 棟 2F 塗裝線回水"></label>'
+   +'</div><div class="g4 gp">'
+   +'<label class="f w2">管徑規格<select data-f="size">'+sizeO+'</select></label>'
+   +'<label class="f" title="捲尺繞管一圈量測，會自動換算外徑（外徑 = 周長 ÷ π）">周長（mm）<input data-f="circ" type="text" inputmode="decimal" placeholder="捲尺繞一圈"></label>'
+   +'<label class="f">外徑 OD（mm）<input data-f="od" type="text" inputmode="decimal"></label>'
+   +'<label class="f" title="外徑換算英吋（1 in = 25.4 mm），也可以直接輸入英吋">外徑（英吋）<input data-f="odin" type="text" inputmode="decimal"></label>'
+   +'<label class="f">壁厚（mm）<input data-f="t" type="text" inputmode="decimal" placeholder="UT 實測較準"></label>'
+   +'</div><div class="g4">'
+   +'<label class="f w2">探頭安裝方式<select data-f="inst">'+opts(INST,p.inst)+'</select></label>'
+   +'<label class="f w2">流量計建議間距（mm）<input data-f="sm" type="text" inputmode="decimal" placeholder="依流量計顯示"></label>'
+   +'</div><div class="txb" data-b="tx"></div><div class="g4">'
+   +'<label class="f">讀值 1<input data-f="r0" type="text" inputmode="decimal"></label>'
+   +'<label class="f">讀值 2<input data-f="r1" type="text" inputmode="decimal"></label>'
+   +'<label class="f">讀值 3<input data-f="r2" type="text" inputmode="decimal"></label>'
+   +'<label class="f">讀值單位<select data-f="u">'+opts(UNITS.map(function(u){return u[0]}),p.u)+'</select></label>'
+   +'</div>'
+   +'<details><summary>其他量測條件（管材、直管段、訊號強度、量測時間）</summary><div class="g4">'
+   +'<label class="f">管材<select data-f="mat">'+opts(MATS,p.mat)+'</select></label>'
+   +'<label class="f">上游直管段（D）<input data-f="up" type="text" inputmode="decimal" placeholder="建議 ≥ 10"></label>'
+   +'<label class="f">下游直管段（D）<input data-f="down" type="text" inputmode="decimal" placeholder="建議 ≥ 5"></label>'
+   +'<label class="f">訊號強度／品質<input data-f="sig" placeholder="依流量計顯示"></label>'
+   +'<label class="f">量測時間<input data-f="time" type="time"></label>'
+   +'</div></details>'
+   +'<label class="f" style="margin-bottom:8px">備註<input data-f="note" placeholder="例如：保溫拆除、外壁鏽蝕已打磨"></label>'
+   +'<div class="res" data-b="res"></div>'
+   +'</div>';
+}
+function fillCard(el,p){
+  el.querySelectorAll('[data-f]').forEach(function(x){var f=x.getAttribute('data-f');x.value=/^r\d$/.test(f)?p.r[+f[1]]:(p[f]==null?'':p[f])});
+  updCard(el,p);
+}
+function updCard(el,p){
+  var c=calc(p);
+  el.classList.toggle('main',p.role==='main');
+  var rb=el.querySelector('[data-b="role"]');rb.textContent=p.role==='main'?'主管':'支管';rb.classList.toggle('main',p.role==='main');
+  var sb=el.querySelector('[data-b="sys"]');sb.textContent=sysName(p.sys);sb.className='badge sysb '+sysCls(p.sys);
+  el.querySelector('[data-b="tx"]').innerHTML=txHTML(p,c);
+  var h='平均流量 <b>'+fmt(c.avg,1)+'</b> m³/h'+(c.n?'（'+c.n+' 筆讀值）':'')+' ・ 內徑 '+fmt(c.id,1)+' mm ・ 流速 <b>'+fmt(c.v,2)+'</b> m/s';
+  if(c.warn.length)h+='<ul>'+c.warn.map(function(w){return '<li class="'+w[0]+'">'+esc(w[1])+'</li>'}).join('')+'</ul>';
+  el.querySelector('[data-b="res"]').innerHTML=h;
+}
+function renderPts(){
+  var list=S.points.filter(function(p){return !flt||p.sys===flt});
+  var box=$('#pts');
+  if(!list.length){box.innerHTML='<div class="empty">'+(S.points.length?'這個系統還沒有量測點。':'還沒有量測點，按下方「＋ 新增量測點」開始。<br>建議先量主管，再量各生產區支管。')+'</div>';return}
+  box.innerHTML=list.map(cardHTML).join('');
+  list.forEach(function(p){fillCard(box.querySelector('.pt[data-id="'+CSS.escape(p.id)+'"]'),p)});
+}
+function renderAll(){
+  document.querySelectorAll('[data-i]').forEach(function(x){x.value=S.info[x.getAttribute('data-i')]||''});
+  $('#th').value=S.th;txUI();
+  renderSys();renderBal();renderPts();
+}
+function findP(id){return S.points.find(function(p){return p.id===id})}
+
+/* ---------- 事件：基本資料、門檻 ---------- */
+document.querySelectorAll('[data-i]').forEach(function(x){x.addEventListener('input',function(){S.info[x.getAttribute('data-i')]=x.value;draft()})});
+function txUI(){$('#txcw').value=S.tx.cw;$('#txang').value=S.tx.ang}
+function txAll(){document.querySelectorAll('#pts .pt').forEach(function(el){var p=findP(el.getAttribute('data-id'));if(p)updCard(el,p)})}
+$('#txcw').addEventListener('input',function(){var v=num(this.value);if(v>0){S.tx.cw=v;txAll();draft()}});
+$('#txang').addEventListener('input',function(){var v=num(this.value);if(v>0&&v<90){S.tx.ang=v;txAll();draft()}});
+$('#txdef').onclick=function(){S.tx={cw:2730,ang:38};txUI();txAll();draft()};
+$('#th').addEventListener('input',function(){var v=num(this.value);S.th=isFinite(v)&&v>=0?v:5;renderBal();draft()});
+
+/* ---------- 事件：系統 ---------- */
+$('#sys').addEventListener('input',function(e){
+  var ch=e.target.closest('.chip');if(!ch||e.target.tagName!=='INPUT')return;
+  var s=S.systems.find(function(x){return x.id===ch.getAttribute('data-sid')});if(!s)return;
+  s.name=e.target.value;
+  document.querySelectorAll('#pts select[data-f="sys"] option[value="'+CSS.escape(s.id)+'"]').forEach(function(o){o.textContent=s.name||'（未命名）'});
+  document.querySelectorAll('#pts .pt').forEach(function(el){var p=findP(el.getAttribute('data-id'));if(p&&p.sys===s.id)el.querySelector('[data-b="sys"]').textContent=s.name||'（未命名）'});
+  renderFilter();renderBal();draft();
+});
+$('#sys').addEventListener('click',function(e){
+  if(e.target.id==='addsys'){addSys();return}
+  var b=e.target.closest('button[data-act="delsys"]');if(!b)return;
+  var id=b.closest('.chip').getAttribute('data-sid'),n=usedCount(id);
+  if(n){msg('「'+sysName(id)+'」還有 '+n+' 個量測點，請先把量測點改到其他系統或刪除，再刪除此系統。');return}
+  if(S.systems.length<=1){msg('至少要保留一個系統。');return}
+  if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='✕'}},3000);return}
+  S.systems=S.systems.filter(function(x){return x.id!==id});renderSys();renderBal();renderPts();draft();msg('已刪除系統。');
+});
+$('#sys').addEventListener('keydown',function(e){if(e.target.id==='newsys'&&e.key==='Enter'){e.preventDefault();addSys()}});
+function addSys(){
+  var i=$('#newsys'),n=i.value.trim();
+  if(!n){i.focus();msg('請先輸入系統名稱。');return}
+  if(S.systems.some(function(s){return s.name===n})){msg('已經有「'+n+'」這個系統。');return}
+  S.systems.push({id:uid(),name:n});renderSys();renderBal();renderPts();draft();msg('已新增系統「'+n+'」。');
+  var ni=$('#newsys');if(ni)ni.focus();
+}
+
+/* ---------- 事件：平衡表、篩選 ---------- */
+$('#bal').addEventListener('click',function(e){var tr=e.target.closest('tr[data-sid]');if(!tr)return;flt=tr.getAttribute('data-sid');$('#flt').value=flt;renderPts();$('#flt').scrollIntoView({behavior:'smooth',block:'start'})});
+$('#flt').addEventListener('change',function(){flt=this.value;renderPts()});
+
+/* ---------- 事件：量測點 ---------- */
+function onField(e){
+  var x=e.target,f=x.getAttribute&&x.getAttribute('data-f');if(!f)return;
+  var el=x.closest('.pt'),p=el&&findP(el.getAttribute('data-id'));if(!p)return;
+  if(/^r\d$/.test(f))p.r[+f[1]]=x.value;else p[f]=x.value;
+  if(f==='size'&&PK[x.value]){var d=PK[x.value];p.od=String(d.od);p.t=String(d.t);el.querySelector('[data-f="od"]').value=p.od;el.querySelector('[data-f="t"]').value=p.t}
+  if(f==='odin'){var iv=num(p.odin);p.od=iv>0?String(+(iv*25.4).toFixed(1)):'';el.querySelector('[data-f="od"]').value=p.od}
+  if(f==='circ'){var cv=num(p.circ);p.od=cv>0?String(+(cv/Math.PI).toFixed(1)):'';el.querySelector('[data-f="od"]').value=p.od}
+  if(f!=='odin'&&(f==='od'||f==='circ'||(f==='size'&&PK[x.value]))){var ov2=num(p.od);p.odin=ov2>0?String(+(ov2/25.4).toFixed(3)):'';el.querySelector('[data-f="odin"]').value=p.odin}
+  if(f==='od'||f==='odin'||(f==='size'&&PK[x.value])){var ov=num(p.od);p.circ=ov>0?String(+(ov*Math.PI).toFixed(1)):'';el.querySelector('[data-f="circ"]').value=p.circ}
+  if((f==='od'||f==='t'||f==='circ'||f==='odin')&&p.size){if(f==='circ'||f==='odin')f='od';var d2=PK[p.size];if(!d2||String(d2[f])!==String(p[f])){p.size='';el.querySelector('[data-f="size"]').value=''}}
+  updCard(el,p);renderBal();
+  if(f==='sys'){renderSys()}
+  draft();
+}
+$('#pts').addEventListener('input',onField);
+$('#pts').addEventListener('change',function(e){if(e.target.tagName==='SELECT')onField(e)});
+$('#pts').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-act]');if(!b)return;
+  var el=b.closest('.pt'),p=findP(el.getAttribute('data-id'));if(!p)return;
+  if(b.getAttribute('data-act')==='del'){
+    if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按一次刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='刪除'}},3000);return}
+    S.points=S.points.filter(function(x){return x!==p});renderSys();renderBal();renderPts();draft();msg('已刪除量測點。');return;
+  }
+  if(b.getAttribute('data-act')==='dup'){
+    var q=JSON.parse(JSON.stringify(p));q.id=uid();q.area='';q.time='';q.note='';q.r=['','',''];q.sig='';
+    S.points.splice(S.points.indexOf(p)+1,0,q);renderSys();renderBal();renderPts();draft();focusArea(q.id);msg('已複製（管徑、系統、類別等設定沿用，讀值已清空）。');
+  }
+});
+function focusArea(id){var el=document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]');if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});var a=el.querySelector('[data-f="area"]');if(a)a.focus({preventScroll:true})}
+$('#add').onclick=function(){
+  var last=S.points.filter(function(p){return !flt||p.sys===flt}).slice(-1)[0];
+  var p=newPoint(flt||(last?last.sys:S.systems[0].id));if(last){p.u=last.u}
+  if(!S.points.some(function(x){return x.sys===p.sys&&x.role==='main'}))p.role='main';
+  S.points.push(p);renderSys();renderBal();renderPts();draft();focusArea(p.id);
+};
+
+/* ---------- 紀錄 ---------- */
+function stamp(){var d=new Date(),z=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())}
+function dirty(){return S.points.length>0&&JSON.stringify(S)!==base}
+function renderRecs(){
+  var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
+  $('#rcnt').textContent=a.length;
+  $('#rl').innerHTML=a.length?a.map(function(r){var n=(r.s&&r.s.points||[]).length;return '<div class="rec"><div><b>'+esc(r.name)+'</b><small>'+esc(r.t)+' ・ '+n+' 個量測點</small></div><div class="ops"><button type="button" class="sm" data-a="load" data-id="'+esc(r.id)+'">載入</button><button type="button" class="sm danger" data-a="del" data-id="'+esc(r.id)+'">刪除</button></div></div>'}).join(''):'<p class="note">還沒有紀錄。</p>';
+}
+function arm(b,t,o){b.setAttribute('data-arm','1');b.textContent=t;setTimeout(function(){if(b.isConnected){b.removeAttribute('data-arm');b.textContent=o}},3000)}
+$('#rsave').onclick=function(){
+  var name=$('#rname').value.trim();
+  if(!name){msg('請先在「紀錄名稱」填一個名稱。');$('#rname').focus();return}
+  var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
+  var i=a.findIndex(function(r){return r.name===name}),rec={id:i>=0?a[i].id:uid(),name:name,t:stamp(),s:JSON.parse(JSON.stringify(S))};
+  if(i>=0)a.splice(i,1);a.unshift(rec);
+  if(lsSet(RK,a)){base=JSON.stringify(S);draft();renderRecs();msg((i>=0?'已更新紀錄：':'已儲存紀錄：')+name+'（'+rec.t+'）')}else msg('儲存失敗：瀏覽器未允許儲存，或空間不足。');
+};
+$('#rnew').onclick=function(){
+  var b=this;
+  if(dirty()&&!b.getAttribute('data-arm')){arm(b,'尚未儲存，再按一次清空','新建空白表單');return}
+  b.removeAttribute('data-arm');b.textContent='新建空白表單';
+  S=blank();flt='';base=JSON.stringify(S);$('#rname').value='';renderAll();lsSet(DK,{name:'',s:S,clean:true});msg('已新建空白表單。');
+};
+$('#rl').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-a]');if(!b)return;
+  var id=b.getAttribute('data-id'),a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
+  if(b.getAttribute('data-a')==='load'){
+    var r=a.find(function(x){return x.id===id});if(!r)return;
+    if(dirty()&&!b.getAttribute('data-arm')){arm(b,'尚未儲存，再按一次載入','載入');return}
+    S=norm(r.s);flt='';base=JSON.stringify(S);$('#rname').value=r.name;renderAll();lsSet(DK,{name:r.name,s:S,clean:true});msg('已載入：'+r.name+'（'+r.t+'）');return;
+  }
+  if(b.getAttribute('data-arm')){lsSet(RK,a.filter(function(x){return x.id!==id}));renderRecs();msg('已刪除紀錄。');return}
+  arm(b,'再按一次確認刪除','刪除');
+});
+$('#rname').addEventListener('input',draft);
+
+/* ---------- 匯出 CSV ---------- */
+function csvText(){
+  var I=S.info,rows=[['廠區流量量測紀錄'],['紀錄名稱',$('#rname').value],['案名／廠區',I.name||''],['量測日期',I.date||''],['量測人員',I.who||''],['流量計型號／序號',I.meter||''],['天氣／運轉狀況',I.cond||''],[],
+    ['平衡比對（單位 m³/h；允許差異 ±'+S.th+'%）'],['系統','量測點數','主管流量','支管合計','差異','差異 %','判讀']];
+  balance().forEach(function(b){var ok=b.hasM&&b.nb;rows.push([b.s.name,b.n,b.hasM?b.M.toFixed(2):'',b.nb?b.B.toFixed(2):'',ok?b.d.toFixed(2):'',ok&&isFinite(b.pct)?b.pct.toFixed(2):'',b.st])});
+  rows.push([],['量測點明細'],['#','系統','類別','生產區／量測位置','量測時間','管徑規格','周長 mm','外徑 mm','外徑 in','壁厚 mm','內徑 mm','管材','讀值 1','讀值 2','讀值 3','讀值單位','平均流量 m³/h','流速 m/s','讀值差 %','上游直管段 D','下游直管段 D','探頭安裝方式','流量計建議間距 mm','估算間距 mm（所選方式）','建議安裝方式','訊號強度','提醒','備註']);
+  S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),p.role==='main'?'主管':'支管',p.area,p.time,PK[p.size]?PK[p.size].n:(p.size?p.size:'自訂'),p.circ,p.od,p.odin,p.t,isFinite(c.id)?c.id.toFixed(1):'',p.mat,p.r[0],p.r[1],p.r[2],p.u,isFinite(c.avg)?c.avg.toFixed(2):'',isFinite(c.v)?c.v.toFixed(3):'',isFinite(c.spread)?c.spread.toFixed(1):'',p.up,p.down,p.inst?p.inst+' 法':'',p.sm,(c.sp&&p.inst)?c.sp[p.inst].toFixed(0):'',c.rec?c.rec+' 法':'',p.sig,c.warn.map(function(w){return w[1]}).join('；'),p.note])});
+  return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
+}
+var dl=null;try{if(window.claude&&claude.use)claude.use('downloads').then(function(d){if(d)dl=d}).catch(function(){})}catch(e){}
+$('#csv').onclick=async function(){
+  if(!S.points.length){msg('還沒有量測點可以匯出。');return}
+  var csv=csvText(),nm=($('#rname').value.trim()||S.info.name||'flow-survey').replace(/[\\\/:*?"<>|]/g,'_'),d=new Date(),z=function(n){return String(n).padStart(2,'0')};
+  var name=nm+'_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'.csv';
+  try{
+    if(dl)await dl.save({filename:name,data:csv});
+    else{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)}
+    msg('已匯出：'+name);
+  }catch(e){if(!e||e.code!=='declined')msg('下載失敗，請改用「列印／存成 PDF」。')}
+};
+
+/* ---------- 列印 ---------- */
+var openD=[];
+window.addEventListener('beforeprint',function(){openD=[];document.querySelectorAll('#pts details').forEach(function(d){if(!d.open){d.open=true;openD.push(d)}})});
+window.addEventListener('afterprint',function(){openD.forEach(function(d){d.open=false});openD=[]});
+$('#prt').onclick=function(){window.print()};
+
+/* ---------- 背景（與其他頁共用） ---------- */
+var SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
+var MOON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="#818CF8" stroke="#4F46E5" stroke-width="1.6"/><path d="M18 3.2l.55 1.25 1.25.55-1.25.55L18 6.8l-.55-1.25L16.2 5l1.25-.55z" fill="#FBBF24" stroke="#F59E0B" stroke-width=".6"/></svg>';
+var TB=$('#thToggle'),cur='white';
+function theme(k){cur=k==='dark'?'dark':'white';document.documentElement.setAttribute('data-theme',cur==='dark'?'dark':'light');var t=cur==='dark'?'切換淺色背景':'切換深色背景';TB.innerHTML=cur==='dark'?SUN:MOON;TB.title=t;TB.setAttribute('aria-label',t);try{localStorage.setItem('pumpTheme',cur)}catch(e){}}
+var st0='white';try{st0=localStorage.getItem('pumpTheme')||'white'}catch(e){}
+theme(st0);TB.onclick=function(){theme(cur==='dark'?'white':'dark')};
+
+/* ---------- 啟動 ---------- */
+var dr=lsGet(DK,null);
+if(dr&&dr.s){S=norm(dr.s);$('#rname').value=dr.name||''}
+/* 一次性清除：舊版預設的「製程水」系統（沒有量測點才移除） */
+if(!lsGet('flowMig1',0)){
+  var wasClean=!dr||dr.clean;
+  S.systems=S.systems.filter(function(x){return !(x.name==='製程水'&&!S.points.some(function(p){return p.sys===x.id}))});
+  if(!S.systems.length)S.systems=blank().systems;
+  if(dr&&dr.s)lsSet(DK,{name:dr.name||'',s:S,clean:wasClean});
+  lsSet('flowMig1',1);
+}
+base=(!dr||dr.clean)?JSON.stringify(S):'';
+renderAll();renderRecs();
+})();
+</script>
+</body>
+</html>

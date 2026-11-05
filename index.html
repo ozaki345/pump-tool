@@ -84,6 +84,7 @@ details.card summary{cursor:pointer;font-weight:600}
     <a class="btn" href="pipe.html">管路厚度計算</a>
     <a class="btn" href="draw.html">工作點標記</a>
     <a class="btn" href="survey.html">現場資料表</a>
+    <a class="btn" href="flow.html">流量量測表</a>
     <button class="btn ic" id="thToggle" type="button" title="切換深色背景" aria-label="切換深色背景"></button>
   </nav>
 </header>
@@ -127,7 +128,7 @@ const Q={
  current:[["A",1],["mA",1e-3]],
  freq:[["Hz",1]]
 };
-const S={nQ:100/3600,nH:50,pPm:15000,pN:2900,pV:380,pI:28,pHz:50,pEta:90,pPF:0.85,mQ:95/3600,mH:46,mN:2870,mPm:14000,mNPSH:4,eV:380,eI:26,eP:14000,nEta:70,nShaft:19500,rho:1000};
+const S={nQ:100/3600,nH:50,pPm:15000,pN:2900,pV:380,pI:28,pHz:50,pEta:90,pPF:0.85,mQ:95/3600,mH:46,mN:2870,mPm:14000,mNPSH:4,eV:380,eI:26,eP:14000,nEta:70,nShaft:19500,rho:1000,vOpen:NaN,vType:"",nN:2900};
 const calc=()=>{
  ["n","m"].forEach(p=>{S[p+"P"]=S.rho*G*S[p+"H"];S[p+"hyd"]=S.rho*G*S[p+"Q"]*S[p+"H"]});
  S.mEta=S.mPm>0?S.mhyd/S.mPm*100:NaN;
@@ -160,7 +161,10 @@ const cards=[
  {key:"mhyd",t:"P3 水馬力功率",q:"power",u:0,box:"results",ro:true,hint:"ρ·g·實測Q·實測H"},
  {key:"pumpEta",t:"泵浦效率",q:null,suf:"%",box:"results",ro:true,hint:"= P3 ÷ P2"},
  {key:"nEta",t:"泵浦原廠效率 η",q:null,suf:"%",box:"nameplate"},
- {key:"nShaft",t:"泵浦原廠軸功率",q:"power",u:0,box:"nameplate",ro:true,hint:"= ρ·g·Q·H ÷ η"}
+ {key:"nShaft",t:"泵浦原廠軸功率",q:"power",u:0,box:"nameplate",ro:true,hint:"= ρ·g·Q·H ÷ η"},
+ {key:"vOpen",t:"出口閥開度",q:null,suf:"%",box:"field",blank:true,hint:"量測當下；全開填 100"},
+ {key:"vType",t:"出口閥型式",q:null,box:"field",opts:[],optsL:[["","請選擇"],["閘閥","閘閥"],["蝶閥","蝶閥"],["球閥","球閥"],["截止閥","截止閥（球型閥）"],["其他","其他"]]},
+ {key:"nN",t:"泵浦額定轉速",q:"speed",u:0,box:"nameplate",blank:true,hint:"銘牌標示；未標可留空"}
 ];
 const fmt=x=>{if(!isFinite(x))return"—";if(x===0)return"0";const a=Math.abs(x);if(a>=1e9||a<1e-4)return x.toExponential(4);return String(parseFloat(x.toPrecision(6)))};
 const toast=document.getElementById("toast");
@@ -169,6 +173,13 @@ let tt;function copy(s){try{navigator.clipboard.writeText(s)}catch(e){}toast.tex
 cards.forEach(c=>{
  const el=document.createElement("div");el.className="card"+(c.ro?" res":"");
  const units=c.q?Q[c.q]:null;
+ if(c.optsL){
+  el.innerHTML=`<h3>${c.t}<small>${c.hint||""}</small></h3><div class="row"><select style="flex:1">${c.optsL.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select></div>`;
+  document.getElementById(c.box).appendChild(el);
+  c.sel=el.querySelector("select");c.sel.value=S[c.key]||"";
+  c.sel.onchange=()=>{S[c.key]=c.sel.value};
+  return;
+ }
  if(c.opts){
   el.innerHTML=`<h3>${c.t}<small>${c.hint||""}</small></h3><div class="row"><select style="flex:1">${c.opts.map(o=>`<option value="${o}">${o} Hz</option>`).join("")}</select></div>`;
   document.getElementById(c.box).appendChild(el);
@@ -181,19 +192,21 @@ cards.forEach(c=>{
  c.el=el;c.inp=el.querySelector("input");c.sel=el.querySelector("select");c.tbl=el.querySelector(".tbl");
  if(c.sel)c.sel.onchange=()=>{c.u=+c.sel.value;update(null)};
  if(!c.ro)c.inp.oninput=()=>{
-  const v=parseFloat(c.inp.value.replace(/,/g,""));if(!isFinite(v))return;
+  const v=parseFloat(c.inp.value.replace(/,/g,""));
+  if(!isFinite(v)){if(c.blank&&c.inp.value.trim()===""){S[c.key]=NaN;calc();update(c.key)}return}
   S[c.key]=units?v*units[c.u][1]:v;
   if(c.key==="nP")S.nH=S.nP/(S.rho*G);
   if(c.key==="mP")S.mH=S.mP/(S.rho*G);
   calc();update(c.key);
  };
 });
+{const a=cards.find(c=>c.key==="nH"),b=cards.find(c=>c.key==="nN");if(a&&b&&a.el&&b.el)a.el.after(b.el)} // 轉速排在額定揚程後面
 function update(skip){
  cards.forEach(c=>{
   const units=c.q?Q[c.q]:null;
   if(c.opts)return;
   const base=S[c.key];
-  if(c.key!==skip)c.inp.value=units?fmt(base/units[c.u][1]):fmt(base);
+  if(c.key!==skip)c.inp.value=(c.blank&&!isFinite(base))?"":units?fmt(base/units[c.u][1]):fmt(base);
   if(units){
    c.tbl.innerHTML=units.map((u,i)=>{const s=fmt(base/u[1]);return`<div class="tr${i===c.u?" cur":""}" data-v="${s}"><span>${u[0]}</span><b>${s}</b></div>`}).join("");
    c.tbl.querySelectorAll(".tr").forEach(r=>r.onclick=()=>copy(r.dataset.v));
@@ -205,6 +218,7 @@ const secName={nameplate:"① 泵浦原廠銘牌數據",motor:"② 馬達原廠�
 function exportRows(){
  const head=["區塊","參數","數值","單位"];
  const body=cards.map(c=>{
+  if(c.optsL)return[secName[c.box],c.t,S[c.key]||"",""];
   const u=c.q?Q[c.q][c.u]:null;
   const v=u?S[c.key]/u[1]:S[c.key];
   return[secName[c.box],c.t,isFinite(v)?String(parseFloat(v.toPrecision(8))):"",u?u[0]:(c.suf||"")];
@@ -258,10 +272,14 @@ function renderRecs(){
 }
 function loadRec(id){
  const r=loadRecs().find(x=>x.id===id);if(!r)return;
+ S.vOpen=NaN;S.vType="";S.nN=NaN;            // 舊紀錄沒有閥資料時保持空白
  Object.assign(S,r.S);
  S.rho=1000; // 已移除流體設定，一律以水計算
+ if(!(typeof S.vOpen==="number"&&isFinite(S.vOpen)))S.vOpen=NaN;
+ if(typeof S.vType!=="string")S.vType="";
+ if(!(typeof S.nN==="number"&&isFinite(S.nN)))S.nN=NaN;
  let us=r.us;
- if(us&&us.length===cards.length+1)us=us.filter((_,i)=>i!==15); // 舊紀錄：去掉原「流體密度」那一格
+ if(us&&us.length===22)us=us.filter((_,i)=>i!==15); // 舊紀錄（有「流體密度」時共 22 格）：去掉那一格
  cards.forEach((c,i)=>{
   if(c.opts){c.sel.value=S[c.key];return}
   if(c.q&&us&&us[i]!=null){c.u=us[i];c.sel.value=c.u}
