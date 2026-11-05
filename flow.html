@@ -57,6 +57,7 @@ tbody tr{cursor:pointer}
 tbody tr:hover td{background:var(--hl)}
 .ah{font-size:15px;margin:18px 0 8px}
 .ab-st{font-size:14px;margin-top:8px}
+.ab table.at th:last-child,.ab table.at td:last-child{text-align:right;min-width:0}
 .ab{border:1px solid var(--ln);border-left:4px solid var(--c);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .ab-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.ab-h .sdot{width:10px;height:10px;border-radius:50%;background:var(--c)}
 .ab table tbody tr{cursor:default}.ab table tbody tr:hover td{background:transparent}
@@ -165,7 +166,7 @@ tbody tr:hover td{background:var(--hl)}
   <div style="height:12px"></div>
   <div class="thr"><span>允許差異 ±</span><input id="th" type="number" min="0" step="0.5" inputmode="decimal"><span>%（綠色：在範圍內；橘色：2 倍以內；紅色：超過 2 倍）</span></div>
   <h3 class="ah">各系統明細</h3>
-  <p class="note" style="margin-top:0">① 各泵浦合計＝類別「泵浦」加總；② 主集管＝類別「主集管」加總；③ 各區合計＝每區取一個區流量加總（優先順序：主集管支管 → 主管 → 支管合計）。沒有主集管時，③ 直接和 ① 比。</p>
+  <p class="note" style="margin-top:0">① 各泵浦合計＝類別「泵浦」加總；② 主集管＝類別「主集管」加總；③ 各區合計＝各區（主管＋支管）流量加總。主集管支管只在「主集管」表內和主集管比對。沒有主集管時，③ 直接和 ① 比。</p>
   <div id="areas"></div>
 </div>
 
@@ -285,19 +286,19 @@ function balance(){
   var th=S.th;
   return S.systems.map(function(s){
     var ps=S.points.filter(function(p){return p.sys===s.id});
-    var L={pump:{q:0,n:0,miss:0,items:[]},hdr:{q:0,n:0,miss:0,items:[]}},ar=[],am={},miss=0;
+    var L={pump:{q:0,n:0,miss:0,items:[]},hdr:{q:0,n:0,miss:0,items:[]},hb:{q:0,n:0,miss:0,items:[]}},ar=[],am={},miss=0;
     ps.forEach(function(p){
       var c=calc(p),no=S.points.indexOf(p)+1,ok=isFinite(c.avg);if(!ok)miss++;
       if(L[p.role]){var g=L[p.role];g.items.push({name:String(p.area||'').trim()||('#'+no),no:no,q:ok?c.avg:NaN});if(ok){g.q+=c.avg;g.n++}else g.miss++;return}
       var k=String(p.area||'').trim(),key=k||('#'+no),a=am[key];
-      if(!a){a=am[key]={name:k||'（未填生產區）',nos:[],hb:0,nhb:0,mn:0,nmn:0,br:0,nbr:0,miss:0};ar.push(a)}
+      if(!a){a=am[key]={name:k||'（未填生產區）',nos:[],mn:0,nmn:0,br:0,nbr:0,miss:0};ar.push(a)}
       a.nos.push(no);if(!ok){a.miss++;return}
-      if(p.role==='hb'){a.hb+=c.avg;a.nhb++}else if(p.role==='main'){a.mn+=c.avg;a.nmn++}else{a.br+=c.avg;a.nbr++}
+      if(p.role==='main'){a.mn+=c.avg;a.nmn++}else{a.br+=c.avg;a.nbr++}
     });
     var A=0,nA=0;
-    ar.forEach(function(a){a.q=a.nhb?a.hb:a.nmn?a.mn:a.nbr?a.br:NaN;a.src=a.nhb?'主集管支管':a.nmn?'主管':a.nbr?'支管':'';
+    ar.forEach(function(a){a.q=(a.nmn||a.nbr)?a.mn+a.br:NaN;
       a.inner=(a.nmn&&a.nbr)?judge(a.br-a.mn,a.mn,th):null;if(isFinite(a.q)){A+=a.q;nA++}});
-    var P=L.pump.n?L.pump.q:NaN,H=L.hdr.n?L.hdr.q:NaN,AA=nA?A:NaN;
+    var P=L.pump.n?L.pump.q:NaN,H=L.hdr.n?L.hdr.q:NaN,HB=L.hb.n?L.hb.q:NaN,AA=nA?A:NaN,j3=judge(HB-H,H,th);
     var j1=judge(H-P,P,th),base2=isFinite(H)?H:P,j2=judge(AA-base2,base2,th);j2.vs=isFinite(H)?'②':'①';
     var T=isFinite(P)?P:isFinite(H)?H:AA;
     var st,cls,rank={ok:0,mut:-1,wn:1,bad:2};
@@ -306,15 +307,16 @@ function balance(){
       var have=[isFinite(P),isFinite(H),isFinite(AA)].filter(Boolean).length;
       if(have<2){st='至少要量到兩種（泵浦／主集管／各區）才能比對';cls='mut'}
       else{
-        var js=[j1,j2].filter(function(j){return isFinite(j.pct)});cls=js.reduce(function(m,j){return rank[j.cls]>rank[m]?j.cls:m},'ok');
+        var js=[j1,j2,j3].filter(function(j){return isFinite(j.pct)});cls=js.reduce(function(m,j){return rank[j.cls]>rank[m]?j.cls:m},'ok');
         var msgs=[];
         if(isFinite(j1.pct)&&j1.cls!=='ok')msgs.push(j1.pct<0?'主集管少於泵浦合計：檢查旁通、回流或讀值':'主集管多於泵浦合計：檢查是否漏量泵浦或讀值');
         if(isFinite(j2.pct)&&j2.cls!=='ok')msgs.push(j2.pct<0?'各區合計偏少：可能還有區域未量到、漏水或旁通':'各區合計偏多：檢查讀值、單位或是否重複計算');
+        if(isFinite(j3.pct)&&j3.cls!=='ok')msgs.push(j3.pct<0?'主集管支管合計少於主集管：可能還有支管未量到':'主集管支管合計多於主集管：檢查讀值或單位');
         st=msgs.length?msgs.join('；'):(have===3?'三者一致':'兩者一致')+'：平衡良好';
       }
       if(miss)st+='（'+miss+' 點未填讀值）';
     }
-    return {s:s,n:ps.length,P:P,H:H,A:AA,T:T,pump:L.pump,hdr:L.hdr,j1:j1,j2:j2,areas:ar,st:st,cls:cls};
+    return {s:s,n:ps.length,P:P,H:H,HB:HB,A:AA,T:T,pump:L.pump,hdr:L.hdr,hb:L.hb,j3:j3,j1:j1,j2:j2,areas:ar,st:st,cls:cls};
   });
 }
 
@@ -353,11 +355,18 @@ function renderAreas(){
       +'<div><small>② 主集管</small><b>'+f(b.H)+'</b> m³/h<em class="'+b.j1.cls+'">'+(isFinite(b.j1.pct)?'比 ①：'+sg(b.H-b.P)+' m³/h（'+sg(b.j1.pct)+'%）':'&nbsp;')+'</em></div>'
       +'<div><small>③ 各區合計（'+b.areas.length+' 區）</small><b>'+f(b.A)+'</b> m³/h<em class="'+b.j2.cls+'">'+(isFinite(b.j2.pct)?'比 '+b.j2.vs+'：'+sg(b.A-(b.j2.vs==='②'?b.H:b.P))+' m³/h（'+sg(b.j2.pct)+'%）':'&nbsp;')+'</em></div></div>';
     var pumps=b.pump.items.length?'<h4>各泵浦</h4><div class="tw"><table><thead><tr><th>泵浦</th><th>流量 m³/h</th><th>佔泵浦合計</th></tr></thead><tbody>'+b.pump.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>'+f(x.q)+'</td><td class="pc">'+bar(isFinite(x.q)&&b.P>0?x.q/b.P*100:NaN)+'</td></tr>'}).join('')+'</tbody></table></div>':'';
-    var areas='<h4>各區流量（佔比以'+tl+'為 100%）</h4><div class="tw"><table><thead><tr><th>生產區</th><th>主集管支管</th><th>主管</th><th>支管合計</th><th>區流量</th><th>佔比</th><th>區內 支管 比 主管</th></tr></thead><tbody>'
-      +(b.areas.length?b.areas.map(function(a){return '<tr><td class="an">'+esc(a.name)+' <span class="mut" style="font-size:12px">#'+a.nos.join('、#')+(a.miss?'（'+a.miss+' 點未填讀值）':'')+'</span></td><td>'+(a.nhb?f(a.hb):'—')+'</td><td>'+(a.nmn?f(a.mn):'—')+'</td><td>'+(a.nbr?f(a.br):'—')+'</td><td><b>'+f(a.q)+'</b></td><td class="pc">'+bar(isFinite(a.q)&&T>0?a.q/T*100:NaN)+'</td><td class="'+(a.inner?a.inner.cls:'mut')+'">'+(a.inner?sg(a.inner.pct)+'%':'—')+'</td></tr>'}).join('')
-        :'<tr><td class="an mut" colspan="7">這個系統還沒有各區（主集管支管／主管／支管）量測點。</td></tr>')
-      +'</tbody></table></div>';
-    return '<div class="ab '+sysCls(b.s.id)+'"><div class="ab-h"><span class="sdot"></span><b>'+esc(b.s.name||'（未命名）')+'</b></div>'+cmp+pumps+areas+'<div class="ab-st '+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</div></div>';
+    var hp=function(x,base){return bar(isFinite(x.q)&&base>0?x.q/base*100:NaN)};
+    var hdr=(b.hdr.items.length||b.hb.items.length)?'<h4>主集管</h4><div class="tw"><table><thead><tr><th>名稱</th><th>類別</th><th>流量 m³/h</th><th>佔主集管合計</th></tr></thead><tbody>'
+      +b.hdr.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>主集管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
+      +b.hb.items.map(function(x){return '<tr><td class="an">'+esc(x.name)+' <span class="mut" style="font-size:12px">#'+x.no+'</span></td><td>主集管支管</td><td>'+f(x.q)+'</td><td class="pc">'+hp(x,b.H)+'</td></tr>'}).join('')
+      +'</tbody><tfoot><tr><td>主集管合計</td><td></td><td>'+f(b.H)+'</td><td class="pc">'+(isFinite(b.H)?'100%':'—')+'</td></tr>'
+      +'<tr><td>主集管支管合計</td><td></td><td>'+f(b.HB)+'</td><td class="pc">'+(isFinite(b.HB)&&b.H>0?fmt(b.HB/b.H*100,1)+'%':'—')+'</td></tr>'
+      +'<tr><td>差異（支管合計 − 主集管合計）</td><td></td><td class="'+b.j3.cls+'">'+(isFinite(b.j3.pct)?sg(b.HB-b.H):'—')+'</td><td class="pc '+b.j3.cls+'">'+(isFinite(b.j3.pct)?sg(b.j3.pct)+'%':'—')+'</td></tr></tfoot></table></div>':'';
+    var areas='<h4>各區流量</h4><div class="tw"><table class="at"><thead><tr><th>生產區</th><th>主管 m³/h</th><th>支管 m³/h</th><th>合計 m³/h</th></tr></thead><tbody>'
+      +(b.areas.length?b.areas.map(function(a){return '<tr><td class="an">'+esc(a.name)+' <span class="mut" style="font-size:12px">#'+a.nos.join('、#')+(a.miss?'（'+a.miss+' 點未填讀值）':'')+'</span></td><td>'+(a.nmn?f(a.mn):'—')+'</td><td>'+(a.nbr?f(a.br):'—')+'</td><td><b>'+f(a.q)+'</b></td></tr>'}).join('')
+        :'<tr><td class="an mut" colspan="4">這個系統還沒有各區（主管／支管）量測點。</td></tr>')
+      +'</tbody><tfoot><tr><td>各區合計</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nmn?a.mn:0)},0)||NaN)+'</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nbr?a.br:0)},0)||NaN)+'</td><td><b>'+f(b.A)+'</b></td></tr></tfoot></table></div>';
+    return '<div class="ab '+sysCls(b.s.id)+'"><div class="ab-h"><span class="sdot"></span><b>'+esc(b.s.name||'（未命名）')+'</b></div>'+cmp+pumps+hdr+areas+'<div class="ab-st '+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</div></div>';
   }).join('');
   box.innerHTML=h||'<div class="mut" style="font-size:14px">還沒有量測點。</div>';
 }
@@ -551,8 +560,10 @@ function csvText(){
   B.forEach(function(b){rows.push([b.s.name,b.n,c2(b.P),c2(b.H),c2(b.A),c2(b.j1.pct,1),c2(b.j2.pct,1),b.st])});
   rows.push([],['各泵浦（單位 m³/h）'],['系統','泵浦','量測點','流量']);
   B.forEach(function(b){b.pump.items.forEach(function(x){rows.push([b.s.name,x.name,'#'+x.no,c2(x.q)])})});
-  rows.push([],['各區流量（單位 m³/h）'],['系統','生產區','量測點','主集管支管','主管','支管合計','區流量','佔比 %','區內 支管 比 主管 %']);
-  B.forEach(function(b){b.areas.forEach(function(a){rows.push([b.s.name,a.name,'#'+a.nos.join('、#'),a.nhb?c2(a.hb):'',a.nmn?c2(a.mn):'',a.nbr?c2(a.br):'',c2(a.q),isFinite(a.q)&&b.T>0?(a.q/b.T*100).toFixed(1):'',a.inner?c2(a.inner.pct,1):''])})});
+  rows.push([],['主集管（單位 m³/h）'],['系統','名稱','類別','量測點','流量']);
+  B.forEach(function(b){b.hdr.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管','#'+x.no,c2(x.q)])});b.hb.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管支管','#'+x.no,c2(x.q)])});if(b.hdr.items.length||b.hb.items.length)rows.push([b.s.name,'主集管合計','','',c2(b.H)],[b.s.name,'主集管支管合計','','',c2(b.HB)],[b.s.name,'差異 %（支管合計 比 主集管合計）','','',c2(b.j3.pct,1)])});
+  rows.push([],['各區流量（單位 m³/h）'],['系統','生產區','量測點','主管','支管','合計']);
+  B.forEach(function(b){b.areas.forEach(function(a){rows.push([b.s.name,a.name,'#'+a.nos.join('、#'),a.nmn?c2(a.mn):'',a.nbr?c2(a.br):'',c2(a.q)])});if(b.areas.length)rows.push([b.s.name,'各區合計','','','',c2(b.A)])});
   rows.push([],['量測點明細'],['#','系統','類別','生產區／量測位置','量測時間','管徑規格','周長 mm','外徑 mm','外徑 in','壁厚 mm','內徑 mm','管路材質','讀值 1','讀值 2','讀值 3','讀值單位','平均流量 m³/h','流速 m/s','讀值差 %','上游直管段 D','下游直管段 D','探頭安裝方式','流量計建議間距 mm','估算間距 mm（所選方式）','建議安裝方式','訊號強度','提醒','備註']);
   S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),RN[p.role],p.area,p.time,PK[p.size]?PK[p.size].n:(p.size?p.size:'自訂'),p.circ,p.od,p.odin,p.t,isFinite(c.id)?c.id.toFixed(1):'',(p.mat==='其他'&&p.matx?'其他：'+p.matx:p.mat),p.r[0],p.r[1],p.r[2],p.u,isFinite(c.avg)?c.avg.toFixed(2):'',isFinite(c.v)?c.v.toFixed(3):'',isFinite(c.spread)?c.spread.toFixed(1):'',p.up,p.down,p.inst?p.inst+' 法':'',p.sm,(c.sp&&p.inst)?c.sp[p.inst].toFixed(0):'',c.rec?c.rec+' 法':'',p.sig,c.warn.map(function(w){return w[1]}).join('；'),p.note])});
   return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
