@@ -129,7 +129,7 @@ button:hover,.file:hover{border-color:var(--bl)}
 
     <section class="panel" id="trPanel">
       <h2>性能曲線描點（推算用，選填）</h2>
-      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。點完後可以按住任一點拖曳微調；按住曲線線段（不是點）拖曳，可以把整條曲線一起移動。調好按「✓ 確定」才會重新推算。之後要再修改，按「調整…曲線」即可。</p>
+      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。點完後可以按住任一點拖曳微調；按住曲線線段（不是點）拖曳，可以把整條曲線上下或左右平移（依拖曳方向自動鎖定其中一個方向）。調好按「✓ 確定」才會重新推算。之後要再修改，按「調整…曲線」即可。</p>
       <div class="pt"><button id="trH" type="button">描 H-Q 揚程曲線<small></small></button><button id="trHu" type="button" title="刪除最後一個描點">退回</button></div>
       <div class="pt"><button id="trB" type="button">描 BHP 曲線<small></small></button><button id="trBu" type="button" title="刪除最後一個描點">退回</button></div>
       <button id="trClr" type="button">清除全部描點</button>
@@ -244,7 +244,7 @@ cv.addEventListener('pointerdown',function(e){
 });
 cv.addEventListener('pointermove',function(e){
   if(drag){var p=cvPt(e);
-    if(drag.all){var dx=p.x-drag.s.x,dy=p.y-drag.s.y;if(!drag.mv&&Math.hypot(dx,dy)<4*p.k)return;drag.mv=true;TR[trc]=drag.o.map(function(q){return {x:q.x+dx,y:q.y+dy}})}
+    if(drag.all){var dx=p.x-drag.s.x,dy=p.y-drag.s.y;if(!drag.mv&&Math.hypot(dx,dy)<4*p.k)return;drag.mv=true;if(Math.abs(dx)>=Math.abs(dy))dy=0;else dx=0;drag.dir=dx?'h':'v';TR[trc]=drag.o.map(function(q){return {x:q.x+dx,y:q.y+dy}})}
     else TR[trc][drag.i]={x:Math.max(0,Math.min(cv.width,p.x)),y:Math.max(0,Math.min(cv.height,p.y))};
     render(false);return}
   if(trc&&img){var pp=cvPt(e);cv.style.cursor=nearTr(pp)>=0?'grab':nearLine(pp)?'move':'crosshair'}
@@ -605,7 +605,7 @@ function update(){
   $('#alBtn').textContent=aln?'取消轉正':'開始兩點轉正';
   $('#psBtn').textContent=psp?'取消透視校正':'開始四點透視校正';
   if(trc){var tn=trc==='h'?'H-Q 揚程':'BHP',ok2=trc==='h'?(axis('x')&&axis('y')):(axis('x')&&axis('z'));
-    t='描點／調整中（'+tn+' 曲線，'+TR[trc].length+' 點）：點圖上空白處新增點；按住已有的點可拖曳到想要的位置；按住曲線線段可整條移動。調整好後按左側「✓ 確定 '+tn+' 曲線」才會重新推算。'+(ok2?'':'（'+(trc==='h'?'X、Y':'X、Z')+' 軸尚未校正完成，確定後仍需校正才能推算）');}
+    t='描點／調整中（'+tn+' 曲線，'+TR[trc].length+' 點）：點圖上空白處新增點；按住已有的點可拖曳到想要的位置；按住曲線線段可整條上下或左右平移。調整好後按左側「✓ 確定 '+tn+' 曲線」才會重新推算。'+(ok2?'':'（'+(trc==='h'?'X、Y':'X、Z')+' 軸尚未校正完成，確定後仍需校正才能推算）');}
   else if(psp)t=(alNote?alNote+' ':'')+'透視校正：請在圖上點座標框的第 '+(psp.length+1)+' 個角（共 4 個，順序不拘）。';
   else if(aln)t=(alNote?alNote+' ':'')+'轉正：請在圖上點'+(aln.length?'第二':'第一')+'個點（這兩點的連線會被轉成'+($('#alMode').value==='v'?'垂直':'水平')+'）。';
   else if(!img)t='請先在左側上傳曲線圖。';
