@@ -622,5 +622,123 @@ base=(!dr||dr.clean)?JSON.stringify(S):'';
 renderAll();renderRecs();
 })();
 </script>
+<script>
+/* ===== 全站備份／同步（手機 ↔ 電腦）：所有頁面共用同一份資料 ===== */
+(function(){
+var LSK=['pumpRecords','pumpTbl','pumpTheme','flowSurveyRecs','flowSurveyDraft','pa47SurveyRecs_v8','pa47SurveyDraft_v8','pa47Theme','pumpDrawState'];
+var IDBS=[{db:'pa47SurveyPhotos',st:'p'},{db:'pumpDraw',st:'kv'}];
+var RECS={pumpRecords:'id',flowSurveyRecs:'name',pa47SurveyRecs_v8:'id'};
+var DRAFT={flowSurveyDraft:1,pa47SurveyDraft_v8:1,pumpDrawState:1};
+function z(n){return String(n).padStart(2,'0')}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function openDB(n,st){return new Promise(function(res){try{var r=indexedDB.open(n,1);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains(st))r.result.createObjectStore(st)};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
+function dbAll(db,st){return new Promise(function(res){if(!db)return res({});try{var out={},tx=db.transaction(st,'readonly'),s=tx.objectStore(st),c=s.openCursor();c.onsuccess=function(){var k=c.result;if(k){out[String(k.key)]=k.value;k.continue()}else res(out)};c.onerror=function(){res(out)}}catch(e){res({})}})}
+function dbPut(db,st,k,v){return new Promise(function(res){if(!db)return res(false);try{var tx=db.transaction(st,'readwrite');tx.objectStore(st).put(v,k);tx.oncomplete=function(){res(true)};tx.onerror=function(){res(false)}}catch(e){res(false)}})}
+function b2u(b){return new Promise(function(res){if(!(b instanceof Blob))return res(b);var r=new FileReader();r.onload=function(){res({__blob:r.result})};r.onerror=function(){res(null)};r.readAsDataURL(b)})}
+function u2b(o){if(!o||typeof o!=='object'||typeof o.__blob!=='string')return o;try{var m=/^data:([^;,]*)(;base64)?,(.*)$/.exec(o.__blob),bin=m[2]?atob(m[3]):decodeURIComponent(m[3]),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||'application/octet-stream'})}catch(e){return null}}
+async function deep(v,f){if(v instanceof Blob)return await f(v);if(Array.isArray(v)){var a=[];for(var i=0;i<v.length;i++)a.push(await deep(v[i],f));return a}if(v&&typeof v==='object'&&!(v instanceof Date)){if(v.__blob)return f(v);var o={};for(var k in v)o[k]=await deep(v[k],f);return o}return v}
+async function collect(){
+  var out={app:'pump-tool-backup',v:1,t:new Date().toISOString(),ls:{},idb:{}};
+  LSK.forEach(function(k){var v=lsGet(k);if(v!=null)out.ls[k]=v});
+  for(var i=0;i<IDBS.length;i++){var d=IDBS[i],db=await openDB(d.db,d.st),all=await dbAll(db,d.st);if(db)db.close();var o={};for(var k in all)o[k]=await deep(all[k],b2u);if(Object.keys(o).length)out.idb[d.db]=o}
+  return out;
+}
+function summary(b){
+  var c=function(k){try{var a=JSON.parse(b.ls[k]||'[]');return Array.isArray(a)?a.length:0}catch(e){return 0}};
+  var ph=0,pi=(b.idb&&b.idb.pa47SurveyPhotos)||{};Object.keys(pi).forEach(function(k){var o=pi[k];if(o)ph+=((o.motor||[]).length+(o.pump||[]).length)});
+  return [['泵浦換算紀錄',c('pumpRecords')],['流量量測紀錄',c('flowSurveyRecs')],['現場資料表紀錄',c('pa47SurveyRecs_v8')],['銘牌照片',ph]];
+}
+function merge(cur,inc,key){
+  var a=[];try{a=JSON.parse(cur||'[]');if(!Array.isArray(a))a=[]}catch(e){a=[]}
+  var b=[];try{b=JSON.parse(inc||'[]');if(!Array.isArray(b))b=[]}catch(e){b=[]}
+  var add=0,upd=0;
+  b.forEach(function(r){if(!r||r[key]==null)return;var i=a.findIndex(function(x){return x&&x[key]===r[key]});
+    if(i<0){a.push(r);add++}else if(!a[i].t||!r.t||String(r.t)>=String(a[i].t)){if(JSON.stringify(a[i])!==JSON.stringify(r)){a[i]=r;upd++}}});
+  return {v:JSON.stringify(a),add:add,upd:upd};
+}
+async function apply(b,withDraft){
+  var n={add:0,upd:0};
+  Object.keys(RECS).forEach(function(k){if(b.ls[k]==null)return;var m=merge(lsGet(k),b.ls[k],RECS[k]);lsSet(k,m.v);n.add+=m.add;n.upd+=m.upd});
+  var ph=(b.idb&&b.idb.pa47SurveyPhotos)||{},pdb=await openDB('pa47SurveyPhotos','p');
+  for(var k in ph){if(k==='draft'&&!withDraft)continue;await dbPut(pdb,'p',k,ph[k])}
+  if(pdb)pdb.close();
+  if(withDraft){
+    Object.keys(DRAFT).forEach(function(k){if(b.ls[k]!=null)lsSet(k,b.ls[k])});
+    var dr=(b.idb&&b.idb.pumpDraw)||{};
+    if(dr.last){var ddb=await openDB('pumpDraw','kv');await dbPut(ddb,'kv','last',await deep(dr.last,u2b));if(ddb)ddb.close()}
+  }
+  return n;
+}
+async function save(blob,name){
+  try{var d=(typeof claude!=='undefined'&&claude.use)?await claude.use('downloads'):null;if(d){await d.save({filename:name,data:blob});return}}catch(e){if(e&&e.code==='declined')return}
+  var f=null;try{f=new File([blob],name,{type:'application/json'})}catch(e){}
+  if(f&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'泵浦工具備份'});return}catch(e){if(e&&e.name==='AbortError')return}}
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+}
+/* ---- UI ---- */
+var th=document.getElementById('thToggle')||document.getElementById('themeToggle');
+var btn=document.createElement('button');btn.type='button';btn.id='bkBtn';btn.className=th?th.className:'';btn.title='備份／同步資料（手機 ↔ 電腦）';
+btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>備份／同步';
+btn.style.width='auto';btn.style.whiteSpace='nowrap';
+if(th&&th.parentNode)th.parentNode.insertBefore(btn,th.nextSibling);else{btn.style.cssText='position:fixed;right:12px;bottom:12px;z-index:60';document.body.appendChild(btn)}
+var css=document.createElement('style');css.textContent=
+'#bkM{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}#bkM[hidden]{display:none}'+
+'#bkM .bx{max-width:520px;width:100%;max-height:90vh;overflow:auto;border-radius:12px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:16px;line-height:1.6}'+
+'#bkM h3{margin:0 0 6px;font-size:20px}#bkM p{margin:6px 0}#bkM .mut{opacity:.75;font-size:15px}'+
+'#bkM button{font:inherit;cursor:pointer;width:100%;padding:10px 12px;border-radius:8px;margin:6px 0;border:1px solid currentColor;background:transparent;color:inherit;text-align:center}'+
+'#bkM button.pri{background:#0b7bc1;border-color:#0b7bc1;color:#fff;font-weight:700}#bkM .x{position:absolute;right:10px;top:8px;width:auto;border:0;font-size:22px;padding:2px 8px;margin:0}'+
+'#bkM table{border-collapse:collapse;width:100%;margin:6px 0;font-size:15px}#bkM td{padding:3px 6px;border-bottom:1px solid rgba(128,128,128,.3)}#bkM td:last-child{text-align:right}'+
+'#bkM .st{font-weight:700;color:#0b7bc1;min-height:1.4em}#bkM hr{border:0;border-top:1px solid rgba(128,128,128,.35);margin:12px 0}';
+document.head.appendChild(css);
+var M=document.createElement('div');M.id='bkM';M.hidden=true;M.setAttribute('role','dialog');M.setAttribute('aria-label','備份／同步資料');
+M.innerHTML='<div class="bx" style="position:relative"><button type="button" class="x" aria-label="關閉">×</button><h3>備份／同步資料</h3>'+
+'<p class="mut">網站的資料只存在這台裝置的瀏覽器裡。要在手機和電腦之間同步，請在一台按「匯出」，把檔案傳到另一台（LINE、Email、雲端硬碟都可以），再按「匯入」。</p>'+
+'<p class="mut">一個備份檔包含所有頁面：泵浦換算、流量量測、現場資料表（含銘牌照片）、工作點標記。</p><hr>'+
+'<button type="button" class="pri" data-a="exp">⬇ 匯出全部資料（.json）</button>'+
+'<button type="button" data-a="imp">⬆ 匯入備份檔…</button><input type="file" accept=".json,application/json" hidden>'+
+'<div data-b="pv"></div><p class="st" role="status"></p></div>';
+document.body.appendChild(M);
+var bx=M.querySelector('.bx'),st=M.querySelector('.st'),fi=M.querySelector('input[type=file]'),pv=M.querySelector('[data-b="pv"]'),pend=null;
+function paint(){var cs=getComputedStyle(document.body),bg=cs.backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')bg=getComputedStyle(document.documentElement).backgroundColor||'#fff';if(!bg||bg==='rgba(0, 0, 0, 0)')bg='#fff';bx.style.background=bg;bx.style.color=cs.color}
+function open(){paint();st.textContent='';pv.innerHTML='';pend=null;M.hidden=false}
+function close(){M.hidden=true}
+btn.onclick=open;M.querySelector('.x').onclick=close;M.addEventListener('click',function(e){if(e.target===M)close()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!M.hidden)close()});
+M.addEventListener('click',async function(e){
+  var b=e.target.closest('button[data-a]');if(!b)return;var a=b.getAttribute('data-a');
+  if(a==='exp'){
+    st.textContent='正在打包資料…';
+    try{var d=await collect(),s=summary(d),txt=JSON.stringify(d),blob=new Blob([txt],{type:'application/json'}),t=new Date();
+      var name='泵浦工具備份_'+t.getFullYear()+z(t.getMonth()+1)+z(t.getDate())+'_'+z(t.getHours())+z(t.getMinutes())+'.json';
+      await save(blob,name);
+      st.textContent='已匯出：'+name+'（'+(blob.size/1024/1024).toFixed(1)+' MB；'+s.filter(function(x){return x[1]}).map(function(x){return x[0]+' '+x[1]}).join('、')+(s.some(function(x){return x[1]})?'':'目前沒有已儲存紀錄，只有編輯中的內容')+'）';
+    }catch(err){st.textContent='匯出失敗：'+(err&&err.message||err)}
+  }
+  if(a==='imp'){fi.value='';fi.click()}
+  if(a==='go1'||a==='go2'){
+    if(!pend)return;st.textContent='正在匯入…';
+    try{var n=await apply(pend,a==='go2');st.textContent='匯入完成：新增 '+n.add+' 筆、更新 '+n.upd+' 筆紀錄'+(a==='go2'?'，並載入編輯中的內容':'')+'。頁面即將重新整理…';pend=null;setTimeout(function(){location.reload()},1400)}
+    catch(err){st.textContent='匯入失敗：'+(err&&err.message||err)}
+  }
+});
+fi.onchange=function(){
+  var f=fi.files&&fi.files[0];if(!f)return;st.textContent='正在讀取 '+f.name+' …';
+  var r=new FileReader();
+  r.onload=function(){
+    var b=null;try{b=JSON.parse(r.result)}catch(e){}
+    if(!b||b.app!=='pump-tool-backup'||!b.ls){st.textContent='這不是泵浦工具的備份檔，請選擇「泵浦工具備份_….json」。';return}
+    pend=b;var s=summary(b),d=new Date(b.t);
+    pv.innerHTML='<hr><p><b>備份檔內容</b>（匯出時間：'+(isNaN(d)?'未知':d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()))+'）</p><table>'+s.map(function(x){return '<tr><td>'+x[0]+'</td><td>'+x[1]+(x[0]==='銘牌照片'?' 張':' 筆')+'</td></tr>'}).join('')+'</table>'+
+      '<p class="mut">已儲存紀錄會「合併」：這台沒有的會新增，同一筆以較新的為準，不會刪掉這台原有的紀錄。</p>'+
+      '<button type="button" class="pri" data-a="go1">只合併已儲存紀錄（保留這台目前的畫面）</button>'+
+      '<button type="button" data-a="go2">合併紀錄，並載入備份檔裡「編輯中」的內容（會取代這台目前畫面上未儲存的內容）</button>';
+    st.textContent='';
+  };
+  r.onerror=function(){st.textContent='檔案讀取失敗。'};
+  r.readAsText(f);
+};
+})();
+</script>
 </body>
 </html>
