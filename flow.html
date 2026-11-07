@@ -79,6 +79,9 @@ tbody tr:hover td{background:var(--hl)}
 /* 量測點 */
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
 .pbar select{width:auto}
+.badge.r-mt{color:#fff;background:#ca8a04;border-color:#ca8a04}:root[data-theme="dark"] .badge.r-mt{color:#0b1a22;background:#facc15;border-color:#facc15}
+.pt.mt{border-left-color:#ca8a04}.mlbl{font-size:15px;color:var(--mut);margin:2px 0 4px;font-weight:600}.mlbl span{font-weight:400;font-size:14px;margin-left:8px}
+.pt input.ro{background:var(--hl);border-style:dashed;color:var(--ink);font-weight:600}
 .pts{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}.pts>.pt{min-width:0}
 .vsw{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.vsw button{border:0;border-radius:0;background:transparent;color:var(--mut);padding:6px 12px;font-weight:600;width:auto}.vsw button+button{border-left:1px solid var(--ln)}.vsw button.on{background:var(--bl);color:#fff}
 :root[data-theme="dark"] .vsw button.on{color:#0b1a22}
@@ -95,7 +98,7 @@ tbody tr:hover td{background:var(--hl)}
 .pts.v-col{gap:6px}
 .pts.v-col .pt.open{box-shadow:0 0 0 2px var(--bl)}
 @media(min-width:1100px){body.wide main{max-width:1720px}.pts.v-two{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
-@media(max-width:640px){.pts.v-col .pt:not(.open) .pt-h [data-act="dup"],.pts.v-col .pt:not(.open) .pt-h [data-act="del"]{display:none}.pts.v-col .pt:not(.open) .pt-sum{flex-basis:100%;order:5;gap:10px;font-size:15px}.pts.v-col .pt:not(.open) .pt-tg{margin-left:auto}.vsw button{padding:6px 9px}}
+@media(max-width:640px){.pts.v-col .pt:not(.open) .pt-h [data-act="dup"],.pts.v-col .pt:not(.open) .pt-h [data-act="del"]{display:none}.pts.v-col .pt:not(.open) .pt-sum{flex-basis:100%;order:5;gap:4px 10px;font-size:15px;flex-wrap:wrap;white-space:normal}.pts.v-col .pt:not(.open) .pt-sum .ar{flex:0 0 100%;max-width:100%}.pts.v-col .pt:not(.open) .pt-tg{margin-left:auto}.vsw button{padding:6px 9px}}
 @media print{.pts .pt .pt-b{display:block!important}.pts .pt-sum{display:none!important}.pts.v-two{grid-template-columns:1fr!important}body.wide main{max-width:none}.vsw,.vact{display:none!important}}
 .pt{background:var(--pn);border:1px solid var(--ln);border-left:4px solid var(--mut);border-radius:8px;padding:10px 14px}
 .pt.main{border-left-color:var(--bl);box-shadow:inset 0 0 0 1px var(--hl)}
@@ -191,7 +194,7 @@ tbody tr:hover td{background:var(--hl)}
   <div style="height:12px"></div>
   <div class="thr"><span>允許差異 ±</span><input id="th" type="number" min="0" step="0.5" inputmode="decimal"><span>%（綠色：在範圍內；橘色：2 倍以內；紅色：超過 2 倍）</span></div>
   <h3 class="ah">各系統明細</h3>
-  <p class="note" style="margin-top:0">① 各泵浦合計＝類別「泵浦」加總；② 主集管＝類別「主集管」加總；③ 各區合計＝各區（主管＋支管）流量加總。主集管支管只在「主集管」表內和主集管比對。沒有主集管時，③ 直接和 ① 比。點表格任一列（或 #編號）可直接跳到該量測點。</p>
+  <p class="note" style="margin-top:0">② 主集管＝類別「主集管」加總；③ 各區合計＝各區（主管＋支管）流量加總，並和 ② 比對。⚡ 泵浦耗電＝該系統「運轉中」泵浦的耗電功率合計；單位耗能＝耗電 ÷ 流量（kWh/m³），數字越小越省電。點表格任一列（或 #編號）可直接跳到該筆資料。</p>
   <div id="areas"></div>
 </div>
 
@@ -200,7 +203,7 @@ tbody tr:hover td{background:var(--hl)}
   <label class="f" style="display:flex;align-items:center;gap:6px">顯示<select id="flt"></select></label>
   <span class="vsw" role="group" aria-label="量測點顯示方式"><button type="button" data-v="col">收合清單</button><button type="button" data-v="two">兩欄並列</button><button type="button" data-v="full">完整展開</button></span>
   <span class="vact"><button type="button" class="sm" id="expAll">全部展開</button> <button type="button" class="sm" id="colAll">全部收合</button></span>
-  <span class="note" style="margin:0">建議依序量：各泵浦 → 主集管 → 各區。管徑不確定時，可用 <a href="pipe.html">管路厚度計算</a> 由外周長推算。</span>
+  <span class="note" style="margin:0">建議依序：各泵浦（電力）→ 主集管 → 各區。管徑不確定時，可用 <a href="pipe.html">管路厚度計算</a> 由外周長推算。</span>
 </div>
 <details class="card noprint" style="margin:0 0 12px"><summary>探頭間距估算參數（依流量計探頭規格，不確定可不改）</summary>
   <div class="txp">
@@ -237,7 +240,25 @@ var CSH={'碳鋼':3230,'鍍鋅鋼':3230,'不鏽鋼':3100,'鑄鐵':2200,'球墨�
 function cWater(T){if(!isFinite(T))T=20;T=Math.min(Math.max(T,0),95);return 1402.385+5.038813*T-5.799136e-2*T*T+3.287156e-4*Math.pow(T,3)-1.398845e-6*Math.pow(T,4)+2.78786e-9*Math.pow(T,5)}
 
 /* ---------- 狀態 ---------- */
-function blank(){return {info:{},th:5,tx:{cw:2730,ang:38},systems:[{id:uid(),name:'冰水'},{id:uid(),name:'冷卻水'}],points:[]}}
+function blank(){return {info:{},th:5,tx:{cw:2730,ang:38},systems:[{id:uid(),name:'冰水'},{id:uid(),name:'冷卻水'}],points:[],meters:[]}}
+var MST=[['run','運轉中'],['sb','備用'],['stop','停機']];
+function newMeter(sys){return {id:uid(),sys:sys,name:'',st:'run',v:['','',''],i:['','',''],pf:'',kw:'',hz:'60',time:'',ir:'',kwr:'',kwh:'',note:''}}
+function findM(id){return (S.meters||[]).find(function(m){return m.id===id})}
+function avg3(a){var v=a.map(num).filter(function(x){return isFinite(x)&&x>0});if(!v.length)return {avg:NaN,n:0,ub:NaN};var t=v.reduce(function(p,c){return p+c},0)/v.length;return {avg:t,n:v.length,ub:v.length>1?Math.max.apply(null,v.map(function(x){return Math.abs(x-t)}))/t*100:NaN}}
+function mcalc(m){
+  var V=avg3(m.v),I=avg3(m.i),pf=num(m.pf),kw=num(m.kw),ir=num(m.ir),kwr=num(m.kwr);
+  var kva=isFinite(V.avg)&&isFinite(I.avg)?Math.sqrt(3)*V.avg*I.avg/1000:NaN;
+  var kwc=kva>0&&pf>0&&pf<=1?kva*pf:NaN,pfe=!(pf>0)&&kw>0&&kva>0?kw/kva:NaN,P=kw>0?kw:kwc;
+  var load=I.avg>0&&ir>0?I.avg/ir*100:NaN,w=[];
+  if(V.n>=2&&V.ub>2)w.push(['wn','電壓不平衡 '+V.ub.toFixed(1)+'%（> 2%）：馬達容易發熱、效率下降']);
+  if(I.n>=2&&I.ub>10)w.push(['wn','電流不平衡 '+I.ub.toFixed(1)+'%（> 10%）：請檢查電源、接點或馬達繞組']);
+  if(pf>1)w.push(['bad','功因不可能大於 1，請確認讀值']);else if(pf>0&&pf<0.8)w.push(['wn','功因偏低（< 0.8）']);
+  if(isFinite(pfe)&&pfe>1.02)w.push(['bad','耗電功率大於 √3×V×I，請確認電壓、電流或功率讀值']);
+  if(isFinite(kwc)&&kw>0){var d=(kwc-kw)/kw*100;if(Math.abs(d)>10)w.push(['wn','由 √3×V×I×PF 算出 '+fmt(kwc,1)+' kW，與電表讀值差 '+(d>0?'+':'')+d.toFixed(1)+'%，請確認讀值'])}
+  if(isFinite(load)){if(load>105)w.push(['bad','負載率 '+load.toFixed(0)+'%，已超過額定電流']);else if(load<40)w.push(['wn','負載率僅 '+load.toFixed(0)+'%，馬達可能選型過大（節能機會）'])}
+  if(m.st!=='run'&&P>0)w.push(['mut','狀態不是「運轉中」，不列入系統耗電合計']);
+  return {V:V,I:I,pf:pf,kw:kw,kva:kva,kwc:kwc,pfe:pfe,P:P,load:load,kwr:kwr,warn:w};
+}
 function newPoint(sys){return {id:uid(),sys:sys,role:'branch',area:'',time:'',size:'',circ:'',od:'',odin:'',t:'',mat:'碳鋼',matx:'',r:['','',''],u:'m³/h',up:'',down:'',inst:'',sm:'',sig:'',note:''}}
 function norm(o){
   var s=blank();if(!o||typeof o!=='object')return s;
@@ -247,6 +268,7 @@ function norm(o){
   if(Array.isArray(o.systems)&&o.systems.length)s.systems=o.systems.filter(function(x){return x&&x.id}).map(function(x){return {id:String(x.id),name:String(x.name||'')}});
   if(!s.systems.length)s.systems=blank().systems;
   s.points=Array.isArray(o.points)?o.points.filter(function(p){return p&&p.id}).map(function(p){var q=newPoint(s.systems[0].id);Object.keys(q).forEach(function(k){if(p[k]!=null)q[k]=p[k]});if(!Array.isArray(q.r))q.r=['','',''];while(q.r.length<3)q.r.push('');q.r=q.r.slice(0,3);if(!s.systems.some(function(x){return x.id===q.sys}))q.sys=s.systems[0].id;if(!RN[q.role])q.role='branch';if(!(q.u in UF))q.u='m³/h';q.inst=/^[VZW]/.test(String(q.inst))?String(q.inst)[0]:'';if(q.circ===''&&num(q.od)>0)q.circ=String(+(num(q.od)*Math.PI).toFixed(1));if(q.odin===''&&num(q.od)>0)q.odin=String(+(num(q.od)/25.4).toFixed(3));return q}):[];
+  s.meters=Array.isArray(o.meters)?o.meters.filter(function(m){return m&&m.id}).map(function(m){var q=newMeter(s.systems[0].id);Object.keys(q).forEach(function(k){if(m[k]!=null)q[k]=m[k]});['v','i'].forEach(function(k){if(!Array.isArray(q[k]))q[k]=['','',''];while(q[k].length<3)q[k].push('');q[k]=q[k].slice(0,3)});if(!s.systems.some(function(x){return x.id===q.sys}))q.sys=s.systems[0].id;if(!MST.some(function(x){return x[0]===q.st}))q.st='run';if(!q.hz)q.hz='60';return q}):[];
   return s;
 }
 var S=blank(),flt='',base='';
@@ -263,7 +285,7 @@ function recUI(){
   $('#rsaveas').hidden=!r;
   document.querySelectorAll('#rl .rec').forEach(function(el){var bb=el.querySelector('[data-id]');el.classList.toggle('cur',!!(r&&bb&&bb.getAttribute('data-id')===r.id))});
   $('#rcur').innerHTML=ren?('名稱已改成「<b>'+esc(nm)+'</b>」：按「儲存為新紀錄」會新增一筆，原紀錄「'+esc(r.name)+'」保持不變。'):r?('目前編輯的紀錄：<b>'+esc(r.name)+'</b>（上次儲存 '+esc(r.t)+'）・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>'))
-    :(S.points.length?'<span class="dt">● 這是新的表單，尚未儲存成紀錄</span>':'');
+    :((S.points.length||(S.meters||[]).length)?'<span class="dt">● 這是新的表單，尚未儲存成紀錄</span>':'');
 }
 var dt=null;function draft(){recUI();clearTimeout(dt);dt=setTimeout(function(){lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base,cur:curId})},300)}
 function msg(t){$('#msg').textContent=t}
@@ -355,12 +377,15 @@ function balance(){
       }
       if(miss)st+='（'+miss+' 點未填讀值）';
     }
-    return {s:s,n:ps.length,P:P,H:H,HB:HB,A:AA,T:T,pump:L.pump,hdr:L.hdr,hb:L.hb,j3:j3,j1:j1,j2:j2,areas:ar,st:st,cls:cls};
+    var ms=(S.meters||[]).filter(function(m){return m.sys===s.id}).map(function(m){return {m:m,c:mcalc(m),no:S.meters.indexOf(m)+1}});
+    var KW=0,nk=0;ms.forEach(function(x){if(x.m.st==='run'&&x.c.P>0){KW+=x.c.P;nk++}});
+    var FQ=isFinite(H)?H:isFinite(AA)?AA:P,SE=nk&&FQ>0?KW/FQ:NaN;
+    return {ms:ms,KW:nk?KW:NaN,nk:nk,FQ:FQ,FQl:isFinite(H)?'主集管':isFinite(AA)?'各區合計':'泵浦合計',SE:SE,s:s,n:ps.length,P:P,H:H,HB:HB,A:AA,T:T,pump:L.pump,hdr:L.hdr,hb:L.hb,j3:j3,j1:j1,j2:j2,areas:ar,st:st,cls:cls};
   });
 }
 
 /* ---------- 畫面：系統 ---------- */
-function usedCount(id){return S.points.filter(function(p){return p.sys===id}).length}
+function usedCount(id){return S.points.filter(function(p){return p.sys===id}).length+(S.meters||[]).filter(function(m){return m.sys===id}).length}
 function renderSys(){
   $('#sys').innerHTML=S.systems.map(function(s){var n=usedCount(s.id);return '<span class="chip sc'+(S.systems.indexOf(s)%6)+'" data-sid="'+esc(s.id)+'"><span class="sdot"></span><input value="'+esc(s.name)+'" aria-label="系統名稱"><span class="cnt">'+n+' 點</span><button type="button" class="noprint" data-act="delsys" title="刪除此系統" aria-label="刪除此系統">✕</button></span>'}).join('')
    +'<span class="addsys noprint"><input id="newsys" placeholder="新增系統名稱"><button type="button" class="sm" id="addsys">＋ 新增系統</button></span>';
@@ -368,8 +393,8 @@ function renderSys(){
 }
 function renderFilter(){
   var f=$('#flt'),cur=flt;
-  f.innerHTML='<option value="">全部系統（'+S.points.length+' 點）</option>'+S.systems.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name||'（未命名）')+'（'+usedCount(s.id)+' 點）</option>'}).join('');
-  if(cur&&!S.systems.some(function(s){return s.id===cur}))cur='';
+  f.innerHTML='<option value="">全部系統（'+S.points.length+' 點）</option>'+S.systems.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name||'（未命名）')+'（'+S.points.filter(function(p){return p.sys===s.id}).length+' 點）</option>'}).join('')+'<option value="__m">泵浦（'+(S.meters||[]).length+' 台）</option>';
+  if(cur&&cur!=='__m'&&!S.systems.some(function(s){return s.id===cur}))cur='';
   flt=cur;f.value=cur;
 }
 function sysCls(id){var i=S.systems.findIndex(function(x){return x.id===id});return 'sc'+((i<0?0:i)%6)}
@@ -389,11 +414,16 @@ function renderAreas(){
   var f=function(x){return isFinite(x)?fmt(x,1):'—'};
   var gl=function(t){return '<span class="gol">'+esc(t)+'</span>'};
   var bar=function(pc){return isFinite(pc)?'<span class="bar"><i style="width:'+Math.min(100,Math.max(0,pc)).toFixed(1)+'%"></i></span>'+fmt(pc,1)+'%':'—'};
-  var h=balance().filter(function(b){return b.n}).map(function(b){
+  var h=balance().filter(function(b){return b.n||b.ms.length}).map(function(b){
     var T=b.T,tl=isFinite(b.P)?'各泵浦合計':isFinite(b.H)?'主集管':'各區合計';
-    var cmp='<div class="cmp"><div><small>① 各泵浦合計（'+b.pump.items.length+' 台）</small><b>'+f(b.P)+'</b> m³/h</div>'
+    var cmp='<div class="cmp">'+(b.pump.items.length?'<div><small>① 各泵浦合計（'+b.pump.items.length+' 台）</small><b>'+f(b.P)+'</b> m³/h</div>':'')
       +'<div><small>② 主集管</small><b>'+f(b.H)+'</b> m³/h<em class="'+b.j1.cls+'">'+(isFinite(b.j1.pct)?'比 ①：'+sg(b.H-b.P)+' m³/h（'+sg(b.j1.pct)+'%）':'&nbsp;')+'</em></div>'
-      +'<div><small>③ 各區合計（'+b.areas.length+' 區）</small><b>'+f(b.A)+'</b> m³/h<em class="'+b.j2.cls+'">'+(isFinite(b.j2.pct)?'比 '+b.j2.vs+'：'+sg(b.A-(b.j2.vs==='②'?b.H:b.P))+' m³/h（'+sg(b.j2.pct)+'%）':'&nbsp;')+'</em></div></div>';
+      +'<div><small>③ 各區合計（'+b.areas.length+' 區）</small><b>'+f(b.A)+'</b> m³/h<em class="'+b.j2.cls+'">'+(isFinite(b.j2.pct)?'比 '+b.j2.vs+'：'+sg(b.A-(b.j2.vs==='②'?b.H:b.P))+' m³/h（'+sg(b.j2.pct)+'%）':'&nbsp;')+'</em></div>'
+      +'<div><small>⚡ 泵浦耗電（'+b.nk+' 台運轉）</small><b>'+f(b.KW)+'</b> kW<em class="mut">'+(isFinite(b.SE)?'單位耗能 <b>'+b.SE.toFixed(3)+'</b> kWh/m³（以'+b.FQl+'計）':'&nbsp;')+'</em></div></div>';
+    var f2=function(x,d){return isFinite(x)?fmt(x,d):'—'};
+    var mtr=b.ms.length?'<h4>各泵浦（電力量測）</h4><div class="tw"><table class="at"><thead><tr><th>泵浦／設備</th><th>狀態</th><th>平均電壓 V</th><th>平均電流 A</th><th>功因</th><th>耗電 kW</th><th>負載率</th></tr></thead><tbody>'
+      +b.ms.map(function(x){var c=x.c,st=MST.find(function(z){return z[0]===x.m.st});return '<tr data-go="'+esc(x.m.id)+'" title="跳到此泵浦"><td class="an">'+gl(x.m.name||'（未填名稱）')+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td'+(x.m.st!=='run'?' class="mut"':'')+'>'+st[1]+'</td><td>'+f2(c.V.avg,0)+'</td><td>'+f2(c.I.avg,1)+'</td><td>'+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</td><td><b>'+f2(c.P,1)+'</b></td><td>'+(isFinite(c.load)?c.load.toFixed(0)+'%':'—')+'</td></tr>'}).join('')
+      +'</tbody><tfoot><tr><td>運轉中合計</td><td></td><td></td><td></td><td></td><td><b>'+f(b.KW)+'</b></td><td></td></tr></tfoot></table></div>':'';
     var pumps=b.pump.items.length?'<h4>各泵浦</h4><div class="tw"><table><thead><tr><th>泵浦</th><th>流量 m³/h</th><th>佔泵浦合計</th></tr></thead><tbody>'+b.pump.items.map(function(x){return '<tr data-go="'+esc(x.id)+'" title="跳到此量測點"><td class="an">'+gl(x.name)+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td>'+f(x.q)+'</td><td class="pc">'+bar(isFinite(x.q)&&b.P>0?x.q/b.P*100:NaN)+'</td></tr>'}).join('')+'</tbody></table></div>':'';
     var hp=function(x,base){return bar(isFinite(x.q)&&base>0?x.q/base*100:NaN)};
     var hdr=(b.hdr.items.length||b.hb.items.length)?'<h4>主集管</h4><div class="tw"><table><thead><tr><th>名稱</th><th>類別</th><th>流量 m³/h</th><th>佔主集管合計</th></tr></thead><tbody>'
@@ -406,7 +436,7 @@ function renderAreas(){
       +(b.areas.length?b.areas.map(function(a){return '<tr data-go="'+esc(a.ids.join(','))+'" title="跳到此區的量測點"><td class="an">'+gl(a.name)+' <span class="mut" style="font-size:14px">'+a.nos.map(function(n,k){return '<a class="gon" data-go="'+esc(a.ids[k])+'">#'+n+'</a>'}).join('、')+(a.miss?'（'+a.miss+' 點未填讀值）':'')+'</span></td><td>'+(a.nmn?f(a.mn):'—')+'</td><td>'+(a.nbr?f(a.br):'—')+'</td><td><b>'+f(a.q)+'</b></td></tr>'}).join('')
         :'<tr><td class="an mut" colspan="4">這個系統還沒有各區（主管／支管）量測點。</td></tr>')
       +'</tbody><tfoot><tr><td>各區合計</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nmn?a.mn:0)},0)||NaN)+'</td><td>'+f(b.areas.reduce(function(m,a){return m+(a.nbr?a.br:0)},0)||NaN)+'</td><td><b>'+f(b.A)+'</b></td></tr></tfoot></table></div>';
-    return '<div class="ab '+sysCls(b.s.id)+'"><div class="ab-h"><span class="sdot"></span><b>'+esc(b.s.name||'（未命名）')+'</b></div>'+cmp+pumps+hdr+areas+'<div class="ab-st '+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</div></div>';
+    return '<div class="ab '+sysCls(b.s.id)+'"><div class="ab-h"><span class="sdot"></span><b>'+esc(b.s.name||'（未命名）')+'</b></div>'+cmp+mtr+pumps+hdr+areas+'<div class="ab-st '+b.cls+'"><span class="dot"></span>'+esc(b.st)+'</div></div>';
   }).join('');
   box.innerHTML=h||'<div class="mut" style="font-size:16px">還沒有量測點。</div>';
 }
@@ -422,7 +452,7 @@ function cardHTML(p){
    +'<button type="button" class="sm noprint" data-act="dup">複製這一點</button><button type="button" class="sm danger noprint" data-act="del">刪除</button><button type="button" class="pt-tg noprint" data-act="tg"></button></div>'
    +'<div class="pt-b"><div class="g4">'
    +'<label class="f">系統<select data-f="sys">'+opts(sysO,p.sys)+'</select></label>'
-   +'<label class="f">類別<select data-f="role">'+opts(ROLES,p.role)+'</select></label>'
+   +'<label class="f">類別<select data-f="role">'+opts(ROLES.filter(function(r){return r[0]!=='pump'||p.role==='pump'}).map(function(r){return r[0]==='pump'?['pump','泵浦（舊資料）']:r}),p.role)+'</select></label>'
    +'<label class="f w2">生產區／量測位置<input data-f="area" placeholder="例如：A 棟 2F 塗裝線回水"></label>'
    +'</div><div class="g4 gp">'
    +'<label class="f w2">管徑規格<select data-f="size">'+sizeO+'</select></label>'
@@ -449,6 +479,52 @@ function cardHTML(p){
    +'<label class="f" style="margin-bottom:8px">備註<input data-f="note" placeholder="例如：保溫拆除、外壁鏽蝕已打磨"></label>'
    +'<div class="res" data-b="res"></div>'
    +'</div></div>';
+}
+function meterHTML(m){
+  var i=S.meters.indexOf(m),sysO=S.systems.map(function(s){return [s.id,s.name||'（未命名）']});
+  var inp=function(k,lab,ph){return '<label class="f">'+lab+'<input data-m="'+k+'" type="text" inputmode="decimal"'+(ph?' placeholder="'+ph+'"':'')+'></label>'};
+  return '<div class="pt mt main" data-id="'+esc(m.id)+'">'
+   +'<div class="pt-h"><b class="pt-no">#'+(i+1)+'</b><span class="badge r-mt">泵浦</span><span class="badge sysb '+sysCls(m.sys)+'" data-b="sys">'+esc(sysName(m.sys))+'</span><span class="pt-sum" data-b="sum"></span><span class="sp"></span>'
+   +'<button type="button" class="sm noprint" data-act="dup">複製這一台</button><button type="button" class="sm danger noprint" data-act="del">刪除</button><button type="button" class="pt-tg noprint" data-act="tg"></button></div>'
+   +'<div class="pt-b"><div class="g4">'
+   +'<label class="f">系統<select data-m="sys">'+opts(sysO,m.sys)+'</select></label>'
+   +'<label class="f w2">泵浦／設備名稱<input data-m="name" placeholder="例如：CHP-1 冰水泵"></label>'
+   +'<label class="f">運轉狀態<select data-m="st">'+opts(MST,m.st)+'</select></label>'
+   +'</div><div class="mlbl">三相電壓（V，線電壓）<span>只量一相也可以</span></div><div class="g4">'
+   +inp('v0','R-S','')+inp('v1','S-T','')+inp('v2','T-R','')+'<label class="f">平均電壓<input data-b="vavg" readonly tabindex="-1" class="ro"></label>'
+   +'</div><div class="mlbl">三相電流（A）<span>只量一相也可以</span></div><div class="g4">'
+   +inp('i0','R 相','')+inp('i1','S 相','')+inp('i2','T 相','')+'<label class="f">平均電流<input data-b="iavg" readonly tabindex="-1" class="ro"></label>'
+   +'</div><div class="g4">'
+   +inp('pf','功因 PF','例如 0.85')+inp('kw','耗電功率（kW）','電表讀值')+'<label class="f">頻率（Hz）<select data-m="hz">'+opts((m.hz&&m.hz!=='60'&&m.hz!=='50'?[[m.hz,m.hz+' Hz']]:[]).concat([['60','60 Hz'],['50','50 Hz']]),m.hz||'60')+'</select></label>'+'<label class="f">量測時間<input data-m="time" type="time"></label>'
+   +'</div>'
+   +'<details><summary>馬達銘牌與電度（選填：可算負載率）</summary><div class="g4">'
+   +inp('ir','馬達額定電流（A）','')+inp('kwr','馬達額定功率（kW）','')+inp('kwh','累計電度（kWh）','')+'<span></span>'
+   +'</div></details>'
+   +'<label class="f" style="margin-bottom:8px">備註<input data-m="note" placeholder="例如：變頻 45 Hz、量測時 2 台並聯運轉"></label>'
+   +'<div class="res" data-b="res"></div>'
+   +'</div></div>';
+}
+function fillMeter(el,m){
+  el.querySelectorAll('[data-m]').forEach(function(x){var k=x.getAttribute('data-m');x.value=/^[vi]\d$/.test(k)?m[k[0]][+k[1]]:(m[k]==null?'':m[k])});
+  updMeter(el,m);
+}
+function updMeter(el,m){
+  var c=mcalc(m),f1=function(x,d){return isFinite(x)?fmt(x,d):'—'};
+  var sb=el.querySelector('[data-b="sys"]');sb.textContent=sysName(m.sys);sb.className='badge sysb '+sysCls(m.sys);
+  el.querySelector('[data-b="vavg"]').value=isFinite(c.V.avg)?fmt(c.V.avg,1)+(c.V.n>1?'（'+c.V.n+' 相）':''):'';
+  el.querySelector('[data-b="iavg"]').value=isFinite(c.I.avg)?fmt(c.I.avg,1)+(c.I.n>1?'（'+c.I.n+' 相）':''):'';
+  var h='耗電 <b>'+f1(c.P,2)+'</b> kW'+(c.kw>0?'（電表讀值）':isFinite(c.kwc)?'（由 √3×V×I×PF 計算）':'')
+    +' ・ 視在功率 '+f1(c.kva,2)+' kVA'
+    +(isFinite(c.kwc)&&c.kw>0?' ・ 計算值 '+fmt(c.kwc,2)+' kW':'')
+    +(isFinite(c.pfe)?' ・ 推算功因 ≈ '+c.pfe.toFixed(3):'')
+    +(c.V.n>1?' ・ 電壓不平衡 '+c.V.ub.toFixed(1)+'%':'')+(c.I.n>1?' ・ 電流不平衡 '+c.I.ub.toFixed(1)+'%':'')
+    +(isFinite(c.load)?' ・ 負載率 <b>'+c.load.toFixed(0)+'%</b>':'')
+    +(c.kwr>0&&c.P>0?' ・ 輸入功率／額定 '+(c.P/c.kwr*100).toFixed(0)+'%':'');
+  if(c.warn.length)h+='<ul>'+c.warn.map(function(w){return '<li class="'+w[0]+'">'+esc(w[1])+'</li>'}).join('')+'</ul>';
+  el.querySelector('[data-b="res"]').innerHTML=h;
+  var w=c.warn.filter(function(x){return x[0]==='bad'||x[0]==='wn'}),st=MST.find(function(x){return x[0]===m.st});
+  el.querySelector('[data-b="sum"]').innerHTML='<span class="ar">'+(m.name?esc(m.name):'<span class="mut">（未填名稱）</span>')+'</span>'+(m.st!=='run'?'<span class="mut">'+st[1]+'</span>':'')+'<span>'+f1(c.V.avg,0)+' V</span><span>'+f1(c.I.avg,1)+' A</span><span>PF '+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</span><span><b>'+f1(c.P,1)+'</b> kW</span>'+(w.length?'<span class="'+w[0][0]+'">⚠ '+w.length+' 項提醒</span>':'');
+  var tg=el.querySelector('.pt-tg');if(tg)tg.textContent=el.classList.contains('open')?'▲ 收合':'▼ 展開';
 }
 function fillCard(el,p){
   el.querySelectorAll('[data-f]').forEach(function(x){var f=x.getAttribute('data-f');x.value=/^r\d$/.test(f)?p.r[+f[1]]:(p[f]==null?'':p[f])});
@@ -479,8 +555,17 @@ function setOpen(id,only){
   openId=id;
 }
 function renderPts(){
+  var box=$('#pts'),ab=$('#add');
+  if(flt==='__m'){
+    ab.textContent='＋ 新增泵浦';
+    var ml=S.meters||[];
+    if(!ml.length){box.innerHTML='<div class="empty">還沒有泵浦資料，按下方「＋ 新增泵浦」開始。<br>每台泵浦一筆：記錄三相電壓、三相電流、功因與耗電功率。</div>';return}
+    box.innerHTML=ml.map(meterHTML).join('');
+    ml.forEach(function(m){var el=box.querySelector('.pt[data-id="'+CSS.escape(m.id)+'"]');if(m.id===openId)el.classList.add('open');fillMeter(el,m)});
+    return;
+  }
+  ab.textContent='＋ 新增量測點';
   var list=S.points.filter(function(p){return !flt||p.sys===flt});
-  var box=$('#pts');
   if(!list.length){box.innerHTML='<div class="empty">'+(S.points.length?'這個系統還沒有量測點。':'還沒有量測點，按下方「＋ 新增量測點」開始。<br>建議依序量：各泵浦 → 主集管 → 各區。')+'</div>';return}
   box.innerHTML=list.map(cardHTML).join('');
   list.forEach(function(p){var el=box.querySelector('.pt[data-id="'+CSS.escape(p.id)+'"]');if(p.id===openId)el.classList.add('open');fillCard(el,p)});
@@ -514,7 +599,7 @@ $('#sys').addEventListener('click',function(e){
   if(e.target.id==='addsys'){addSys();return}
   var b=e.target.closest('button[data-act="delsys"]');if(!b)return;
   var id=b.closest('.chip').getAttribute('data-sid'),n=usedCount(id);
-  if(n){msg('「'+sysName(id)+'」還有 '+n+' 個量測點，請先把量測點改到其他系統或刪除，再刪除此系統。');return}
+  if(n){msg('「'+sysName(id)+'」還有 '+n+' 個量測點或泵浦，請先把量測點改到其他系統或刪除，再刪除此系統。');return}
   if(S.systems.length<=1){msg('至少要保留一個系統。');return}
   if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='✕'}},3000);return}
   S.systems=S.systems.filter(function(x){return x.id!==id});renderSys();renderBal();renderPts();draft();msg('已刪除系統。');
@@ -532,7 +617,9 @@ function addSys(){
 $('#areas').addEventListener('click',function(e){
   var t=e.target.closest('[data-go]');if(!t)return;
   var ids=t.getAttribute('data-go').split(',').filter(Boolean);if(!ids.length)return;
-  if(flt&&!ids.every(function(id){var p=findP(id);return p&&p.sys===flt})){flt='';$('#flt').value='';renderPts()}
+  var isM=ids.every(function(id){return !!findM(id)});
+  if(isM){if(flt!=='__m'){flt='__m';$('#flt').value='__m';renderPts()}}
+  else if(flt&&!ids.every(function(id){var p=findP(id);return p&&p.sys===flt})){flt='';$('#flt').value='';renderPts()}
   if(VIEW==='col')setOpen(ids[0]);
   var els=ids.map(function(id){return document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]')}).filter(Boolean);if(!els.length)return;
   els[0].scrollIntoView({behavior:'smooth',block:'center'});
@@ -556,11 +643,32 @@ function onField(e){
   if(f==='sys'){renderSys()}
   draft();
 }
+function onMField(e){
+  var x=e.target,k=x.getAttribute&&x.getAttribute('data-m');if(!k)return;
+  var el=x.closest('.pt'),m=el&&findM(el.getAttribute('data-id'));if(!m)return;
+  if(/^[vi]\d$/.test(k))m[k[0]][+k[1]]=x.value;else m[k]=x.value;
+  updMeter(el,m);renderBal();if(k==='sys')renderSys();draft();
+}
+$('#pts').addEventListener('input',onMField);
+$('#pts').addEventListener('change',function(e){if(e.target.tagName==='SELECT')onMField(e)});
 $('#pts').addEventListener('input',onField);
 $('#pts').addEventListener('change',function(e){if(e.target.tagName==='SELECT')onField(e)});
 $('#pts').addEventListener('click',function(e){
   var b=e.target.closest('button[data-act]');if(!b)return;
-  var el=b.closest('.pt'),p=findP(el.getAttribute('data-id'));if(!p)return;
+  var el=b.closest('.pt');
+  if(el.classList.contains('mt')){
+    var m=findM(el.getAttribute('data-id'));if(!m)return;
+    if(b.getAttribute('data-act')==='del'){
+      if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按一次刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='刪除'}},3000);return}
+      S.meters=S.meters.filter(function(x){return x!==m});renderSys();renderBal();renderPts();draft();msg('已刪除泵浦資料。');return;
+    }
+    if(b.getAttribute('data-act')==='dup'){
+      var q2=JSON.parse(JSON.stringify(m));q2.id=uid();q2.name='';q2.v=['','',''];q2.i=['','',''];q2.pf='';q2.kw='';q2.time='';q2.kwh='';q2.note='';
+      S.meters.splice(S.meters.indexOf(m)+1,0,q2);renderSys();renderBal();renderPts();draft();focusArea(q2.id);msg('已複製（系統、馬達銘牌沿用，讀值已清空）。');
+    }
+    return;
+  }
+  var p=findP(el.getAttribute('data-id'));if(!p)return;
   if(b.getAttribute('data-act')==='del'){
     if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按一次刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='刪除'}},3000);return}
     S.points=S.points.filter(function(x){return x!==p});renderSys();renderBal();renderPts();draft();msg('已刪除量測點。');return;
@@ -570,7 +678,7 @@ $('#pts').addEventListener('click',function(e){
     S.points.splice(S.points.indexOf(p)+1,0,q);renderSys();renderBal();renderPts();draft();focusArea(q.id);msg('已複製（管徑、系統、類別等設定沿用，讀值已清空）。');
   }
 });
-function focusArea(id){if(VIEW==='col')setOpen(id);var el=document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]');if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});var a=el.querySelector('[data-f="area"]');if(a)a.focus({preventScroll:true})}
+function focusArea(id){if(VIEW==='col')setOpen(id);var el=document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]');if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});var a=el.querySelector('[data-f="area"],[data-m="name"]');if(a)a.focus({preventScroll:true})}
 $('#pts').addEventListener('click',function(e){
   if(VIEW!=='col')return;var h=e.target.closest('.pt-h');if(!h)return;
   var b=e.target.closest('button');if(b&&b.getAttribute('data-act')!=='tg')return;
@@ -583,19 +691,25 @@ $('#expAll').onclick=function(){document.querySelectorAll('#pts .pt').forEach(fu
 $('#colAll').onclick=function(){openId=null;document.querySelectorAll('#pts .pt').forEach(function(el){el.classList.remove('open');var tg=el.querySelector('.pt-tg');if(tg)tg.textContent='▼ 展開'})};
 applyView();
 $('#add').onclick=function(){
+  if(flt==='__m'){
+    if(!S.meters)S.meters=[];
+    var lm=S.meters[S.meters.length-1],m=newMeter(lm?lm.sys:S.systems[0].id);if(lm){m.ir=lm.ir;m.kwr=lm.kwr}
+    S.meters.push(m);renderSys();renderBal();renderPts();draft();focusArea(m.id);return;
+  }
   var last=S.points.filter(function(p){return !flt||p.sys===flt}).slice(-1)[0];
   var p=newPoint(flt||(last?last.sys:S.systems[0].id));if(last){p.u=last.u}
-  if(last&&last.sys===p.sys)p.role=last.role;else if(!S.points.some(function(x){return x.sys===p.sys}))p.role='pump';
+  if(last&&last.sys===p.sys)p.role=last.role;else if(!S.points.some(function(x){return x.sys===p.sys}))p.role='hdr';
+  if(p.role==='pump')p.role='hdr';
   S.points.push(p);renderSys();renderBal();renderPts();draft();focusArea(p.id);
 };
 
 /* ---------- 紀錄 ---------- */
 function stamp(){var d=new Date(),z=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())}
-function dirty(){return S.points.length>0&&JSON.stringify(S)!==base}
+function dirty(){return (S.points.length>0||(S.meters||[]).length>0)&&JSON.stringify(S)!==base}
 function renderRecs(){
   var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
   $('#rcnt').textContent=a.length;
-  $('#rl').innerHTML=a.length?a.map(function(r){var n=(r.s&&r.s.points||[]).length;return '<div class="rec"><div><b>'+esc(r.name)+'</b><small>'+esc(r.t)+' ・ '+n+' 個量測點</small></div><div class="ops"><button type="button" class="sm" data-a="load" data-id="'+esc(r.id)+'">載入</button><button type="button" class="sm danger" data-a="del" data-id="'+esc(r.id)+'">刪除</button></div></div>'}).join(''):'<p class="note">還沒有紀錄。</p>';
+  $('#rl').innerHTML=a.length?a.map(function(r){var n=(r.s&&r.s.points||[]).length,nm=(r.s&&r.s.meters||[]).length;return '<div class="rec"><div><b>'+esc(r.name)+'</b><small>'+esc(r.t)+' ・ '+n+' 個量測點'+(nm?' ・ '+nm+' 台泵浦':'')+'</small></div><div class="ops"><button type="button" class="sm" data-a="load" data-id="'+esc(r.id)+'">載入</button><button type="button" class="sm danger" data-a="del" data-id="'+esc(r.id)+'">刪除</button></div></div>'}).join(''):'<p class="note">還沒有紀錄。</p>';
   if(typeof recUI==='function')recUI();
 }
 function arm(b,t,o){b.setAttribute('data-arm','1');b.textContent=t;setTimeout(function(){if(b.isConnected){b.removeAttribute('data-arm');b.textContent=o}},3000)}
@@ -658,13 +772,16 @@ function csvText(){
   B.forEach(function(b){b.hdr.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管','#'+x.no,c2(x.q)])});b.hb.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管支管','#'+x.no,c2(x.q)])});if(b.hdr.items.length||b.hb.items.length)rows.push([b.s.name,'主集管合計','','',c2(b.H)],[b.s.name,'主集管支管合計','','',c2(b.HB)],[b.s.name,'差異 %（支管合計 比 主集管合計）','','',c2(b.j3.pct,1)])});
   rows.push([],['各區流量（單位 m³/h）'],['系統','生產區','量測點','主管','支管','合計']);
   B.forEach(function(b){b.areas.forEach(function(a){rows.push([b.s.name,a.name,'#'+a.nos.join('、#'),a.nmn?c2(a.mn):'',a.nbr?c2(a.br):'',c2(a.q)])});if(b.areas.length)rows.push([b.s.name,'各區合計','','','',c2(b.A)])});
+  rows.push([],['各泵浦（電力量測）'],['#','系統','泵浦／設備','運轉狀態','電壓 R-S V','電壓 S-T V','電壓 T-R V','平均電壓 V','電流 R A','電流 S A','電流 T A','平均電流 A','功因','耗電功率 kW（電表）','計算功率 kW（√3VI·PF）','採用耗電 kW','視在功率 kVA','頻率 Hz','電壓不平衡 %','電流不平衡 %','額定電流 A','額定功率 kW','負載率 %','累計電度 kWh','量測時間','提醒','備註']);
+  (S.meters||[]).forEach(function(m,k){var c=mcalc(m),q=function(x,d){return isFinite(x)?x.toFixed(d):''},st=MST.find(function(z){return z[0]===m.st});rows.push([k+1,sysName(m.sys),m.name,st?st[1]:'',m.v[0],m.v[1],m.v[2],q(c.V.avg,1),m.i[0],m.i[1],m.i[2],q(c.I.avg,2),m.pf,m.kw,q(c.kwc,2),q(c.P,2),q(c.kva,2),m.hz,q(c.V.ub,1),q(c.I.ub,1),m.ir,m.kwr,q(c.load,0),m.kwh,m.time,c.warn.map(function(w){return w[1]}).join('；'),m.note])});
+  B.forEach(function(b){if(b.nk)rows.push(['',b.s.name,'運轉中耗電合計','','','','','','','','','','','','',b.KW.toFixed(2),'','','','','','','','','',isFinite(b.SE)?'單位耗能 '+b.SE.toFixed(3)+' kWh/m³（以'+b.FQl+'計）':'',''])});
   rows.push([],['量測點明細'],['#','系統','類別','生產區／量測位置','量測時間','管徑規格','周長 mm','外徑 mm','外徑 in','壁厚 mm','內徑 mm','管路材質','讀值 1','讀值 2','讀值 3','讀值單位','平均流量 m³/h','流速 m/s','讀值差 %','上游直管段 D','下游直管段 D','探頭安裝方式','流量計建議間距 mm','估算間距 mm（所選方式）','建議安裝方式','訊號強度','提醒','備註']);
   S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),RN[p.role],p.area,p.time,PK[p.size]?PK[p.size].n:(p.size?p.size:'自訂'),p.circ,p.od,p.odin,p.t,isFinite(c.id)?c.id.toFixed(1):'',(p.mat==='其他'&&p.matx?'其他：'+p.matx:p.mat),p.r[0],p.r[1],p.r[2],p.u,isFinite(c.avg)?c.avg.toFixed(2):'',isFinite(c.v)?c.v.toFixed(3):'',isFinite(c.spread)?c.spread.toFixed(1):'',p.up,p.down,p.inst?p.inst+' 法':'',p.sm,(c.sp&&p.inst)?c.sp[p.inst].toFixed(0):'',c.rec?c.rec+' 法':'',p.sig,c.warn.map(function(w){return w[1]}).join('；'),p.note])});
   return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
 }
 var dl=null;try{if(window.claude&&claude.use)claude.use('downloads').then(function(d){if(d)dl=d}).catch(function(){})}catch(e){}
 $('#csv').onclick=async function(){
-  if(!S.points.length){msg('還沒有量測點可以匯出。');return}
+  if(!S.points.length&&!(S.meters||[]).length){msg('還沒有量測點或泵浦資料可以匯出。');return}
   var csv=csvText(),nm=($('#rname').value.trim()||S.info.name||'flow-survey').replace(/[\\\/:*?"<>|]/g,'_'),d=new Date(),z=function(n){return String(n).padStart(2,'0')};
   var name=nm+'_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'.csv';
   try{
