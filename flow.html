@@ -76,7 +76,24 @@ tbody tr:hover td{background:var(--hl)}
 /* 量測點 */
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
 .pbar select{width:auto}
-.pts{display:grid;gap:12px}
+.pts{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}.pts>.pt{min-width:0}
+.vsw{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.vsw button{border:0;border-radius:0;background:transparent;color:var(--mut);padding:6px 12px;font-weight:600;width:auto}.vsw button+button{border-left:1px solid var(--ln)}.vsw button.on{background:var(--bl);color:#fff}
+:root[data-theme="dark"] .vsw button.on{color:#0b1a22}
+.pt-sum{display:none;gap:14px;align-items:baseline;min-width:0;flex:1 1 auto;font-size:16px;color:var(--mut);overflow:hidden;white-space:nowrap}
+.pt-sum b{color:var(--ink)}.pt-sum .ar{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:22em}.pt-sum .wn,.pt-sum .bad{font-weight:600}
+.pt-tg{display:none;width:auto;border:0;background:transparent;color:var(--bl);font-size:15px;padding:4px 6px;cursor:pointer}
+.pts.v-col .pt-tg{display:inline-block}
+.pts.v-col .pt:not(.open){padding:8px 14px}
+.pts.v-col .pt:not(.open) .pt-b{display:none}
+.pts.v-col .pt:not(.open) .pt-h{margin-bottom:0}
+.pts.v-col .pt:not(.open) .pt-sum{display:flex}
+.pts.v-col .pt:not(.open) .pt-h .sp{display:none}
+.pts.v-col .pt-h{cursor:pointer}
+.pts.v-col{gap:6px}
+.pts.v-col .pt.open{box-shadow:0 0 0 2px var(--bl)}
+@media(min-width:1100px){body.wide main{max-width:1720px}.pts.v-two{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+@media(max-width:640px){.pts.v-col .pt:not(.open) .pt-h [data-act="dup"],.pts.v-col .pt:not(.open) .pt-h [data-act="del"]{display:none}.pts.v-col .pt:not(.open) .pt-sum{flex-basis:100%;order:5;gap:10px;font-size:15px}.pts.v-col .pt:not(.open) .pt-tg{margin-left:auto}.vsw button{padding:6px 9px}}
+@media print{.pts .pt .pt-b{display:block!important}.pts .pt-sum{display:none!important}.pts.v-two{grid-template-columns:1fr!important}body.wide main{max-width:none}.vsw,.vact{display:none!important}}
 .pt{background:var(--pn);border:1px solid var(--ln);border-left:4px solid var(--mut);border-radius:8px;padding:10px 14px}
 .pt.main{border-left-color:var(--bl);box-shadow:inset 0 0 0 1px var(--hl)}
 .pt-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
@@ -176,6 +193,8 @@ tbody tr:hover td{background:var(--hl)}
 <h2>3. 量測點</h2>
 <div class="pbar noprint">
   <label class="f" style="display:flex;align-items:center;gap:6px">顯示<select id="flt"></select></label>
+  <span class="vsw" role="group" aria-label="量測點顯示方式"><button type="button" data-v="col">收合清單</button><button type="button" data-v="two">兩欄並列</button><button type="button" data-v="full">完整展開</button></span>
+  <span class="vact"><button type="button" class="sm" id="expAll">全部展開</button> <button type="button" class="sm" id="colAll">全部收合</button></span>
   <span class="note" style="margin:0">建議依序量：各泵浦 → 主集管 → 各區。管徑不確定時，可用 <a href="pipe.html">管路厚度計算</a> 由外周長推算。</span>
 </div>
 <details class="card noprint" style="margin:0 0 12px"><summary>探頭間距估算參數（依流量計探頭規格，不確定可不改）</summary>
@@ -382,9 +401,9 @@ function cardHTML(p){
   var sysO=S.systems.map(function(s){return [s.id,s.name||'（未命名）']});
   var sizeO='<option value="">自訂（手動輸入外徑與壁厚）</option><optgroup label="SGP（JIS G3452，台灣常用）">'+PIPES.filter(function(x){return !x.g}).map(function(x){return '<option value="'+x.k+'">'+x.n+'</option>'}).join('')+'</optgroup><optgroup label="ASME B36.10 STD（SCH40）">'+PIPES.filter(function(x){return x.g}).map(function(x){return '<option value="'+x.k+'">'+x.n+'</option>'}).join('')+'</optgroup>';
   return '<div class="pt'+(p.role!=='branch'&&p.role!=='hb'?' main':'')+'" data-id="'+esc(p.id)+'">'
-   +'<div class="pt-h"><b class="pt-no">#'+(i+1)+'</b><span class="badge'+rCls(p.role)+'" data-b="role">'+RN[p.role]+'</span><span class="badge sysb '+sysCls(p.sys)+'" data-b="sys">'+esc(sysName(p.sys))+'</span><span class="sp"></span>'
-   +'<button type="button" class="sm noprint" data-act="dup">複製這一點</button><button type="button" class="sm danger noprint" data-act="del">刪除</button></div>'
-   +'<div class="g4">'
+   +'<div class="pt-h"><b class="pt-no">#'+(i+1)+'</b><span class="badge'+rCls(p.role)+'" data-b="role">'+RN[p.role]+'</span><span class="badge sysb '+sysCls(p.sys)+'" data-b="sys">'+esc(sysName(p.sys))+'</span><span class="pt-sum" data-b="sum"></span><span class="sp"></span>'
+   +'<button type="button" class="sm noprint" data-act="dup">複製這一點</button><button type="button" class="sm danger noprint" data-act="del">刪除</button><button type="button" class="pt-tg noprint" data-act="tg"></button></div>'
+   +'<div class="pt-b"><div class="g4">'
    +'<label class="f">系統<select data-f="sys">'+opts(sysO,p.sys)+'</select></label>'
    +'<label class="f">類別<select data-f="role">'+opts(ROLES,p.role)+'</select></label>'
    +'<label class="f w2">生產區／量測位置<input data-f="area" placeholder="例如：A 棟 2F 塗裝線回水"></label>'
@@ -412,7 +431,7 @@ function cardHTML(p){
    +'</div></details>'
    +'<label class="f" style="margin-bottom:8px">備註<input data-f="note" placeholder="例如：保溫拆除、外壁鏽蝕已打磨"></label>'
    +'<div class="res" data-b="res"></div>'
-   +'</div>';
+   +'</div></div>';
 }
 function fillCard(el,p){
   el.querySelectorAll('[data-f]').forEach(function(x){var f=x.getAttribute('data-f');x.value=/^r\d$/.test(f)?p.r[+f[1]]:(p[f]==null?'':p[f])});
@@ -428,13 +447,26 @@ function updCard(el,p){
   var h='平均流量 <b>'+fmt(c.avg,1)+'</b> m³/h'+(c.n?'（'+c.n+' 筆讀值）':'')+' ・ 內徑 '+fmt(c.id,1)+' mm ・ 流速 <b>'+fmt(c.v,2)+'</b> m/s';
   if(c.warn.length)h+='<ul>'+c.warn.map(function(w){return '<li class="'+w[0]+'">'+esc(w[1])+'</li>'}).join('')+'</ul>';
   el.querySelector('[data-b="res"]').innerHTML=h;
+  var w=c.warn.filter(function(x){return x[0]==='bad'||x[0]==='wn'});
+  el.querySelector('[data-b="sum"]').innerHTML='<span class="ar">'+(p.area?esc(p.area):'<span class="mut">（未填位置）</span>')+'</span><span><b>'+fmt(c.avg,1)+'</b> m³/h</span><span>'+fmt(c.v,2)+' m/s</span>'+(w.length?'<span class="'+w[0][0]+'">⚠ '+w.length+' 項提醒</span>':'');
+  var tg=el.querySelector('.pt-tg');if(tg)tg.textContent=el.classList.contains('open')?'▲ 收合':'▼ 展開';
+}
+var VIEW=lsGet('flowView','col');if(['col','two','full'].indexOf(VIEW)<0)VIEW='col';var openId=null;
+function applyView(){
+  var b=$('#pts');b.classList.toggle('v-col',VIEW==='col');b.classList.toggle('v-two',VIEW==='two');document.body.classList.toggle('wide',VIEW==='two');
+  document.querySelectorAll('.vsw button').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-v')===VIEW)});
+  var va=document.querySelector('.vact');if(va)va.style.display=VIEW==='col'?'':'none';
+}
+function setOpen(id,only){
+  document.querySelectorAll('#pts .pt').forEach(function(el){var me=el.getAttribute('data-id')===id;if(only!==false)el.classList.toggle('open',me);else if(me)el.classList.toggle('open');var tg=el.querySelector('.pt-tg');if(tg)tg.textContent=el.classList.contains('open')?'▲ 收合':'▼ 展開'});
+  openId=id;
 }
 function renderPts(){
   var list=S.points.filter(function(p){return !flt||p.sys===flt});
   var box=$('#pts');
   if(!list.length){box.innerHTML='<div class="empty">'+(S.points.length?'這個系統還沒有量測點。':'還沒有量測點，按下方「＋ 新增量測點」開始。<br>建議依序量：各泵浦 → 主集管 → 各區。')+'</div>';return}
   box.innerHTML=list.map(cardHTML).join('');
-  list.forEach(function(p){fillCard(box.querySelector('.pt[data-id="'+CSS.escape(p.id)+'"]'),p)});
+  list.forEach(function(p){var el=box.querySelector('.pt[data-id="'+CSS.escape(p.id)+'"]');if(p.id===openId)el.classList.add('open');fillCard(el,p)});
 }
 function renderAll(){
   document.querySelectorAll('[data-i]').forEach(function(x){x.value=S.info[x.getAttribute('data-i')]||''});
@@ -484,6 +516,7 @@ $('#areas').addEventListener('click',function(e){
   var t=e.target.closest('[data-go]');if(!t)return;
   var ids=t.getAttribute('data-go').split(',').filter(Boolean);if(!ids.length)return;
   if(flt&&!ids.every(function(id){var p=findP(id);return p&&p.sys===flt})){flt='';$('#flt').value='';renderPts()}
+  if(VIEW==='col')setOpen(ids[0]);
   var els=ids.map(function(id){return document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]')}).filter(Boolean);if(!els.length)return;
   els[0].scrollIntoView({behavior:'smooth',block:'center'});
   els.forEach(function(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')});
@@ -520,7 +553,18 @@ $('#pts').addEventListener('click',function(e){
     S.points.splice(S.points.indexOf(p)+1,0,q);renderSys();renderBal();renderPts();draft();focusArea(q.id);msg('已複製（管徑、系統、類別等設定沿用，讀值已清空）。');
   }
 });
-function focusArea(id){var el=document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]');if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});var a=el.querySelector('[data-f="area"]');if(a)a.focus({preventScroll:true})}
+function focusArea(id){if(VIEW==='col')setOpen(id);var el=document.querySelector('#pts .pt[data-id="'+CSS.escape(id)+'"]');if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});var a=el.querySelector('[data-f="area"]');if(a)a.focus({preventScroll:true})}
+$('#pts').addEventListener('click',function(e){
+  if(VIEW!=='col')return;var h=e.target.closest('.pt-h');if(!h)return;
+  var b=e.target.closest('button');if(b&&b.getAttribute('data-act')!=='tg')return;
+  var el=h.closest('.pt'),id=el.getAttribute('data-id');
+  if(el.classList.contains('open')){el.classList.remove('open');openId=null;var tg=el.querySelector('.pt-tg');if(tg)tg.textContent='▼ 展開'}
+  else{setOpen(id);var top=el.getBoundingClientRect().top;if(top<70||top>innerHeight-80)el.scrollIntoView({block:'start',behavior:'smooth'})}
+});
+document.querySelector('.vsw').addEventListener('click',function(e){var b=e.target.closest('button[data-v]');if(!b)return;VIEW=b.getAttribute('data-v');lsSet('flowView',VIEW);applyView()});
+$('#expAll').onclick=function(){document.querySelectorAll('#pts .pt').forEach(function(el){el.classList.add('open');var tg=el.querySelector('.pt-tg');if(tg)tg.textContent='▲ 收合'})};
+$('#colAll').onclick=function(){openId=null;document.querySelectorAll('#pts .pt').forEach(function(el){el.classList.remove('open');var tg=el.querySelector('.pt-tg');if(tg)tg.textContent='▼ 展開'})};
+applyView();
 $('#add').onclick=function(){
   var last=S.points.filter(function(p){return !flt||p.sys===flt}).slice(-1)[0];
   var p=newPoint(flt||(last?last.sys:S.systems[0].id));if(last){p.u=last.u}
