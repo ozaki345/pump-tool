@@ -32,6 +32,9 @@ label.f input,label.f select{margin-top:2px}
 .msg{font-size:15px;color:var(--bl);margin:8px 0 0;min-height:1em}
 .rbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .rbar .rnm{flex:1;min-width:220px}
+.rcur{margin:6px 0 0;font-size:15px;color:var(--mut)}.rcur b{color:var(--ink)}.rcur .dt{color:var(--wn);font-weight:700}.rcur .ok{color:var(--ok);font-weight:700}
+#rsaveas[hidden]{display:none}
+#rl .rec.cur{background:var(--hl);border-radius:6px}#rl .rec.cur>div:first-child>b::after{content:'編輯中';font-size:13px;font-weight:700;color:#fff;background:var(--bl);border-radius:10px;padding:1px 8px;margin-left:8px;vertical-align:2px}
 details summary{cursor:pointer;font-weight:600}
 .rec{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px dashed var(--ln);flex-wrap:wrap}
 .rec small{color:var(--mut);margin-left:6px}
@@ -164,9 +167,11 @@ tbody tr:hover td{background:var(--hl)}
   <div class="rbar">
     <div class="rnm"><label class="f" for="rname">紀錄名稱（存檔用，例如：A 廠 2026-11 冰水量測）</label><input id="rname" type="text" placeholder="例如：A 廠 2026-11 冰水量測"></div>
     <button type="button" id="rsave" class="pri">儲存紀錄</button>
+    <button type="button" id="rsaveas" hidden>另存新紀錄</button>
     <button type="button" id="rnew">新建空白表單</button>
   </div>
-  <p class="msg" id="msg" role="status">資料會自動暫存；要長期保存請按「儲存紀錄」，下次從「已儲存紀錄」載入。同名稱再存一次會更新該筆。</p>
+  <p class="rcur" id="rcur"></p>
+  <p class="msg" id="msg" role="status">資料會自動暫存；要長期保存請按「儲存紀錄」，下次從「已儲存紀錄」載入。載入舊紀錄修改後，按「儲存（覆蓋此紀錄）」會直接更新那一筆；想保留原本的，請按「另存新紀錄」。</p>
   <details id="rbox"><summary>已儲存紀錄（<span id="rcnt">0</span>）</summary><div id="rl"></div></details>
 </div>
 
@@ -248,7 +253,18 @@ var S=blank(),flt='',base='';
 var DK='flowSurveyDraft',RK='flowSurveyRecs';
 function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
-var dt=null;function draft(){clearTimeout(dt);dt=setTimeout(function(){lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base})},300)}
+var curId=null;
+function curRec(){if(!curId)return null;var a=lsGet(RK,[]);return Array.isArray(a)?a.find(function(x){return x.id===curId})||null:null}
+function recUI(){
+  var r=curRec();if(!r)curId=null;
+  var nm=$('#rname').value.trim(),dirt=JSON.stringify(S)!==base||(r&&nm!==r.name);
+  $('#rsave').textContent=r?'儲存（覆蓋此紀錄）':'儲存紀錄';
+  $('#rsaveas').hidden=!r;
+  document.querySelectorAll('#rl .rec').forEach(function(el){var bb=el.querySelector('[data-id]');el.classList.toggle('cur',!!(r&&bb&&bb.getAttribute('data-id')===r.id))});
+  $('#rcur').innerHTML=r?('目前編輯的紀錄：<b>'+esc(r.name)+'</b>（上次儲存 '+esc(r.t)+'）・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>'))
+    :(S.points.length?'<span class="dt">● 這是新的表單，尚未儲存成紀錄</span>':'');
+}
+var dt=null;function draft(){recUI();clearTimeout(dt);dt=setTimeout(function(){lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base,cur:curId})},300)}
 function msg(t){$('#msg').textContent=t}
 
 /* ---------- 計算 ---------- */
@@ -579,21 +595,41 @@ function renderRecs(){
   var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
   $('#rcnt').textContent=a.length;
   $('#rl').innerHTML=a.length?a.map(function(r){var n=(r.s&&r.s.points||[]).length;return '<div class="rec"><div><b>'+esc(r.name)+'</b><small>'+esc(r.t)+' ・ '+n+' 個量測點</small></div><div class="ops"><button type="button" class="sm" data-a="load" data-id="'+esc(r.id)+'">載入</button><button type="button" class="sm danger" data-a="del" data-id="'+esc(r.id)+'">刪除</button></div></div>'}).join(''):'<p class="note">還沒有紀錄。</p>';
+  if(typeof recUI==='function')recUI();
 }
 function arm(b,t,o){b.setAttribute('data-arm','1');b.textContent=t;setTimeout(function(){if(b.isConnected){b.removeAttribute('data-arm');b.textContent=o}},3000)}
 $('#rsave').onclick=function(){
   var name=$('#rname').value.trim();
   if(!name){msg('請先在「紀錄名稱」填一個名稱。');$('#rname').focus();return}
   var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
-  var i=a.findIndex(function(r){return r.name===name}),rec={id:i>=0?a[i].id:uid(),name:name,t:stamp(),s:JSON.parse(JSON.stringify(S))};
+  var i=curId?a.findIndex(function(r){return r.id===curId}):-1;
+  if(i<0)i=a.findIndex(function(r){return r.name===name});
+  var j=a.findIndex(function(r,k){return k!==i&&r.name===name});
+  if(j>=0){
+    var b=this;
+    if(!b.getAttribute('data-arm')){arm(b,'已有同名紀錄，再按一次覆蓋它',b.textContent);msg('「'+name+'」已經是另一筆紀錄的名稱。再按一次會覆蓋那一筆；或先改個名稱。');return}
+    b.removeAttribute('data-arm');a.splice(j,1);if(i>j)i--;
+  }
+  saveAt(a,i,name);
+};
+function saveAt(a,i,name){
+  var rec={id:i>=0?a[i].id:uid(),name:name,t:stamp(),s:JSON.parse(JSON.stringify(S))};
   if(i>=0)a.splice(i,1);a.unshift(rec);
-  if(lsSet(RK,a)){base=JSON.stringify(S);draft();renderRecs();msg((i>=0?'已更新紀錄：':'已儲存紀錄：')+name+'（'+rec.t+'）')}else msg('儲存失敗：瀏覽器未允許儲存，或空間不足。');
+  if(lsSet(RK,a)){curId=rec.id;base=JSON.stringify(S);draft();renderRecs();msg((i>=0?'已覆蓋更新紀錄：':'已儲存新紀錄：')+name+'（'+rec.t+'）')}else msg('儲存失敗：瀏覽器未允許儲存，或空間不足。');
+}
+$('#rsaveas').onclick=function(){
+  var name=$('#rname').value.trim();
+  if(!name){msg('請先在「紀錄名稱」填一個名稱。');$('#rname').focus();return}
+  var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
+  var has=function(n){return a.some(function(r){return r.name===n})},nn=name,k=2;
+  while(has(nn))nn=name+'（'+(k++)+'）';
+  $('#rname').value=nn;saveAt(a,-1,nn);
 };
 $('#rnew').onclick=function(){
   var b=this;
   if(dirty()&&!b.getAttribute('data-arm')){arm(b,'尚未儲存，再按一次清空','新建空白表單');return}
   b.removeAttribute('data-arm');b.textContent='新建空白表單';
-  S=blank();flt='';base=JSON.stringify(S);$('#rname').value='';renderAll();lsSet(DK,{name:'',s:S,clean:true});msg('已新建空白表單。');
+  S=blank();flt='';base=JSON.stringify(S);curId=null;$('#rname').value='';renderAll();lsSet(DK,{name:'',s:S,clean:true});recUI();msg('已新建空白表單。');
 };
 $('#rl').addEventListener('click',function(e){
   var b=e.target.closest('button[data-a]');if(!b)return;
@@ -601,9 +637,9 @@ $('#rl').addEventListener('click',function(e){
   if(b.getAttribute('data-a')==='load'){
     var r=a.find(function(x){return x.id===id});if(!r)return;
     if(dirty()&&!b.getAttribute('data-arm')){arm(b,'尚未儲存，再按一次載入','載入');return}
-    S=norm(r.s);flt='';base=JSON.stringify(S);$('#rname').value=r.name;renderAll();lsSet(DK,{name:r.name,s:S,clean:true});msg('已載入：'+r.name+'（'+r.t+'）');return;
+    S=norm(r.s);flt='';base=JSON.stringify(S);curId=r.id;$('#rname').value=r.name;renderAll();lsSet(DK,{name:r.name,s:S,clean:true,cur:r.id});recUI();msg('已載入：'+r.name+'（'+r.t+'）');return;
   }
-  if(b.getAttribute('data-arm')){lsSet(RK,a.filter(function(x){return x.id!==id}));renderRecs();msg('已刪除紀錄。');return}
+  if(b.getAttribute('data-arm')){lsSet(RK,a.filter(function(x){return x.id!==id}));if(id===curId)curId=null;renderRecs();draft();msg('已刪除紀錄。');return}
   arm(b,'再按一次確認刪除','刪除');
 });
 $('#rname').addEventListener('input',draft);
@@ -652,7 +688,8 @@ theme(st0);TB.onclick=function(){theme(cur==='dark'?'white':'dark')};
 
 /* ---------- 啟動 ---------- */
 var dr=lsGet(DK,null);
-if(dr&&dr.s){S=norm(dr.s);$('#rname').value=dr.name||''}
+if(dr&&dr.s){S=norm(dr.s);$('#rname').value=dr.name||'';curId=dr.cur||null}
+if(!curId&&dr&&dr.name){var _a=lsGet(RK,[]);var _r=Array.isArray(_a)&&_a.find(function(x){return x.name===dr.name});if(_r)curId=_r.id}
 /* 一次性清除：舊版預設的「製程水」系統（沒有量測點才移除） */
 if(!lsGet('flowMig1',0)){
   var wasClean=!dr||dr.clean;
@@ -662,7 +699,7 @@ if(!lsGet('flowMig1',0)){
   lsSet('flowMig1',1);
 }
 base=(!dr||dr.clean)?JSON.stringify(S):'';
-renderAll();renderRecs();
+renderAll();renderRecs();recUI();
 })();
 </script>
 <script>
