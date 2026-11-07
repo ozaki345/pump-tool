@@ -258,10 +258,11 @@ function curRec(){if(!curId)return null;var a=lsGet(RK,[]);return Array.isArray(
 function recUI(){
   var r=curRec();if(!r)curId=null;
   var nm=$('#rname').value.trim(),dirt=JSON.stringify(S)!==base||(r&&nm!==r.name);
-  $('#rsave').textContent=r?'儲存（覆蓋此紀錄）':'儲存紀錄';
+  var ren=!!(r&&nm&&nm!==r.name);
+  if(!$('#rsave').getAttribute('data-arm'))$('#rsave').textContent=r?(ren?'儲存為新紀錄':'儲存（覆蓋此紀錄）'):'儲存紀錄';
   $('#rsaveas').hidden=!r;
   document.querySelectorAll('#rl .rec').forEach(function(el){var bb=el.querySelector('[data-id]');el.classList.toggle('cur',!!(r&&bb&&bb.getAttribute('data-id')===r.id))});
-  $('#rcur').innerHTML=r?('目前編輯的紀錄：<b>'+esc(r.name)+'</b>（上次儲存 '+esc(r.t)+'）・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>'))
+  $('#rcur').innerHTML=ren?('名稱已改成「<b>'+esc(nm)+'</b>」：按「儲存為新紀錄」會新增一筆，原紀錄「'+esc(r.name)+'」保持不變。'):r?('目前編輯的紀錄：<b>'+esc(r.name)+'</b>（上次儲存 '+esc(r.t)+'）・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>'))
     :(S.points.length?'<span class="dt">● 這是新的表單，尚未儲存成紀錄</span>':'');
 }
 var dt=null;function draft(){recUI();clearTimeout(dt);dt=setTimeout(function(){lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base,cur:curId})},300)}
@@ -603,7 +604,8 @@ $('#rsave').onclick=function(){
   if(!name){msg('請先在「紀錄名稱」填一個名稱。');$('#rname').focus();return}
   var a=lsGet(RK,[]);if(!Array.isArray(a))a=[];
   var i=curId?a.findIndex(function(r){return r.id===curId}):-1;
-  if(i<0)i=a.findIndex(function(r){return r.name===name});
+  if(i>=0&&a[i].name!==name)i=-1;
+  if(i<0&&!curId)i=a.findIndex(function(r){return r.name===name});
   var j=a.findIndex(function(r,k){return k!==i&&r.name===name});
   if(j>=0){
     var b=this;

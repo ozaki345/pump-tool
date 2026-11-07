@@ -62,6 +62,10 @@ details.card summary{cursor:pointer;font-weight:600}
 .toolbar .tn{flex:1;min-width:220px}
 .toolbar label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
 .toolbar input{width:100%}
+.rcur{flex-basis:100%;margin:0;font-size:15px;color:var(--muted)}.rcur:empty{display:none}.rcur b{color:var(--text)}.rcur .dt{color:#c46a00;font-weight:700}.rcur .ok{color:var(--ok);font-weight:700}
+#btnSaveAs[hidden]{display:none}
+#recList .rec.cur{background:var(--accent-bg);border-radius:6px}#recList .rec.cur>div:first-child>b::after{content:'編輯中';font-size:13px;font-weight:700;color:#fff;background:var(--accent);border-radius:10px;padding:1px 8px;margin-left:8px;vertical-align:2px}
+:root[data-theme="dark"] #recList .rec.cur>div:first-child>b::after{color:#0b1a22}
 .layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 .layout h2:first-child{margin-top:0}
 .hidetbl .tbl{display:none}
@@ -88,7 +92,9 @@ details.card summary{cursor:pointer;font-weight:600}
 <div class="card toolbar">
   <div class="tn"><label for="pumpName">泵浦名稱／型號（儲存紀錄時使用）</label><input id="pumpName" type="text" placeholder="例如：P-101 或泵浦型號"></div>
   <button class="btn pri" id="btnSave">儲存紀錄</button>
+  <button class="btn" id="btnSaveAs" hidden>另存新紀錄</button>
   <button class="btn" id="btnTbl">收合換算表</button>
+  <p class="rcur" id="recCur"></p>
 </div>
 <details class="card" id="recBox" style="margin-bottom:12px"><summary>已儲存紀錄（<span id="recN">0</span>）</summary>
 <div class="row" style="margin-top:10px"><input id="recFilter" type="text" placeholder="搜尋泵浦名稱"></div>
@@ -265,7 +271,21 @@ function renderRecs(){
  recN.textContent=all.length;
  const list=all.filter(r=>!q||String(r.name).toLowerCase().includes(q));
  recList.innerHTML=list.length?list.map(r=>`<div class="rec"><div><b>${esc(r.name)}</b><small>${esc(r.t)}</small></div><div class="ops"><button class="sm" data-a="load" data-id="${esc(r.id)}">載入</button><button class="sm danger" data-a="del" data-id="${esc(r.id)}">刪除</button></div></div>`).join(""):'<p class="note">'+(all.length?"找不到符合的紀錄。":"還沒有紀錄。輸入數據後，按上方「儲存紀錄」。")+'</p>';
+ recUI();
 }
+let curId=null,baseSig="";
+const curSig=()=>JSON.stringify({S:S,us:cards.map(c=>c.u==null?null:c.u)});
+function recUI(){
+ const r=curId?loadRecs().find(x=>x.id===curId):null;if(!r)curId=null;
+ const nm=nameEl.value.trim()||"未命名",dirt=curSig()!==baseSig||(r&&nm!==r.name);
+ const ren=!!(r&&nm!==r.name);
+ if(!document.getElementById("btnSave").dataset.arm)document.getElementById("btnSave").textContent=r?(ren?"儲存為新紀錄":"儲存（覆蓋此紀錄）"):"儲存紀錄";
+ document.getElementById("btnSaveAs").hidden=!r;
+ document.getElementById("recCur").innerHTML=ren?('名稱已改成「<b>'+esc(nm)+'</b>」：按「儲存為新紀錄」會新增一筆，原紀錄「'+esc(r.name)+'」保持不變。'):r?('目前編輯的紀錄：<b>'+esc(r.name)+'</b>（上次儲存 '+esc(r.t)+'）・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>')):"";
+ recList.querySelectorAll(".rec").forEach(el=>{const b=el.querySelector("[data-id]");el.classList.toggle("cur",!!(r&&b&&b.dataset.id===r.id))});
+}
+let rcT=null;const recUIsoon=()=>{clearTimeout(rcT);rcT=setTimeout(recUI,60)};
+document.addEventListener("input",recUIsoon,true);document.addEventListener("change",recUIsoon,true);
 function loadRec(id){
  const r=loadRecs().find(x=>x.id===id);if(!r)return;
  S.vOpen=NaN;S.vType="";S.nN=NaN;            // 舊紀錄沒有閥資料時保持空白
@@ -282,19 +302,36 @@ function loadRec(id){
  });
  nameEl.value=r.name==="未命名"?"":r.name;
  calc();update(null);
+ curId=r.id;baseSig=curSig();recUI();
  msg("已載入："+r.name);
 }
-document.getElementById("btnSave").onclick=()=>{
- const name=nameEl.value.trim()||"未命名";
- const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,t:stamp(new Date()),S:JSON.parse(JSON.stringify(S)),us:cards.map(c=>c.u==null?null:c.u),rows:exportRows().slice(1).filter(r=>r[0]!=="基本資料")};
- const a=loadRecs();a.unshift(rec);
- if(saveRecs(a)){renderRecs();msg("已儲存："+name)}
+function saveAt(a,i,name){
+ const rec={id:i>=0?a[i].id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,t:stamp(new Date()),S:JSON.parse(JSON.stringify(S)),us:cards.map(c=>c.u==null?null:c.u),rows:exportRows().slice(1).filter(r=>r[0]!=="基本資料")};
+ if(i>=0)a.splice(i,1);a.unshift(rec);
+ if(saveRecs(a)){curId=rec.id;baseSig=curSig();renderRecs();msg((i>=0?"已覆蓋更新：":"已儲存新紀錄：")+name)}
+}
+document.getElementById("btnSave").onclick=function(){
+ const b=this,name=nameEl.value.trim()||"未命名",a=loadRecs();
+ let i=curId?a.findIndex(r=>r.id===curId):-1;
+ if(i>=0&&a[i].name!==name)i=-1;
+ const j=a.findIndex((r,k)=>k!==i&&r.name===name);
+ if(j>=0){
+  if(!b.dataset.arm){b.dataset.arm="1";b.textContent="已有同名紀錄，再按一次覆蓋它";msg("「"+name+"」已經有一筆紀錄。再按一次會覆蓋它；或改個名稱。");setTimeout(()=>{delete b.dataset.arm;recUI()},3000);return}
+  delete b.dataset.arm;
+  if(i<0)i=j;else{a.splice(j,1);if(i>j)i--}
+ }
+ saveAt(a,i,name);
+};
+document.getElementById("btnSaveAs").onclick=()=>{
+ const name=nameEl.value.trim()||"未命名",a=loadRecs();let nn=name,k=2;
+ while(a.some(r=>r.name===nn))nn=name+"（"+(k++)+"）";
+ nameEl.value=nn==="未命名"?"":nn;saveAt(a,-1,nn);
 };
 recList.onclick=e=>{
  const b=e.target.closest("button[data-a]");if(!b)return;
  const id=b.dataset.id;
  if(b.dataset.a==="load"){loadRec(id);return}
- if(b.dataset.arm){saveRecs(loadRecs().filter(r=>r.id!==id));renderRecs();return}
+ if(b.dataset.arm){saveRecs(loadRecs().filter(r=>r.id!==id));if(id===curId)curId=null;renderRecs();return}
  b.dataset.arm="1";b.textContent="確定刪除？";
  setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent="刪除"}},3000);
 };

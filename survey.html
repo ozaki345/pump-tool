@@ -52,6 +52,9 @@ td.i{width:160px}
 tr.g td{background:var(--hl);font-weight:700;font-size:15px}
 .rbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .rbar .rnm{flex:1;min-width:220px}
+.rcur{margin:6px 0 0;font-size:15px;color:var(--mut)}.rcur b{color:var(--ink)}.rcur .dt{color:var(--wn);font-weight:700}.rcur .ok{color:var(--ok);font-weight:700}.rcur .er{color:#c0392b;font-weight:700}
+#rsaveas[hidden]{display:none}
+#rl .rec.cur{background:var(--hl);border-radius:6px}#rl .rec.cur>div:first-child>b::after{content:'編輯中';font-size:13px;font-weight:700;color:#fff;background:var(--bl);border-radius:10px;padding:1px 8px;margin-left:8px;vertical-align:2px}
 button.pri{background:var(--bl);color:var(--bg)}
 details summary{cursor:pointer;font-weight:600;margin-top:10px}
 .rec{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px dashed var(--ln);flex-wrap:wrap}
@@ -107,8 +110,10 @@ details summary{cursor:pointer;font-weight:600;margin-top:10px}
   <div class="rbar">
     <div class="rnm"><label>紀錄名稱</label><input id="rname" type="text" placeholder="例如：台塑 PA47-B 更換前廠勘"></div>
     <button type="button" id="rsave" class="pri">儲存紀錄</button>
+    <button type="button" id="rsaveas" hidden>另存新紀錄</button>
     <button type="button" id="rnew">新建空白表單</button>
   </div>
+  <p class="rcur" id="rcur"></p>
   <details id="rbox"><summary>已儲存紀錄（<span id="rcnt">0</span>）</summary>
     <div id="rl"></div>
   </details>
@@ -675,7 +680,7 @@ function phSet(o){ phs.motor=(o&&Array.isArray(o.motor))?o.motor.slice(0,PH_MAX)
 function phCount(){ return phs.motor.length+phs.pump.length; }
 function phDraft(){ return phPut('draft', phData()); }
 function phMsg(slot,t){ var m=document.querySelector('.ph[data-slot="'+slot+'"] .ph-msg'); if(m) m.textContent=t||''; }
-function phRender(){
+function phRender(){ recUIsoon();
   ['motor','pump'].forEach(function(slot){
     var box=document.querySelector('.ph[data-slot="'+slot+'"]'); if(!box) return;
     var list=phs[slot];
@@ -752,25 +757,57 @@ function renderRecs(){
   var a = JSON.parse(localStorage.getItem(RK)||"[]");
   $('#rcnt').textContent = a.length;
   $('#rl').innerHTML = a.map(function(r){
-    return '<div class="rec"><div><b>'+String(r.name).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})+'</b>'+(r.ph?' <small style="color:var(--mut)">📷 '+r.ph+' 張</small>':'')+'</div><div class="rec-actions"><button type="button" data-load="'+r.id+'">載入</button><button type="button" class="danger" data-del="'+r.id+'">刪除</button></div></div>';
+    return '<div class="rec"><div><b>'+String(r.name).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})+'</b>'+(r.t?' <small style="color:var(--mut)">'+r.t+'</small>':'')+(r.ph?' <small style="color:var(--mut)">📷 '+r.ph+' 張</small>':'')+'</div><div class="rec-actions"><button type="button" data-load="'+r.id+'">載入</button><button type="button" class="danger" data-del="'+r.id+'">刪除</button></div></div>';
   }).join('');
+  recUI();
 }
-document.addEventListener('input', function(){ localStorage.setItem(DK, JSON.stringify({name:$('#rname').value, d:collect()})); });
+var curId=null,baseSig='';
+function sStamp(){var d=new Date(),z=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())}
+function sEsc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function sig(){return JSON.stringify({d:collect(),p:[phs.motor.map(function(x){return x.id}),phs.pump.map(function(x){return x.id})]})}
+function recs(){try{var a=JSON.parse(localStorage.getItem(RK)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function saveDraft(){try{localStorage.setItem(DK, JSON.stringify({name:$('#rname').value, d:collect(), cur:curId, base:baseSig}))}catch(e){}}
+function recUI(){
+  var r=curId?recs().find(function(x){return x.id===curId}):null;if(!r)curId=null;
+  var nm=$('#rname').value.trim(),dirt=sig()!==baseSig||(r&&nm!==r.name);
+  var ren=!!(r&&nm&&nm!==r.name);
+  if(!$('#rsave').getAttribute('data-arm'))$('#rsave').textContent=r?(ren?'儲存為新紀錄':'儲存（覆蓋此紀錄）'):'儲存紀錄';
+  $('#rsaveas').hidden=!r;
+  $('#rcur').innerHTML=ren?('名稱已改成「<b>'+sEsc(nm)+'</b>」：按「儲存為新紀錄」會新增一筆，原紀錄「'+sEsc(r.name)+'」保持不變。'):r?('目前編輯的紀錄：<b>'+sEsc(r.name)+'</b>'+(r.t?'（上次儲存 '+sEsc(r.t)+'）':'')+'・'+(dirt?'<span class="dt">● 有變更尚未儲存</span>':'<span class="ok">✓ 已儲存</span>')):(dirt&&baseSig?'<span class="dt">● 這是新的表單，尚未儲存成紀錄</span>':'');
+  document.querySelectorAll('#rl .rec').forEach(function(el){var bb=el.querySelector('[data-load]');el.classList.toggle('cur',!!(r&&bb&&bb.getAttribute('data-load')===r.id))});
+}
+var rcT=null;function recUIsoon(){clearTimeout(rcT);rcT=setTimeout(recUI,60)}
+document.addEventListener('input', function(){ saveDraft(); recUIsoon(); });
+document.addEventListener('change', recUIsoon);
+function sMsg(t,er){$('#rcur').innerHTML='<span class="'+(er?'er':'ok')+'">'+sEsc(t)+'</span>';setTimeout(recUI,2500)}
+function sArm(b,t){var o=b.textContent;b.setAttribute('data-arm','1');b.textContent=t;setTimeout(function(){if(b.isConnected){b.removeAttribute('data-arm');recUI()}},3000)}
+function saveAt(a,i,name){
+  var np=phCount(),rec={id:i>=0?a[i].id:(Date.now().toString(36)+Math.random().toString(36).slice(2,8)),name:name,t:sStamp(),d:collect(),ph:np};
+  if(i>=0)a[i]=rec;else a.push(rec);
+  try{localStorage.setItem(RK, JSON.stringify(a))}catch(e){sMsg('儲存失敗：瀏覽器空間不足或未允許儲存。',true);return}
+  if(np)phPut('rec:'+rec.id, phData());else phDel('rec:'+rec.id);
+  curId=rec.id;baseSig=sig();saveDraft();renderRecs();
+  sMsg((i>=0?'已覆蓋更新紀錄：':'已儲存新紀錄：')+name+'（'+rec.t+'）');
+}
 $('#rsave').onclick=function(){
-  var name = $('#rname').value;
-  if(!name){
-    var sb = $('#rsave'); sb.textContent = '請先輸入紀錄名稱'; $('#rname').focus();
-    setTimeout(function(){ sb.textContent = '儲存紀錄'; }, 2000);
-    return;
+  var sb=$('#rsave'),name=$('#rname').value.trim();
+  if(!name){ sb.textContent='請先輸入紀錄名稱'; $('#rname').focus(); setTimeout(recUI,2000); return; }
+  var a=recs(),i=curId?a.findIndex(function(r){return r.id===curId}):-1;
+  if(i>=0&&a[i].name!==name)i=-1;
+  var j=a.findIndex(function(r,k){return k!==i&&r.name===name});
+  if(j>=0){
+    if(!sb.getAttribute('data-arm')){sArm(sb,i>=0?'已有同名紀錄，再按一次覆蓋它':'已有同名紀錄，再按一次覆蓋它');return}
+    sb.removeAttribute('data-arm');
+    if(i<0){i=j}else{phDel('rec:'+a[j].id);a.splice(j,1);if(i>j)i--;}
   }
-  var a = JSON.parse(localStorage.getItem(RK)||"[]");
-  var nid = Date.now().toString(36) + Math.random().toString(36).slice(2,8), np = phCount();
-  a.push({id: nid, name: name, d: collect(), ph: np});
-  localStorage.setItem(RK, JSON.stringify(a));
-  if(np) phPut('rec:'+nid, phData());
-  renderRecs();
+  saveAt(a,i,name);
 };
-$('#rnew').onclick=function(){ $('#rname').value=''; fill({}); localStorage.removeItem(DK); phSet(null); phDraft(); ['motor','pump'].forEach(function(s){ phMsg(s,''); }); };
+$('#rsaveas').onclick=function(){
+  var name=$('#rname').value.trim();if(!name){$('#rname').focus();return}
+  var a=recs(),nn=name,k=2;while(a.some(function(r){return r.name===nn}))nn=name+'（'+(k++)+'）';
+  $('#rname').value=nn;saveAt(a,-1,nn);
+};
+$('#rnew').onclick=function(){ $('#rname').value=''; fill({}); localStorage.removeItem(DK); phSet(null); phDraft(); ['motor','pump'].forEach(function(s){ phMsg(s,''); }); curId=null; baseSig=sig(); saveDraft(); recUI(); };
 $('#rl').addEventListener('click', function(e){
   if(e.target.tagName==='BUTTON'){
     var idLoad = e.target.getAttribute('data-load');
@@ -778,13 +815,14 @@ $('#rl').addEventListener('click', function(e){
     var a = JSON.parse(localStorage.getItem(RK)||"[]");
     if(idLoad){
       var r = a.find(x=>x.id===idLoad);
-      if(r){ $('#rname').value = r.name; fill(r.d); phGet('rec:'+r.id).then(function(o){ phSet(o); phDraft(); }); }
+      if(r){ $('#rname').value = r.name; fill(r.d); curId=r.id; phGet('rec:'+r.id).then(function(o){ phSet(o); phDraft(); baseSig=sig(); saveDraft(); recUI(); }); }
     } else if(idDel){
       var b = e.target;
       if(b.getAttribute('data-arm')){
         a = a.filter(x=>x.id!==idDel);
         localStorage.setItem(RK, JSON.stringify(a));
         phDel('rec:'+idDel);
+        if(idDel===curId){curId=null;saveDraft();}
         renderRecs();
       } else {
         b.setAttribute('data-arm','1');
@@ -797,7 +835,9 @@ $('#rl').addEventListener('click', function(e){
 $('#prt').onclick=function(){ window.print(); };
 
 var dr = JSON.parse(localStorage.getItem(DK)||'null');
-if(dr){ $('#rname').value = dr.name||''; fill(dr.d||{}); }
+if(dr){ $('#rname').value = dr.name||''; fill(dr.d||{}); curId=dr.cur||null; }
+if(!curId&&dr&&dr.name){var _r=recs().find(function(x){return x.name===dr.name});if(_r)curId=_r.id;}
+phStart.then(function(){ baseSig=(dr&&dr.base)?dr.base:(curId?'':sig()); recUI(); });
 
 var themeBtn = $('#themeToggle');
 var SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
