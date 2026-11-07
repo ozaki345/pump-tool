@@ -81,10 +81,6 @@ details.card summary{cursor:pointer;font-weight:600}
     <p class="sub">分成「原廠銘牌」「馬達」「現場量測」三組輸入，每個參數即時顯示所有常用單位；右側會同步顯示計算結果。揚程與壓力以水（密度 1000 kg/m³）換算連動。點擊任一數值可複製。</p>
   </div>
   <nav class="nav" aria-label="其他工具">
-    <a class="btn" href="pipe.html">管路厚度計算</a>
-    <a class="btn" href="draw.html">工作點標記</a>
-    <a class="btn" href="survey.html">現場資料表</a>
-    <a class="btn" href="flow.html">流量量測表</a>
     <button class="btn ic" id="thToggle" type="button" title="切換深色背景" aria-label="切換深色背景"></button>
   </nav>
 </header>
@@ -448,6 +444,46 @@ fi.onchange=function(){
   r.onerror=function(){st.textContent='檔案讀取失敗。'};
   r.readAsText(f);
 };
+})();
+</script>
+<script>
+/* ===== 全站統一導覽列（5 個頁面共用） ===== */
+(function(){
+var PAGES=[['index.html','泵浦換算'],['pipe.html','管路厚度'],['draw.html','工作點標記'],['survey.html','現場資料表'],['flow.html','流量量測']];
+var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(f==='pump-converter.html')f='index.html';
+var css=document.createElement('style');css.textContent=
+'#siteNav{--sn-a:var(--bl,var(--accent,#0b7bc1));--sn-bg:var(--pn,var(--card,var(--surface,#f6f9fc)));--sn-ln:var(--ln,var(--line,#d5dee6));--sn-ink:var(--ink,var(--text,#17262e));--sn-mut:var(--mut,var(--muted,#5d6f7b));'+
+ 'background:var(--sn-bg);border-bottom:1px solid var(--sn-ln);margin:0 0 14px;font-size:16px;line-height:1.4}'+
+'#siteNav .sn-in{margin:0 auto;display:flex;align-items:center;gap:6px 14px;padding:8px 20px;flex-wrap:wrap;box-sizing:border-box}'+
+'#siteNav .sn-brand{font-weight:800;color:var(--sn-ink);text-decoration:none;white-space:nowrap;font-size:17px;margin-right:4px}'+
+'#siteNav .sn-tabs{display:flex;gap:4px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}#siteNav .sn-tabs::-webkit-scrollbar{display:none}'+
+'#siteNav .sn-tab{white-space:nowrap;text-decoration:none;color:var(--sn-mut);padding:7px 12px;border-radius:8px;font-weight:600;border:1px solid transparent}'+
+'#siteNav .sn-tab:hover{color:var(--sn-a);border-color:var(--sn-ln)}'+
+'#siteNav .sn-tab[aria-current="page"]{color:#fff;background:var(--sn-a);border-color:var(--sn-a)}'+
+':root[data-theme="dark"] #siteNav .sn-tab[aria-current="page"]{color:#0b1418}'+
+'#siteNav .sn-act{display:flex;gap:6px;margin-left:auto;flex:none}'+
+'#siteNav .sn-ic{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:38px;min-width:38px;padding:0 10px;border:1px solid var(--sn-ln);border-radius:8px;cursor:pointer;color:var(--sn-a);background:var(--bg,#fff);font:inherit;font-size:15px;white-space:nowrap}'+
+'#siteNav .sn-ic:hover{border-color:var(--sn-a)}#siteNav .sn-ic:focus-visible{outline:2px solid var(--sn-a);outline-offset:2px}#siteNav .sn-ic svg{flex:none}'+
+'@media(max-width:720px){#siteNav .sn-in{padding:8px 12px}#siteNav .sn-tabs{order:3;flex-basis:100%;flex-wrap:wrap;overflow:visible;gap:6px}#siteNav .sn-tab{padding:5px 10px;border-color:var(--sn-ln);font-size:15px}}'+
+'@media print{#siteNav{display:none!important}}';
+document.head.appendChild(css);
+var nav=document.createElement('nav');nav.id='siteNav';nav.setAttribute('aria-label','網站導覽');
+nav.innerHTML='<div class="sn-in"><a class="sn-brand" href="index.html">💧 泵浦工具</a><div class="sn-tabs">'+
+  PAGES.map(function(p){return '<a class="sn-tab" href="'+p[0]+'"'+(p[0]===f?' aria-current="page"':'')+'>'+p[1]+'</a>'}).join('')+
+  '</div><div class="sn-act"></div></div>';
+document.body.insertBefore(nav,document.body.firstChild);
+var act=nav.querySelector('.sn-act');
+['bkBtn','thToggle','themeToggle'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;var par=el.parentNode;
+  el.className='sn-ic';el.removeAttribute('style');act.appendChild(el);
+  if(par&&par!==act&&!par.children.length&&!par.textContent.trim())par.remove();
+});
+var cur=nav.querySelector('[aria-current]');if(cur&&cur.scrollIntoView)try{cur.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}
+window.scrollTo(0,0);
+var inn=nav.querySelector('.sn-in');
+function fit(){var m=document.querySelector('main'),h=document.querySelector('body>header');var ref=(h&&h.offsetWidth)?h:m;if(!ref)return;var cs=getComputedStyle(ref);
+  var mw=parseFloat(cs.maxWidth);inn.style.maxWidth=isFinite(mw)?Math.max(mw,1120)+'px':'';if(innerWidth>720){inn.style.paddingLeft=cs.paddingLeft;inn.style.paddingRight=cs.paddingRight}else{inn.style.paddingLeft='';inn.style.paddingRight=''}}
+fit();addEventListener('resize',fit);
 })();
 </script>
 </body>
