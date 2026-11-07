@@ -81,6 +81,7 @@ tbody tr:hover td{background:var(--hl)}
 .pbar select{width:auto}
 .badge.r-mt{color:#fff;background:#ca8a04;border-color:#ca8a04}:root[data-theme="dark"] .badge.r-mt{color:#0b1a22;background:#facc15;border-color:#facc15}
 .pt.mt{border-left-color:#ca8a04}.mlbl{font-size:15px;color:var(--mut);margin:2px 0 4px;font-weight:600}.mlbl span{font-weight:400;font-size:14px;margin-left:8px}
+.g4 .w3{grid-column:span 3}@media(max-width:640px){.g4 .w3{grid-column:span 2}}
 .pt input.ro{background:var(--hl);border-style:dashed;color:var(--ink);font-weight:600}
 .pts{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}.pts>.pt{min-width:0}
 .vsw{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.vsw button{border:0;border-radius:0;background:transparent;color:var(--mut);padding:6px 12px;font-weight:600;width:auto}.vsw button+button{border-left:1px solid var(--ln)}.vsw button.on{background:var(--bl);color:#fff}
@@ -241,23 +242,27 @@ function cWater(T){if(!isFinite(T))T=20;T=Math.min(Math.max(T,0),95);return 1402
 
 /* ---------- 狀態 ---------- */
 function blank(){return {info:{},th:5,tx:{cw:2730,ang:38},systems:[{id:uid(),name:'冰水'},{id:uid(),name:'冷卻水'}],points:[],meters:[]}}
+var PU=[['kgf/cm²',98.0665],['bar',100],['kPa',1],['MPa',1000],['psi',6.894757],['mH₂O',9.80665]],PUF={};PU.forEach(function(u){PUF[u[0]]=u[1]});
+var PWU=[['kW',1],['W',0.001],['MW',1000],['HP',0.7457]],PWF={};PWU.forEach(function(u){PWF[u[0]]=u[1]});
 var MST=[['run','運轉中'],['sb','備用'],['stop','停機']];
-function newMeter(sys){return {id:uid(),sys:sys,name:'',st:'run',v:['','',''],i:['','',''],pf:'',kw:'',hz:'60',time:'',ir:'',kwr:'',kwh:'',note:''}}
+function newMeter(sys){return {id:uid(),sys:sys,name:'',st:'run',v:['','',''],i:['','',''],pf:'',kw:'',kwu:'kW',hz:'60',pd:'',ps:'',pu:'kgf/cm²',time:'',ir:'',kwr:'',kwh:'',note:''}}
 function findM(id){return (S.meters||[]).find(function(m){return m.id===id})}
 function avg3(a){var v=a.map(num).filter(function(x){return isFinite(x)&&x>0});if(!v.length)return {avg:NaN,n:0,ub:NaN};var t=v.reduce(function(p,c){return p+c},0)/v.length;return {avg:t,n:v.length,ub:v.length>1?Math.max.apply(null,v.map(function(x){return Math.abs(x-t)}))/t*100:NaN}}
 function mcalc(m){
-  var V=avg3(m.v),I=avg3(m.i),pf=num(m.pf),kw=num(m.kw),ir=num(m.ir),kwr=num(m.kwr);
+  var V=avg3(m.v),I=avg3(m.i),pf=num(m.pf),kw=num(m.kw)*(PWF[m.kwu]||1),ir=num(m.ir),kwr=num(m.kwr);
   var kva=isFinite(V.avg)&&isFinite(I.avg)?Math.sqrt(3)*V.avg*I.avg/1000:NaN;
   var kwc=kva>0&&pf>0&&pf<=1?kva*pf:NaN,pfe=!(pf>0)&&kw>0&&kva>0?kw/kva:NaN,P=kw>0?kw:kwc;
   var load=I.avg>0&&ir>0?I.avg/ir*100:NaN,w=[];
+  var uf=PUF[m.pu]||98.0665,pd=num(m.pd),ps=num(m.ps),pdk=isFinite(pd)?pd*uf:NaN,psk=isFinite(ps)?ps*uf:NaN,hd=isFinite(pdk)&&isFinite(psk)?(pdk-psk)/9.80665:NaN;
+  if(isFinite(hd)&&hd<=0)w.push(['bad','出口壓不大於入口壓，請確認讀值或單位']);
   if(V.n>=2&&V.ub>2)w.push(['wn','電壓不平衡 '+V.ub.toFixed(1)+'%（> 2%）：馬達容易發熱、效率下降']);
   if(I.n>=2&&I.ub>10)w.push(['wn','電流不平衡 '+I.ub.toFixed(1)+'%（> 10%）：請檢查電源、接點或馬達繞組']);
   if(pf>1)w.push(['bad','功因不可能大於 1，請確認讀值']);else if(pf>0&&pf<0.8)w.push(['wn','功因偏低（< 0.8）']);
   if(isFinite(pfe)&&pfe>1.02)w.push(['bad','耗電功率大於 √3×V×I，請確認電壓、電流或功率讀值']);
-  if(isFinite(kwc)&&kw>0){var d=(kwc-kw)/kw*100;if(Math.abs(d)>10)w.push(['wn','由 √3×V×I×PF 算出 '+fmt(kwc,1)+' kW，與電表讀值差 '+(d>0?'+':'')+d.toFixed(1)+'%，請確認讀值'])}
+  if(isFinite(kwc)&&kw>0){var d=(kwc-kw)/kw*100,rt=kw/kwc;if(Math.abs(d)>10)w.push(['wn','由 √3×V×I×PF 算出 '+fmt(kwc,1)+' kW，與電表讀值差 '+(d>0?'+':'')+d.toFixed(1)+'%，請確認讀值'+(rt>300&&rt<3000?'（數值差約 1000 倍，耗電功率單位可能應選 W）':rt>0.0003&&rt<0.003?'（數值差約 1000 倍，耗電功率單位可能應選 MW 或 kW）':'')])}
   if(isFinite(load)){if(load>105)w.push(['bad','負載率 '+load.toFixed(0)+'%，已超過額定電流']);else if(load<40)w.push(['wn','負載率僅 '+load.toFixed(0)+'%，馬達可能選型過大（節能機會）'])}
   if(m.st!=='run'&&P>0)w.push(['mut','狀態不是「運轉中」，不列入系統耗電合計']);
-  return {V:V,I:I,pf:pf,kw:kw,kva:kva,kwc:kwc,pfe:pfe,P:P,load:load,kwr:kwr,warn:w};
+  return {pd:pd,ps:ps,pdk:pdk,hd:hd,V:V,I:I,pf:pf,kw:kw,kva:kva,kwc:kwc,pfe:pfe,P:P,load:load,kwr:kwr,warn:w};
 }
 function newPoint(sys){return {id:uid(),sys:sys,role:'branch',area:'',time:'',size:'',circ:'',od:'',odin:'',t:'',mat:'碳鋼',matx:'',r:['','',''],u:'m³/h',up:'',down:'',inst:'',sm:'',sig:'',note:''}}
 function norm(o){
@@ -421,9 +426,9 @@ function renderAreas(){
       +'<div><small>③ 各區合計（'+b.areas.length+' 區）</small><b>'+f(b.A)+'</b> m³/h<em class="'+b.j2.cls+'">'+(isFinite(b.j2.pct)?'比 '+b.j2.vs+'：'+sg(b.A-(b.j2.vs==='②'?b.H:b.P))+' m³/h（'+sg(b.j2.pct)+'%）':'&nbsp;')+'</em></div>'
       +'<div><small>⚡ 泵浦耗電（'+b.nk+' 台運轉）</small><b>'+f(b.KW)+'</b> kW<em class="mut">'+(isFinite(b.SE)?'單位耗能 <b>'+b.SE.toFixed(3)+'</b> kWh/m³（以'+b.FQl+'計）':'&nbsp;')+'</em></div></div>';
     var f2=function(x,d){return isFinite(x)?fmt(x,d):'—'};
-    var mtr=b.ms.length?'<h4>各泵浦（電力量測）</h4><div class="tw"><table class="at"><thead><tr><th>泵浦／設備</th><th>狀態</th><th>平均電壓 V</th><th>平均電流 A</th><th>功因</th><th>耗電 kW</th><th>負載率</th></tr></thead><tbody>'
-      +b.ms.map(function(x){var c=x.c,st=MST.find(function(z){return z[0]===x.m.st});return '<tr data-go="'+esc(x.m.id)+'" title="跳到此泵浦"><td class="an">'+gl(x.m.name||'（未填名稱）')+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td'+(x.m.st!=='run'?' class="mut"':'')+'>'+st[1]+'</td><td>'+f2(c.V.avg,0)+'</td><td>'+f2(c.I.avg,1)+'</td><td>'+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</td><td><b>'+f2(c.P,1)+'</b></td><td>'+(isFinite(c.load)?c.load.toFixed(0)+'%':'—')+'</td></tr>'}).join('')
-      +'</tbody><tfoot><tr><td>運轉中合計</td><td></td><td></td><td></td><td></td><td><b>'+f(b.KW)+'</b></td><td></td></tr></tfoot></table></div>':'';
+    var mtr=b.ms.length?'<h4>各泵浦（電力量測）</h4><div class="tw"><table class="at"><thead><tr><th>泵浦／設備</th><th>狀態</th><th>平均電壓 V</th><th>平均電流 A</th><th>功因</th><th>耗電 kW</th><th>出口壓</th><th>負載率</th></tr></thead><tbody>'
+      +b.ms.map(function(x){var c=x.c,st=MST.find(function(z){return z[0]===x.m.st});return '<tr data-go="'+esc(x.m.id)+'" title="跳到此泵浦"><td class="an">'+gl(x.m.name||'（未填名稱）')+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td'+(x.m.st!=='run'?' class="mut"':'')+'>'+st[1]+'</td><td>'+f2(c.V.avg,0)+'</td><td>'+f2(c.I.avg,1)+'</td><td>'+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</td><td><b>'+f2(c.P,1)+'</b></td><td>'+(isFinite(c.pd)?c.pd+' '+esc(x.m.pu):'—')+'</td><td>'+(isFinite(c.load)?c.load.toFixed(0)+'%':'—')+'</td></tr>'}).join('')
+      +'</tbody><tfoot><tr><td>運轉中合計</td><td></td><td></td><td></td><td></td><td><b>'+f(b.KW)+'</b></td><td></td><td></td></tr></tfoot></table></div>':'';
     var pumps=b.pump.items.length?'<h4>各泵浦</h4><div class="tw"><table><thead><tr><th>泵浦</th><th>流量 m³/h</th><th>佔泵浦合計</th></tr></thead><tbody>'+b.pump.items.map(function(x){return '<tr data-go="'+esc(x.id)+'" title="跳到此量測點"><td class="an">'+gl(x.name)+' <span class="mut" style="font-size:14px">#'+x.no+'</span></td><td>'+f(x.q)+'</td><td class="pc">'+bar(isFinite(x.q)&&b.P>0?x.q/b.P*100:NaN)+'</td></tr>'}).join('')+'</tbody></table></div>':'';
     var hp=function(x,base){return bar(isFinite(x.q)&&base>0?x.q/base*100:NaN)};
     var hdr=(b.hdr.items.length||b.hb.items.length)?'<h4>主集管</h4><div class="tw"><table><thead><tr><th>名稱</th><th>類別</th><th>流量 m³/h</th><th>佔主集管合計</th></tr></thead><tbody>'
@@ -494,13 +499,15 @@ function meterHTML(m){
    +inp('v0','R-S','')+inp('v1','S-T','')+inp('v2','T-R','')+'<label class="f">平均電壓<input data-b="vavg" readonly tabindex="-1" class="ro"></label>'
    +'</div><div class="mlbl">三相電流（A）<span>只量一相也可以</span></div><div class="g4">'
    +inp('i0','R 相','')+inp('i1','S 相','')+inp('i2','T 相','')+'<label class="f">平均電流<input data-b="iavg" readonly tabindex="-1" class="ro"></label>'
-   +'</div><div class="g4">'
-   +inp('pf','功因 PF','例如 0.85')+inp('kw','耗電功率（kW）','電表讀值')+'<label class="f">頻率（Hz）<select data-m="hz">'+opts((m.hz&&m.hz!=='60'&&m.hz!=='50'?[[m.hz,m.hz+' Hz']]:[]).concat([['60','60 Hz'],['50','50 Hz']]),m.hz||'60')+'</select></label>'+'<label class="f">量測時間<input data-m="time" type="time"></label>'
+   +'</div><div class="mlbl">電力</div><div class="g4">'
+   +inp('pf','功因 PF','例如 0.85')+inp('kw','耗電功率','電表讀值')+'<label class="f">功率單位<select data-m="kwu">'+opts(PWU.map(function(u){return u[0]}),m.kwu||'kW')+'</select></label>'+'<label class="f">頻率（Hz）<select data-m="hz">'+opts((m.hz&&m.hz!=='60'&&m.hz!=='50'?[[m.hz,m.hz+' Hz']]:[]).concat([['60','60 Hz'],['50','50 Hz']]),m.hz||'60')+'</select></label>'
+   +'</div><div class="mlbl">壓力</div><div class="g4">'
+   +inp('pd','出口壓','泵浦出口、閥前')+'<label class="f">壓力單位<select data-m="pu">'+opts(PU.map(function(u){return u[0]}),m.pu)+'</select></label>'+inp('ps','入口壓（選填）','填了可算揚程')+'<label class="f">揚程（自動）<input data-b="hd" readonly tabindex="-1" class="ro"></label>'
    +'</div>'
    +'<details><summary>馬達銘牌與電度（選填：可算負載率）</summary><div class="g4">'
    +inp('ir','馬達額定電流（A）','')+inp('kwr','馬達額定功率（kW）','')+inp('kwh','累計電度（kWh）','')+'<span></span>'
    +'</div></details>'
-   +'<label class="f" style="margin-bottom:8px">備註<input data-m="note" placeholder="例如：變頻 45 Hz、量測時 2 台並聯運轉"></label>'
+   +'<div class="g4"><label class="f">量測時間<input data-m="time" type="time"></label><label class="f w3">備註<input data-m="note" placeholder="例如：變頻 45 Hz、量測時 2 台並聯運轉"></label></div>'
    +'<div class="res" data-b="res"></div>'
    +'</div></div>';
 }
@@ -512,18 +519,21 @@ function updMeter(el,m){
   var c=mcalc(m),f1=function(x,d){return isFinite(x)?fmt(x,d):'—'};
   var sb=el.querySelector('[data-b="sys"]');sb.textContent=sysName(m.sys);sb.className='badge sysb '+sysCls(m.sys);
   el.querySelector('[data-b="vavg"]').value=isFinite(c.V.avg)?fmt(c.V.avg,1)+(c.V.n>1?'（'+c.V.n+' 相）':''):'';
+  el.querySelector('[data-b="hd"]').value=isFinite(c.hd)?fmt(c.hd,1)+' m':'';
   el.querySelector('[data-b="iavg"]').value=isFinite(c.I.avg)?fmt(c.I.avg,1)+(c.I.n>1?'（'+c.I.n+' 相）':''):'';
-  var h='耗電 <b>'+f1(c.P,2)+'</b> kW'+(c.kw>0?'（電表讀值）':isFinite(c.kwc)?'（由 √3×V×I×PF 計算）':'')
+  var h='耗電 <b>'+f1(c.P,2)+'</b> kW'+(c.kw>0?'（電表讀值'+(m.kwu&&m.kwu!=='kW'?' '+esc(m.kw)+' '+esc(m.kwu):'')+'）':isFinite(c.kwc)?'（由 √3×V×I×PF 計算）':'')
     +' ・ 視在功率 '+f1(c.kva,2)+' kVA'
     +(isFinite(c.kwc)&&c.kw>0?' ・ 計算值 '+fmt(c.kwc,2)+' kW':'')
     +(isFinite(c.pfe)?' ・ 推算功因 ≈ '+c.pfe.toFixed(3):'')
     +(c.V.n>1?' ・ 電壓不平衡 '+c.V.ub.toFixed(1)+'%':'')+(c.I.n>1?' ・ 電流不平衡 '+c.I.ub.toFixed(1)+'%':'')
     +(isFinite(c.load)?' ・ 負載率 <b>'+c.load.toFixed(0)+'%</b>':'')
-    +(c.kwr>0&&c.P>0?' ・ 輸入功率／額定 '+(c.P/c.kwr*100).toFixed(0)+'%':'');
+    +(c.kwr>0&&c.P>0?' ・ 輸入功率／額定 '+(c.P/c.kwr*100).toFixed(0)+'%':'')
+    +(isFinite(c.pd)?' ・ 出口壓 <b>'+c.pd+'</b> '+esc(m.pu)+(m.pu!=='kPa'&&m.pu!=='mH₂O'?'（'+fmt(c.pdk,0)+' kPa）':''):'')
+    +(isFinite(c.hd)?' ・ 揚程 <b>'+fmt(c.hd,1)+'</b> m':'');
   if(c.warn.length)h+='<ul>'+c.warn.map(function(w){return '<li class="'+w[0]+'">'+esc(w[1])+'</li>'}).join('')+'</ul>';
   el.querySelector('[data-b="res"]').innerHTML=h;
   var w=c.warn.filter(function(x){return x[0]==='bad'||x[0]==='wn'}),st=MST.find(function(x){return x[0]===m.st});
-  el.querySelector('[data-b="sum"]').innerHTML='<span class="ar">'+(m.name?esc(m.name):'<span class="mut">（未填名稱）</span>')+'</span>'+(m.st!=='run'?'<span class="mut">'+st[1]+'</span>':'')+'<span>'+f1(c.V.avg,0)+' V</span><span>'+f1(c.I.avg,1)+' A</span><span>PF '+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</span><span><b>'+f1(c.P,1)+'</b> kW</span>'+(w.length?'<span class="'+w[0][0]+'">⚠ '+w.length+' 項提醒</span>':'');
+  el.querySelector('[data-b="sum"]').innerHTML='<span class="ar">'+(m.name?esc(m.name):'<span class="mut">（未填名稱）</span>')+'</span>'+(m.st!=='run'?'<span class="mut">'+st[1]+'</span>':'')+'<span>'+f1(c.V.avg,0)+' V</span><span>'+f1(c.I.avg,1)+' A</span><span>PF '+(c.pf>0?c.pf:isFinite(c.pfe)?'≈'+c.pfe.toFixed(2):'—')+'</span><span><b>'+f1(c.P,1)+'</b> kW</span>'+(isFinite(c.pd)?'<span>出口 '+c.pd+' '+esc(m.pu)+'</span>':'')+(w.length?'<span class="'+w[0][0]+'">⚠ '+w.length+' 項提醒</span>':'');
   var tg=el.querySelector('.pt-tg');if(tg)tg.textContent=el.classList.contains('open')?'▲ 收合':'▼ 展開';
 }
 function fillCard(el,p){
@@ -663,7 +673,7 @@ $('#pts').addEventListener('click',function(e){
       S.meters=S.meters.filter(function(x){return x!==m});renderSys();renderBal();renderPts();draft();msg('已刪除泵浦資料。');return;
     }
     if(b.getAttribute('data-act')==='dup'){
-      var q2=JSON.parse(JSON.stringify(m));q2.id=uid();q2.name='';q2.v=['','',''];q2.i=['','',''];q2.pf='';q2.kw='';q2.time='';q2.kwh='';q2.note='';
+      var q2=JSON.parse(JSON.stringify(m));q2.id=uid();q2.name='';q2.v=['','',''];q2.i=['','',''];q2.pf='';q2.kw='';q2.pd='';q2.ps='';q2.time='';q2.kwh='';q2.note='';
       S.meters.splice(S.meters.indexOf(m)+1,0,q2);renderSys();renderBal();renderPts();draft();focusArea(q2.id);msg('已複製（系統、馬達銘牌沿用，讀值已清空）。');
     }
     return;
@@ -772,9 +782,9 @@ function csvText(){
   B.forEach(function(b){b.hdr.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管','#'+x.no,c2(x.q)])});b.hb.items.forEach(function(x){rows.push([b.s.name,x.name,'主集管支管','#'+x.no,c2(x.q)])});if(b.hdr.items.length||b.hb.items.length)rows.push([b.s.name,'主集管合計','','',c2(b.H)],[b.s.name,'主集管支管合計','','',c2(b.HB)],[b.s.name,'差異 %（支管合計 比 主集管合計）','','',c2(b.j3.pct,1)])});
   rows.push([],['各區流量（單位 m³/h）'],['系統','生產區','量測點','主管','支管','合計']);
   B.forEach(function(b){b.areas.forEach(function(a){rows.push([b.s.name,a.name,'#'+a.nos.join('、#'),a.nmn?c2(a.mn):'',a.nbr?c2(a.br):'',c2(a.q)])});if(b.areas.length)rows.push([b.s.name,'各區合計','','','',c2(b.A)])});
-  rows.push([],['各泵浦（電力量測）'],['#','系統','泵浦／設備','運轉狀態','電壓 R-S V','電壓 S-T V','電壓 T-R V','平均電壓 V','電流 R A','電流 S A','電流 T A','平均電流 A','功因','耗電功率 kW（電表）','計算功率 kW（√3VI·PF）','採用耗電 kW','視在功率 kVA','頻率 Hz','電壓不平衡 %','電流不平衡 %','額定電流 A','額定功率 kW','負載率 %','累計電度 kWh','量測時間','提醒','備註']);
-  (S.meters||[]).forEach(function(m,k){var c=mcalc(m),q=function(x,d){return isFinite(x)?x.toFixed(d):''},st=MST.find(function(z){return z[0]===m.st});rows.push([k+1,sysName(m.sys),m.name,st?st[1]:'',m.v[0],m.v[1],m.v[2],q(c.V.avg,1),m.i[0],m.i[1],m.i[2],q(c.I.avg,2),m.pf,m.kw,q(c.kwc,2),q(c.P,2),q(c.kva,2),m.hz,q(c.V.ub,1),q(c.I.ub,1),m.ir,m.kwr,q(c.load,0),m.kwh,m.time,c.warn.map(function(w){return w[1]}).join('；'),m.note])});
-  B.forEach(function(b){if(b.nk)rows.push(['',b.s.name,'運轉中耗電合計','','','','','','','','','','','','',b.KW.toFixed(2),'','','','','','','','','',isFinite(b.SE)?'單位耗能 '+b.SE.toFixed(3)+' kWh/m³（以'+b.FQl+'計）':'',''])});
+  rows.push([],['各泵浦（電力量測）'],['#','系統','泵浦／設備','運轉狀態','電壓 R-S V','電壓 S-T V','電壓 T-R V','平均電壓 V','電流 R A','電流 S A','電流 T A','平均電流 A','功因','耗電功率（電表讀值）','功率單位','計算功率 kW（√3VI·PF）','採用耗電 kW','視在功率 kVA','頻率 Hz','出口壓','入口壓','壓力單位','揚程 m','電壓不平衡 %','電流不平衡 %','額定電流 A','額定功率 kW','負載率 %','累計電度 kWh','量測時間','提醒','備註']);
+  (S.meters||[]).forEach(function(m,k){var c=mcalc(m),q=function(x,d){return isFinite(x)?x.toFixed(d):''},st=MST.find(function(z){return z[0]===m.st});rows.push([k+1,sysName(m.sys),m.name,st?st[1]:'',m.v[0],m.v[1],m.v[2],q(c.V.avg,1),m.i[0],m.i[1],m.i[2],q(c.I.avg,2),m.pf,m.kw,m.kwu||'kW',q(c.kwc,2),q(c.P,2),q(c.kva,2),m.hz,m.pd,m.ps,m.pu,q(c.hd,1),q(c.V.ub,1),q(c.I.ub,1),m.ir,m.kwr,q(c.load,0),m.kwh,m.time,c.warn.map(function(w){return w[1]}).join('；'),m.note])});
+  B.forEach(function(b){if(b.nk)rows.push(['',b.s.name,'運轉中耗電合計','','','','','','','','','','','','','',b.KW.toFixed(2),'','','','','','','','','','','','','',isFinite(b.SE)?'單位耗能 '+b.SE.toFixed(3)+' kWh/m³（以'+b.FQl+'計）':'',''])});
   rows.push([],['量測點明細'],['#','系統','類別','生產區／量測位置','量測時間','管徑規格','周長 mm','外徑 mm','外徑 in','壁厚 mm','內徑 mm','管路材質','讀值 1','讀值 2','讀值 3','讀值單位','平均流量 m³/h','流速 m/s','讀值差 %','上游直管段 D','下游直管段 D','探頭安裝方式','流量計建議間距 mm','估算間距 mm（所選方式）','建議安裝方式','訊號強度','提醒','備註']);
   S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),RN[p.role],p.area,p.time,PK[p.size]?PK[p.size].n:(p.size?p.size:'自訂'),p.circ,p.od,p.odin,p.t,isFinite(c.id)?c.id.toFixed(1):'',(p.mat==='其他'&&p.matx?'其他：'+p.matx:p.mat),p.r[0],p.r[1],p.r[2],p.u,isFinite(c.avg)?c.avg.toFixed(2):'',isFinite(c.v)?c.v.toFixed(3):'',isFinite(c.spread)?c.spread.toFixed(1):'',p.up,p.down,p.inst?p.inst+' 法':'',p.sm,(c.sp&&p.inst)?c.sp[p.inst].toFixed(0):'',c.rec?c.rec+' 法':'',p.sig,c.warn.map(function(w){return w[1]}).join('；'),p.note])});
   return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
