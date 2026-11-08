@@ -62,6 +62,12 @@ details.card summary{cursor:pointer;font-weight:600}
 .toolbar .tn{flex:1;min-width:220px}
 .toolbar label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
 .toolbar input{width:100%}
+.card.imp{box-shadow:0 0 0 3px var(--c3);transition:box-shadow .3s}
+#ffM{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}#ffM[hidden]{display:none}
+#ffM .bx{background:var(--bg);color:var(--text);max-width:640px;width:100%;max-height:85vh;overflow:auto;border-radius:12px;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35);position:relative}
+#ffM h3{margin:0 0 4px;font-size:20px}#ffM .x{position:absolute;right:10px;top:6px;border:0;background:none;font-size:24px;cursor:pointer;color:var(--text)}
+#ffM h4{margin:14px 0 6px;font-size:15px;color:var(--muted)}#ffM .pp{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:0 0 6px;cursor:pointer}
+#ffM .pp:hover{border-color:var(--accent)}#ffM .pp small{color:var(--muted)}#ffM .pp b{font-size:16px}
 .rcur{flex-basis:100%;margin:0;font-size:15px;color:var(--muted)}.rcur:empty{display:none}.rcur b{color:var(--text)}.rcur .dt{color:#c46a00;font-weight:700}.rcur .ok{color:var(--ok);font-weight:700}
 #btnSaveAs[hidden]{display:none}
 #recList .rec.cur{background:var(--accent-bg);border-radius:6px}#recList .rec.cur>div:first-child>b::after{content:'編輯中';font-size:13px;font-weight:700;color:#fff;background:var(--accent);border-radius:10px;padding:1px 8px;margin-left:8px;vertical-align:2px}
@@ -93,6 +99,7 @@ details.card summary{cursor:pointer;font-weight:600}
   <div class="tn"><label for="pumpName">泵浦名稱／型號（儲存紀錄時使用）</label><input id="pumpName" type="text" placeholder="例如：P-101 或泵浦型號"></div>
   <button class="btn pri" id="btnSave">儲存紀錄</button>
   <button class="btn" id="btnSaveAs" hidden>另存新紀錄</button>
+  <button class="btn" id="btnFromFlow" title="從「流量量測表」的泵浦資料帶入電壓、電流、功因、耗電、出口壓">從流量量測表帶入</button>
   <button class="btn" id="btnTbl">收合換算表</button>
   <p class="rcur" id="recCur"></p>
 </div>
@@ -100,6 +107,7 @@ details.card summary{cursor:pointer;font-weight:600}
 <div class="row" style="margin-top:10px"><input id="recFilter" type="text" placeholder="搜尋泵浦名稱"></div>
 <div id="recList"></div>
 <div class="bar" style="margin:10px 0 0"><button class="btn" id="btnRecCsv">匯出全部紀錄（.csv）</button><button class="btn" id="btnRecClear">清除全部</button></div></details>
+<div id="ffM" hidden role="dialog" aria-label="從流量量測表帶入"><div class="bx"><button type="button" class="x" aria-label="關閉">×</button><h3>從流量量測表帶入</h3><p class="note" style="margin:0">選一台泵浦，會把它的電壓、電流、功因、耗電、出口壓（與揚程）、頻率、馬達額定電流／功率填入本頁對應欄位。實測流量需自行填入。</p><div id="ffL"></div></div></div>
 <div class="layout">
   <div class="colIn">
     <h2 class="s1">① 泵浦原廠銘牌數據</h2>
@@ -228,7 +236,7 @@ function exportRows(){
  const nm=document.getElementById("pumpName").value.trim();
  return[head,["基本資料","泵浦名稱／型號",nm,""],...body];
 }
-function msg(s){toast.textContent=s;toast.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("on"),1600)}
+function msg(s){toast.textContent=s;toast.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove("on"),Math.max(1600,String(s).length*90))}
 let dl=null;
 try{if(window.claude&&claude.use)claude.use("downloads").then(d=>{if(d)dl=d}).catch(()=>{})}catch(e){}
 const THEMES={
@@ -322,6 +330,50 @@ document.getElementById("btnSave").onclick=function(){
  }
  saveAt(a,i,name);
 };
+/* ===== 從流量量測表（flow.html）帶入泵浦數據 ===== */
+const FPU={"kgf/cm²":98066.5,"bar":1e5,"kPa":1e3,"MPa":1e6,"psi":6894.757,"mH₂O":9806.65},FPW={"kW":1,"W":0.001,"MW":1000,"HP":0.7457};
+const fnum=v=>{const x=parseFloat(String(v==null?"":v).replace(/,/g,""));return isFinite(x)?x:NaN};
+const favg=a=>{const v=(a||[]).map(fnum).filter(x=>isFinite(x)&&x>0);return v.length?v.reduce((p,c)=>p+c,0)/v.length:NaN};
+function pumpData(m){
+ const V=favg(m.v),I=favg(m.i),pf=fnum(m.pf),kw0=fnum(m.kw)*(FPW[m.kwu]||1);
+ const P=kw0>0?kw0:(V>0&&I>0&&pf>0&&pf<=1?Math.sqrt(3)*V*I*pf/1000:NaN);
+ const uf=FPU[m.pu]||98066.5,pd=fnum(m.pd),ps=fnum(m.ps),pdPa=isFinite(pd)?pd*uf:NaN,hd=isFinite(pdPa)&&isFinite(ps)?(pdPa-ps*uf)/(1000*G):NaN;
+ return {name:m.name||"",V:V,I:I,pf:pf>0&&pf<=1?pf:NaN,P:P,pd:pd,pu:m.pu||"kgf/cm²",pdPa:pdPa,hd:hd,hz:fnum(m.hz),ir:fnum(m.ir),kwr:fnum(m.kwr),st:m.st||"run"};
+}
+function flowSources(){
+ const out=[],rd=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}};
+ const add=(title,st)=>{if(!st||!Array.isArray(st.meters)||!st.meters.length)return;const sn=id=>{const x=(st.systems||[]).find(y=>y.id===id);return x?x.name:""};out.push({title:title,items:st.meters.map(m=>Object.assign(pumpData(m),{sys:sn(m.sys)}))})};
+ const d=rd("flowSurveyDraft");if(d&&d.s)add("目前編輯中的流量量測表"+(d.name?"（"+d.name+"）":""),d.s);
+ const r=rd("flowSurveyRecs");if(Array.isArray(r))r.forEach(x=>add("紀錄："+x.name+"（"+x.t+"）",x.s));
+ return out;
+}
+function applyPump(x){
+ const done=[],set=(k,v,lab)=>{if(isFinite(v)){S[k]=v;done.push(k);if(lab&&done.indexOf(lab)<0)done.push(lab)}};
+ set("eV",x.V);set("eI",x.I);set("pPF",x.pf);set("eP",x.P*1000);
+ if(isFinite(x.pdPa)){S.mP=x.pdPa;S.mH=isFinite(x.hd)?x.hd:x.pdPa/(S.rho*G);done.push("mP","mH");
+  const pc=cards.find(c=>c.key==="mP"),ui=pc&&Q.pressure.findIndex(u=>u[0]===x.pu);if(pc&&ui>=0){pc.u=ui;pc.sel.value=ui}}
+ if(x.hz===50||x.hz===60){S.pHz=x.hz;done.push("pHz")}
+ set("pI",x.ir);if(isFinite(x.kwr))set("pPm",x.kwr*1000);
+ const ec=cards.find(c=>c.key==="eP");if(ec&&isFinite(x.P)){ec.u=0;ec.sel.value=0}
+ cards.forEach(c=>{if(c.opts&&!c.optsL&&c.sel)c.sel.value=S[c.key]});
+ if(!nameEl.value.trim()&&x.name)nameEl.value=x.name;
+ calc();update(null);recUIsoon();
+ cards.forEach(c=>{const el=c.el||(c.sel&&c.sel.closest(".card"));if(!el)return;el.classList.toggle("imp",done.indexOf(c.key)>=0)});
+ setTimeout(()=>document.querySelectorAll(".card.imp").forEach(el=>el.classList.remove("imp")),4000);
+ const lab={eV:"電壓",eI:"電流",pPF:"功因",eP:"耗電",mP:"出口壓",mH:"揚程",pHz:"頻率",pI:"額定電流",pPm:"額定功率"};
+ msg("已帶入「"+(x.name||"泵浦")+"」："+done.filter(k=>lab[k]).map(k=>lab[k]).join("、")+"。實測流量請自行填入。"+(isFinite(x.hd)?"（有入口壓，揚程以出入口壓差計算，出口壓欄改顯示壓差）":""));
+ const f=document.getElementById("field");if(f)f.scrollIntoView({behavior:"smooth",block:"start"});
+}
+const ffM=document.getElementById("ffM"),ffL=document.getElementById("ffL");let ffItems=[];
+document.getElementById("btnFromFlow").onclick=()=>{
+ const src=flowSources();ffItems=[];
+ const f=(v,d,u)=>isFinite(v)?(+v.toFixed(d)).toLocaleString()+u:"—";
+ ffL.innerHTML=src.length?src.map(g=>'<h4>'+esc(g.title)+'</h4>'+g.items.map(x=>{const i=ffItems.push(x)-1;return '<button type="button" class="pp" data-i="'+i+'"><span><b>'+esc(x.name||"（未填名稱）")+'</b> <small>'+esc(x.sys)+(x.st!=="run"?"・"+(x.st==="sb"?"備用":"停機"):"")+'</small></span><small>'+f(x.V,0," V")+"・"+f(x.I,1," A")+"・PF "+(isFinite(x.pf)?x.pf:"—")+"・"+f(x.P,1," kW")+(isFinite(x.pd)?"・出口 "+x.pd+" "+esc(x.pu):"")+'</small></button>'}).join("")).join("")
+  :'<p class="note">流量量測表裡還沒有泵浦資料。請先到「流量量測」頁，在顯示選單選「泵浦」新增。</p>';
+ ffM.hidden=false;
+};
+ffM.addEventListener("click",e=>{if(e.target===ffM||e.target.closest(".x")){ffM.hidden=true;return}const b=e.target.closest(".pp");if(!b)return;ffM.hidden=true;applyPump(ffItems[+b.dataset.i])});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!ffM.hidden)ffM.hidden=true});
 document.getElementById("btnSaveAs").onclick=()=>{
  const name=nameEl.value.trim()||"未命名",a=loadRecs();let nn=name,k=2;
  while(a.some(r=>r.name===nn))nn=name+"（"+(k++)+"）";
@@ -355,6 +407,7 @@ document.getElementById("btnRecCsv").onclick=async()=>{
  }catch(e){if(!e||e.code!=="declined")msg("下載失敗")}
 };
 renderRecs();
+try{const xf=JSON.parse(localStorage.getItem("pumpXfer")||"null");if(xf&&xf.m&&Date.now()-xf.t<5*60*1000){localStorage.removeItem("pumpXfer");setTimeout(()=>applyPump(pumpData(xf.m)),50)}}catch(e){}
 </script>
 <script>
 (function(){

@@ -162,7 +162,7 @@ tbody tr:hover td{background:var(--hl)}
   </div>
   <div class="nav noprint">
     <button type="button" id="thToggle" title="切換深色背景" aria-label="切換深色背景"></button>
-    <button type="button" id="csv">匯出 Excel（.csv）</button>
+    <button type="button" id="csv" title="精簡版：只保留重點數據">匯出 Excel（精簡）</button><button type="button" id="csvFull" title="完整版：所有原始讀值與計算欄位">匯出 Excel（完整）</button>
     <button type="button" id="prt">列印／存成 PDF</button>
   </div>
 </div>
@@ -509,6 +509,7 @@ function meterHTML(m){
    +'</div></details>'
    +'<div class="g4"><label class="f">量測時間<input data-m="time" type="time"></label><label class="f w3">備註<input data-m="note" placeholder="例如：變頻 45 Hz、量測時 2 台並聯運轉"></label></div>'
    +'<div class="res" data-b="res"></div>'
+   +'<div class="noprint" style="margin-top:8px;text-align:right"><button type="button" class="sm" data-act="send" title="把這台泵浦的電壓、電流、功因、耗電、出口壓帶到「泵浦換算」頁">↗ 帶入泵浦換算</button></div>'
    +'</div></div>';
 }
 function fillMeter(el,m){
@@ -672,6 +673,10 @@ $('#pts').addEventListener('click',function(e){
       if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按一次刪除';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.textContent='刪除'}},3000);return}
       S.meters=S.meters.filter(function(x){return x!==m});renderSys();renderBal();renderPts();draft();msg('已刪除泵浦資料。');return;
     }
+    if(b.getAttribute('data-act')==='send'){
+      try{lsSet(DK,{name:$('#rname').value,s:S,clean:JSON.stringify(S)===base,cur:curId});localStorage.setItem('pumpXfer',JSON.stringify({t:Date.now(),m:m}))}catch(x){}
+      location.href='index.html';return;
+    }
     if(b.getAttribute('data-act')==='dup'){
       var q2=JSON.parse(JSON.stringify(m));q2.id=uid();q2.name='';q2.v=['','',''];q2.i=['','',''];q2.pf='';q2.kw='';q2.pd='';q2.ps='';q2.time='';q2.kwh='';q2.note='';
       S.meters.splice(S.meters.indexOf(m)+1,0,q2);renderSys();renderBal();renderPts();draft();focusArea(q2.id);msg('已複製（系統、馬達銘牌沿用，讀值已清空）。');
@@ -789,11 +794,29 @@ function csvText(){
   S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),RN[p.role],p.area,p.time,PK[p.size]?PK[p.size].n:(p.size?p.size:'自訂'),p.circ,p.od,p.odin,p.t,isFinite(c.id)?c.id.toFixed(1):'',(p.mat==='其他'&&p.matx?'其他：'+p.matx:p.mat),p.r[0],p.r[1],p.r[2],p.u,isFinite(c.avg)?c.avg.toFixed(2):'',isFinite(c.v)?c.v.toFixed(3):'',isFinite(c.spread)?c.spread.toFixed(1):'',p.up,p.down,p.inst?p.inst+' 法':'',p.sm,(c.sp&&p.inst)?c.sp[p.inst].toFixed(0):'',c.rec?c.rec+' 法':'',p.sig,c.warn.map(function(w){return w[1]}).join('；'),p.note])});
   return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
 }
+function toCsv(rows){return '﻿'+rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n')}
+function csvSimple(){
+  var I=S.info,B=balance(),n=function(x,d){return isFinite(x)?x.toFixed(d==null?1:d):''},rows=[['廠區流量量測紀錄（精簡版）']];
+  [['紀錄名稱',$('#rname').value],['案名／廠區',I.name],['量測日期',I.date],['量測人員',I.who],['流量計',I.meter],['運轉狀況',I.cond]].forEach(function(x){if(x[1])rows.push(x)});
+  var sec=0,cn=['一','二','三','四','五'];
+  var bs=B.filter(function(b){return b.n||b.ms.length});
+  if(bs.length){rows.push([],[cn[sec++]+'、系統總覽'],['系統','主集管 m³/h','各區合計 m³/h','差異 %','泵浦耗電 kW','單位耗能 kWh/m³','判讀']);
+    bs.forEach(function(b){rows.push([b.s.name,n(b.H),n(b.A),n(b.j2.pct),n(b.KW),n(b.SE,3),b.st])})}
+  var ms=S.meters||[];
+  if(ms.length){rows.push([],[cn[sec++]+'、泵浦（電力）'],['系統','泵浦','狀態','電壓 V','電流 A','功因','耗電 kW','出口壓','揚程 m','負載率 %','提醒']);
+    ms.forEach(function(m){var c=mcalc(m),st=MST.find(function(z){return z[0]===m.st});rows.push([sysName(m.sys),m.name,st?st[1]:'',n(c.V.avg,0),n(c.I.avg),c.pf>0?c.pf:(isFinite(c.pfe)?c.pfe.toFixed(2):''),n(c.P,2),isFinite(c.pd)?c.pd+' '+m.pu:'',n(c.hd),n(c.load,0),c.warn.filter(function(w){return w[0]!=='mut'}).map(function(w){return w[1]}).join('；')])})}
+  var ar=[];bs.forEach(function(b){b.areas.forEach(function(a){ar.push([b.s.name,a.name,a.nmn?n(a.mn):'',a.nbr?n(a.br):'',n(a.q)])});if(b.areas.length)ar.push([b.s.name,'各區合計','','',n(b.A)])});
+  if(ar.length){rows.push([],[cn[sec++]+'、各區流量'],['系統','生產區','主管 m³/h','支管 m³/h','合計 m³/h']);ar.forEach(function(r){rows.push(r)})}
+  if(S.points.length){rows.push([],[cn[sec++]+'、流量量測點'],['#','系統','類別','位置','外徑 mm','平均流量 m³/h','流速 m/s','提醒','備註']);
+    S.points.forEach(function(p,i){var c=calc(p);rows.push([i+1,sysName(p.sys),RN[p.role],p.area,p.od,n(c.avg),n(c.v,2),c.warn.filter(function(w){return w[0]==='bad'||w[0]==='wn'}).map(function(w){return w[1]}).join('；'),p.note])})}
+  return toCsv(rows);
+}
 var dl=null;try{if(window.claude&&claude.use)claude.use('downloads').then(function(d){if(d)dl=d}).catch(function(){})}catch(e){}
-$('#csv').onclick=async function(){
+$('#csv').onclick=function(){expCsv(false)};$('#csvFull').onclick=function(){expCsv(true)};
+async function expCsv(full){
   if(!S.points.length&&!(S.meters||[]).length){msg('還沒有量測點或泵浦資料可以匯出。');return}
-  var csv=csvText(),nm=($('#rname').value.trim()||S.info.name||'flow-survey').replace(/[\\\/:*?"<>|]/g,'_'),d=new Date(),z=function(n){return String(n).padStart(2,'0')};
-  var name=nm+'_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'.csv';
+  var csv=full?csvText():csvSimple(),nm=($('#rname').value.trim()||S.info.name||'flow-survey').replace(/[\\\/:*?"<>|]/g,'_'),d=new Date(),z=function(n){return String(n).padStart(2,'0')};
+  var name=nm+'_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+(full?'_完整':'')+'.csv';
   try{
     if(dl)await dl.save({filename:name,data:csv});
     else{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)}
