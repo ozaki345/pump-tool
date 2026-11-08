@@ -15,10 +15,15 @@ h1{font-size:25px;margin:0 0 4px;letter-spacing:.02em}
 header p{margin:0;color:var(--mut)}
 main{max-width:1280px;margin:0 auto;padding:12px 20px 32px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start;grid-template-areas:"l wp" "l m"}
 .colL{grid-area:l;min-width:0}.colM{grid-area:m;min-width:0}.colR{grid-area:wp;min-width:0}
-.colR .pr{grid-template-columns:22px minmax(0,1fr) 66px 66px 66px 30px 30px}
+.colR .pr{grid-template-columns:22px minmax(0,1fr) 66px 58px 66px 30px 30px;gap:5px}
+@media(max-width:600px){.colR .pr{grid-template-columns:22px repeat(3,minmax(0,1fr)) 32px 32px;grid-template-areas:"d n n n e x" ". q h b . ." "t t t t t t";row-gap:6px}
+.colR .pr>:nth-child(1){grid-area:d}.colR .pr>:nth-child(2){grid-area:n}.colR .pr>:nth-child(3){grid-area:q}.colR .pr>:nth-child(4){grid-area:h}.colR .pr>:nth-child(5){grid-area:b}.colR .pr>:nth-child(6){grid-area:e}.colR .pr>:nth-child(7){grid-area:x}.colR .pr>:nth-child(8){grid-area:t;margin-left:28px}
+.colR .pr:not(.hd){padding-bottom:6px;border-bottom:1px dashed var(--ln)}}
+.pr input[type=number]{-moz-appearance:textfield;appearance:textfield;padding-left:6px;padding-right:4px}.pr input[type=number]::-webkit-inner-spin-button,.pr input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.pr .pn{font-weight:600}
 @media(min-width:1200px){
   header{max-width:1760px}
-  main{max-width:1760px;grid-template-columns:320px minmax(0,1fr) 430px;grid-template-areas:"l m wp"}
+  main{max-width:1760px;grid-template-columns:320px minmax(0,1fr) 500px;grid-template-areas:"l m wp"}
   .colR{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
 }
 @media(max-width:860px){main{grid-template-columns:1fr;grid-template-areas:"l" "wp" "m"}}
@@ -723,7 +728,7 @@ var EYEOFF='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 function addRow(name){
   var d=document.createElement('div');d.className='pr';
   d.innerHTML='<button type="button" class="dot" aria-label="選擇此工作點的顏色" aria-haspopup="dialog" title="點一下選擇顏色"></button><input class="pn" aria-label="名稱"><input class="pq" type="number" step="any" aria-label="流量"><input class="ph" type="number" step="any" aria-label="揚程"><input class="pb" type="number" step="any" aria-label="BHP"><button type="button" class="eye" aria-label="隱藏此工作點" aria-pressed="false" title="隱藏此工作點"></button><button type="button" class="x" aria-label="刪除此工作點">×</button><div class="pnote" role="status"></div>';
-  d.querySelector('.pn').value=name;
+  d.querySelector('.pn').value=name;var pnI=d.querySelector('.pn');pnI.title=name;pnI.addEventListener('input',function(){pnI.title=pnI.value});
   d.querySelector('.dot').onclick=function(e){if(e&&e.stopPropagation)e.stopPropagation();openPal(d)};
   d.addEventListener('input',update);
   var eye=d.querySelector('.eye');eye.innerHTML=EYE;
