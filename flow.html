@@ -803,8 +803,10 @@ function csvSimple(){
   if(bs.length){rows.push([],[cn[sec++]+'、系統總覽'],['系統','主集管 m³/h','各區合計 m³/h','差異 %','泵浦耗電 kW','單位耗能 kWh/m³','判讀']);
     bs.forEach(function(b){rows.push([b.s.name,n(b.H),n(b.A),n(b.j2.pct),n(b.KW),n(b.SE,3),b.st])})}
   var ms=S.meters||[];
-  if(ms.length){rows.push([],[cn[sec++]+'、泵浦（電力）'],['系統','泵浦','狀態','電壓 V','電流 A','功因','耗電 kW','出口壓','揚程 m','負載率 %','提醒']);
-    ms.forEach(function(m){var c=mcalc(m),st=MST.find(function(z){return z[0]===m.st});rows.push([sysName(m.sys),m.name,st?st[1]:'',n(c.V.avg,0),n(c.I.avg),c.pf>0?c.pf:(isFinite(c.pfe)?c.pfe.toFixed(2):''),n(c.P,2),isFinite(c.pd)?c.pd+' '+m.pu:'',n(c.hd),n(c.load,0),c.warn.filter(function(w){return w[0]!=='mut'}).map(function(w){return w[1]}).join('；')])})}
+  var cu={};ms.forEach(function(m){if(isFinite(num(m.pd)))cu[m.pu]=(cu[m.pu]||0)+1});var PUo=Object.keys(cu).sort(function(a,b){return cu[b]-cu[a]})[0]||'kgf/cm²';
+  var pOut=function(m){var v=num(m.pd);if(!isFinite(v))return '';var x=v*(PUF[m.pu]||98.0665)/(PUF[PUo]||98.0665);return m.pu===PUo?String(v):String(+x.toFixed(3))};
+  if(ms.length){rows.push([],[cn[sec++]+'、泵浦（電力）'],['系統','泵浦','狀態','電壓 V','電流 A','功因','耗電 kW','出口壓 '+PUo,'揚程 m','負載率 %','提醒']);
+    ms.forEach(function(m){var c=mcalc(m),st=MST.find(function(z){return z[0]===m.st});rows.push([sysName(m.sys),m.name,st?st[1]:'',n(c.V.avg,0),n(c.I.avg),c.pf>0?c.pf:(isFinite(c.pfe)?c.pfe.toFixed(2):''),n(c.P,2),pOut(m),n(c.hd),n(c.load,0),c.warn.filter(function(w){return w[0]!=='mut'}).map(function(w){return w[1]}).join('；')])})}
   var ar=[];bs.forEach(function(b){b.areas.forEach(function(a){ar.push([b.s.name,a.name,a.nmn?n(a.mn):'',a.nbr?n(a.br):'',n(a.q)])});if(b.areas.length)ar.push([b.s.name,'各區合計','','',n(b.A)])});
   if(ar.length){rows.push([],[cn[sec++]+'、各區流量'],['系統','生產區','主管 m³/h','支管 m³/h','合計 m³/h']);ar.forEach(function(r){rows.push(r)})}
   if(S.points.length){rows.push([],[cn[sec++]+'、流量量測點'],['#','系統','類別','位置','外徑 mm','平均流量 m³/h','流速 m/s','提醒','備註']);
