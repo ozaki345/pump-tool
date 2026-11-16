@@ -13,7 +13,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Noto Sans TC
 header{padding:20px 20px 8px;max-width:1280px;margin:0 auto}
 h1{font-size:25px;margin:0 0 4px;letter-spacing:.02em}
 header p{margin:0;color:var(--mut)}
-main{max-width:1280px;margin:0 auto;padding:12px 20px 32px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start;grid-template-areas:"l wp" "l m"}
+main{max-width:1280px;margin:0 auto;padding:12px 20px 32px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start;grid-template-areas:"l m" "l wp"}
 .colL{grid-area:l;min-width:0}.colM{grid-area:m;min-width:0}.colR{grid-area:wp;min-width:0}
 .colR .pr{grid-template-columns:22px minmax(0,1fr) 66px 58px 66px 30px 30px;gap:5px}
 @media(max-width:600px){.colR .pr{grid-template-columns:22px repeat(3,minmax(0,1fr)) 32px 32px;grid-template-areas:"d n n n e x" ". q h b . ." "t t t t t t";row-gap:6px}
@@ -26,7 +26,26 @@ main{max-width:1280px;margin:0 auto;padding:12px 20px 32px;display:grid;grid-tem
   main{max-width:1760px;grid-template-columns:320px minmax(0,1fr) 500px;grid-template-areas:"l m wp"}
   .colR{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
 }
-@media(max-width:860px){main{grid-template-columns:1fr;grid-template-areas:"l" "wp" "m"}}
+#workflowTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:3px;margin-bottom:5px}
+#workflowTabs button{font-size:15px;font-weight:600;padding:8px 3px}
+#workflowTabs button[aria-selected="true"]{background:var(--bl);border-color:var(--bl);color:var(--bg)}
+#workflowPanels{min-height:0}
+#workflowPanels>.panel{margin-top:0}
+#workflowPanels>.panel[hidden],.mobileJump[hidden]{display:none}
+#workflowPanels .settings{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#workflowPanels .settings .lbl{display:block}
+#workflowPanels .settings .lbl label{gap:4px;margin:2px 0}
+#workflowPanels details{margin-top:10px}
+#workflowPanels summary{color:var(--bl);font-size:15px;cursor:pointer}
+.mobileJump{display:none;margin-top:8px}
+@media(min-width:861px){
+  .colL{position:sticky;top:12px;display:flex;flex-direction:column;max-height:calc(100dvh - 24px);z-index:2}
+  #workflowPanels{overflow:auto;overscroll-behavior-y:contain}
+}
+@media(max-width:860px){
+  main{grid-template-columns:1fr;grid-template-areas:"l" "m" "wp"}
+  .mobileJump{display:inline-block}
+}
 .panel{background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:14px 16px}
 .panel+.panel{margin-top:14px}
 h2{font-size:17px;margin:0 0 10px;font-weight:700}
@@ -49,10 +68,21 @@ button:hover,.file:hover{border-color:var(--bl)}
 .lbl input{width:auto}
 .hint{color:var(--mut);font-size:15px;margin:6px 0 0}
 #msg{color:var(--rd);font-size:15px;min-height:1.4em;margin:8px 0 0}
-.bar{display:flex;gap:10px;align-items:center;margin-bottom:10px}
-.bar select{width:auto}
-.wrap{background:var(--cv);border:1px solid var(--ln);border-radius:6px;overflow:auto;max-height:78vh;min-height:300px;position:relative}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.bar select,.bar button{width:auto}
+.bar button{min-height:40px}
+.bar button[aria-pressed="true"]{background:var(--bl);border-color:var(--bl);color:var(--bg)}
+.bar button:disabled,.bar select:disabled{opacity:.5;cursor:default}
+.wrap{overflow-anchor:none;background:var(--cv);border:1px solid var(--ln);border-radius:6px;overflow:auto;max-height:78vh;min-height:300px;position:relative}
+#canvasFrame{position:relative;margin-inline:auto}
+.wrap.hand{touch-action:none;cursor:grab;user-select:none}
+.wrap.hand #cv{cursor:grab!important}
+.wrap.hand.panning,.wrap.hand.panning #cv{cursor:grabbing!important}
 #cv{display:block;width:100%;cursor:crosshair}
+#valueHandles{position:absolute;inset:0;pointer-events:none}
+#valueHandles .valueHandle{position:absolute;min-width:0;margin:0;padding:0;border:0;background:transparent;box-shadow:none;pointer-events:auto;touch-action:none;cursor:grab}
+#valueHandles .valueHandle:active{cursor:grabbing}
+#valueHandles .valueHandle:focus-visible{outline:2px solid #0a63b8;outline-offset:2px}
 #cv[hidden]{display:none}
 #empty{cursor:pointer;padding:80px 24px;text-align:center;color:var(--mut)}
 .wrap.drag{border-color:var(--bl)}
@@ -94,35 +124,47 @@ button:hover,.file:hover{border-color:var(--bl)}
   <p>上傳原廠性能曲線圖，點選兩個已知刻度校正座標軸，再輸入流量與揚程，就能把工作點標在圖上。</p>
 </header>
 <main>
-  <div class="colL">
-    <section class="panel">
-      <h2>曲線圖</h2>
+  <div class="colL" id="workflow">
+    <div id="workflowTabs" role="tablist" aria-label="曲線圖作業">
+      <button id="tabImage" type="button" role="tab" aria-selected="true" aria-controls="imagePanel">上傳圖片</button>
+      <button id="tabAxes" type="button" role="tab" aria-selected="false" aria-controls="axisPanel" tabindex="-1">座標校正</button>
+      <button id="tabTrace" type="button" role="tab" aria-selected="false" aria-controls="trPanel" tabindex="-1">曲線描點</button>
+    </div>
+    <div id="workflowPanels">
+    <section class="panel" id="imagePanel" role="tabpanel" aria-labelledby="tabImage">
       <label class="file primary">選擇圖片<input id="file" type="file" accept="image/*"></label>
       <p class="hint">支援 PNG、JPG。PDF 請先截圖或轉成圖片。</p>
     <p class="hint" id="fileInfo" role="status" style="margin:4px 0 0;color:var(--bl)"></p>
     <button id="delImg" type="button" style="margin-top:8px">移除圖片（Delete）</button>
     <p class="hint" style="margin:4px 0 0">電腦可直接按 Delete 鍵移除圖片，要再按一次確認。刪除後按 Ctrl+Z 可以復原。</p>
-    <div class="lbl" style="margin-top:12px"><span>轉正圖片（選填）</span></div>
+    <details>
+    <summary>圖片轉正與透視校正（選填）</summary>
     <p class="hint" style="margin:0 0 8px">圖片歪斜時使用：在圖上點兩個點，工具會把這兩點的連線轉成水平（或垂直）。轉正後需要重新校正座標軸。</p>
     <select id="alMode"><option value="h">連線轉成水平（例如 X 軸）</option><option value="v">連線轉成垂直（例如 Y 軸）</option></select>
     <div class="two" style="grid-template-columns:1fr 1fr;margin:8px 0 0"><button id="alBtn" type="button">開始兩點轉正</button><button id="psBtn" type="button">開始四點透視校正</button></div>
     <p class="hint" style="margin:6px 0 8px">四點透視校正：適合用手機拍紙本圖、拍歪造成上寬下窄的情況。依序點座標框（格線外框）的四個角，順序不拘。</p>
     <button id="alUndo" type="button">還原原圖</button>
     <p class="hint" id="alInfo" style="margin:6px 0 0"></p>
+    </details>
     </section>
 
-    <section class="panel">
-      <h2>校正座標軸</h2>
-      <p class="hint" style="margin:0 0 8px">按下一列後，在圖上點該刻度的位置，並填入刻度數值。每個軸需要 2 個點，距離越遠越準。</p>
+    <section class="panel" id="axisPanel" role="tabpanel" aria-labelledby="tabAxes" hidden>
+      <p class="hint" style="margin:0 0 8px">先填刻度值，再到圖上依序點 X 軸和 Y 軸刻度。要重選單一刻度，按左邊對應的按鈕。</p>
       <div class="pt"><button id="b0" type="button">X 軸刻度 1<small></small></button><input id="v0" type="number" step="any" placeholder="數值" aria-label="X 軸刻度 1 的數值"></div>
       <div class="pt"><button id="b1" type="button">X 軸刻度 2<small></small></button><input id="v1" type="number" step="any" placeholder="數值" aria-label="X 軸刻度 2 的數值"></div>
       <div class="pt"><button id="b2" type="button">Y 軸刻度 1<small></small></button><input id="v2" type="number" step="any" placeholder="數值" aria-label="Y 軸刻度 1 的數值"></div>
       <div class="pt"><button id="b3" type="button">Y 軸刻度 2<small></small></button><input id="v3" type="number" step="any" placeholder="數值" aria-label="Y 軸刻度 2 的數值"></div>
-      <div class="lbl"><span>圖上 X 軸（流量）單位</span><label><input id="logx" type="checkbox">對數刻度</label></div>
+      <div class="settings">
+      <div>
+      <div class="lbl"><span>X 軸（流量）單位</span><label><input id="logx" type="checkbox">對數刻度</label></div>
       <select id="xu"><option>m³/h</option><option>GPM</option><option>L/min</option><option>L/s</option><option>m³/min</option></select>
-      <div class="lbl"><span>圖上 Y 軸（揚程）單位</span><label><input id="logy" type="checkbox">對數刻度</label></div>
+      </div>
+      <div>
+      <div class="lbl"><span>Y 軸（揚程）單位</span><label><input id="logy" type="checkbox">對數刻度</label></div>
       <select id="yu"><option>m</option><option>ft</option></select>
-      <p class="hint">圖上若有雙單位（例如左 ft、右 m），選你點選的那一側。</p>
+      </div>
+      </div>
+      <p class="hint">雙單位的曲線圖請選你實際點選的一側。</p>
       <div class="lbl" style="margin-top:14px"><span>BHP（Z 軸，選填）</span></div>
     <p class="hint" style="margin:0 0 8px">圖上若有 BHP（軸功率）曲線與刻度才需要校正，沒有就跳過。</p>
     <div class="pt"><button id="b4" type="button">Z 軸刻度 1<small></small></button><input id="v4" type="number" step="any" placeholder="數值" aria-label="Z 軸刻度 1 的數值"></div>
@@ -132,28 +174,36 @@ button:hover,.file:hover{border-color:var(--bl)}
     <button id="reset" type="button" style="margin-top:10px">重新校正</button>
     </section>
 
-    <section class="panel" id="trPanel">
-      <h2>性能曲線描點（推算用，選填）</h2>
-      <p class="hint" style="margin:0 0 8px">流量、揚程、BHP 只拿到其中一兩項時使用：先沿著圖上的曲線點幾個點，工具就會從曲線推算缺少的數值。曲線轉彎處多點幾個，一條約 5～10 點即可。點完後可以按住任一點拖曳微調；按住曲線線段（不是點）拖曳，可以把整條曲線上下或左右平移（依拖曳方向自動鎖定其中一個方向）。調好按「✓ 確定」才會重新推算。之後要再修改，按「調整…曲線」即可。</p>
+    <section class="panel" id="trPanel" role="tabpanel" aria-labelledby="tabTrace" hidden>
+      <p class="hint" style="margin:0 0 8px">要用曲線推算缺少的數值時，先選一條曲線，沿線點 5～10 點，再按「確定」。</p>
       <div class="pt"><button id="trH" type="button">描 H-Q 揚程曲線<small></small></button><button id="trHu" type="button" title="刪除最後一個描點">退回</button></div>
       <div class="pt"><button id="trB" type="button">描 BHP 曲線<small></small></button><button id="trBu" type="button" title="刪除最後一個描點">退回</button></div>
       <button id="trClr" type="button">清除全部描點</button>
       <div class="chk" style="margin-top:8px"><label><input id="trShow" type="checkbox" checked>在圖上顯示描點曲線（下載的圖片不會有）</label></div>
-      <p class="hint" style="margin:0">揚程曲線需要先校正 X、Y 軸；BHP 曲線需要先校正 X、Z 軸。圖上有多條曲線（不同葉輪或轉速）時，請描實際使用的那一條。</p>
+      <details>
+        <summary>描點與調整說明</summary>
+        <p class="hint">揚程曲線使用 X、Y 軸，BHP 曲線使用 X、Z 軸。請描實際使用的葉輪或轉速曲線，轉彎處可多點幾個。拖曳單點可微調位置，拖曳線段可整條平移。按「確定」後才會重新推算。</p>
+      </details>
     </section>
-
+    </div>
+    <button class="mobileJump" id="jumpChart" type="button" hidden>前往曲線圖</button>
   </div>
 
-  <div class="colM">
+  <div class="colM" id="chartTools">
     <div class="bar">
-      <label for="zoom" style="color:var(--mut);font-size:15px">放大</label>
-      <select id="zoom"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option></select>
+      <button id="zoomOut" type="button" aria-label="縮小圖片">−</button>
+      <select id="zoom" aria-label="圖片縮放比例"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="2.5">250%</option><option value="3">300%</option><option value="4">400%</option></select>
+      <button id="zoomIn" type="button" aria-label="放大圖片">＋</button>
+      <button id="zoomFit" type="button">適合寬度</button>
+      <button id="hand" type="button" aria-pressed="false">抓手移圖</button>
+      <button class="mobileJump" id="jumpWorkflow" type="button">回到作業工具</button>
       <span id="stat" style="color:var(--mut);font-size:15px"></span>
     </div>
+    <p id="viewHint" class="hint" hidden>按住 Ctrl（Mac 用 ⌘）並滾動滑鼠滾輪，以游標位置縮放。開啟「抓手移圖」後可拖動畫面。</p>
     <p id="next" role="status">請先在左側上傳曲線圖。</p>
     <div class="wrap" id="wrap">
       <div id="empty">點這裡選擇圖片，或把曲線圖拖進來；也可以直接貼上截圖（Ctrl+V）</div>
-      <canvas id="cv" hidden></canvas>
+      <div id="canvasFrame"><canvas id="cv" hidden></canvas><div id="valueHandles"></div></div>
     </div>
   </div>
   <section class="panel colR" id="wpPanel">
@@ -168,6 +218,8 @@ button:hover,.file:hover{border-color:var(--bl)}
       <button id="add" type="button">＋ 新增一個工作點</button>
       <div class="chk"><label><input id="dsh" type="checkbox" checked>顯示虛線（連到座標軸）</label><label><input id="axl" type="checkbox" checked>座標軸上標出數值</label><label><input id="smp" type="checkbox">簡化圖面（不標座標軸上的數值）</label></div>
       <p class="hint">輸入單位可以和圖上不同；標在圖上的數值一律用公制（m³/h、m）。點很接近時，可關掉虛線或簡化圖面。BHP 為選填：已校正 Z 軸並填入 BHP，才會多標一個方形標記，數值單位與你輸入的 BHP 單位相同。每個工作點右側的眼睛圖示可以暫時隱藏該點（資料會保留），圖面太亂時很好用。點每列最左邊的圓形色點，可以從標準色彩中選擇該工作點的顏色。<br><b style="color:var(--ink)">只有兩項（或一項）也可以：</b>在左側描好性能曲線後，空白的欄位會自動用曲線推算，推算值會以藍色斜體填在空白欄位，完整數值寫在該列下方；圖上的數值也會加「≈」。有流量時，揚程、BHP 直接查曲線；沒有流量時，先由揚程（沒有揚程就用 BHP）反推流量。</p>
+      <p class="hint">按住圖上的名稱框或 Q、H、BHP 數值框即可拖曳，連線會跟著移動。也可用 Tab 選取，再用方向鍵微調。</p>
+      <button id="resetLabels" type="button" disabled>還原標籤位置</button>
     <button id="resetCol" type="button" style="margin-top:8px">全部還原預設色</button>
     <p class="hint" style="margin:6px 0 0">圖片、校正與工作點會自動儲存在這個瀏覽器，重新整理後仍會保留。<span id="saveInfo"></span></p>
     <button id="wipe" type="button" style="margin-top:8px">清除儲存並重設</button>
@@ -187,6 +239,7 @@ var names=['X 軸刻度 1','X 軸刻度 2','Y 軸刻度 1','Y 軸刻度 2','Z �
 var aln=null,psp=null,orig=null,rotDeg=0,alNote='';
 var TR={h:[],b:[]},trc=null,CVS={h:null,b:null},trArm=false;
 var LS='pumpDrawState',origBlob=null,curBlob=null,curBlobFor=null,saveTimer=null,restoring=true,noSave=false,idb=null;
+var labelOffsets=new WeakMap(),valueHandles=$('#valueHandles'),valueLabels=[],labelDrag=null;
 var FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 function load(f,done){
@@ -198,26 +251,117 @@ function load(f,done){
   }
   $('#fileInfo').textContent='正在讀取：'+(f.name||'圖片')+' …';
   var u=URL.createObjectURL(f),im=new Image();
-  im.onload=function(){trash=null;img=im;orig=im;origBlob=f;curBlob=null;curBlobFor=null;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
-    pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';$('#fileInfo').textContent='目前圖片：'+(f.name||'圖片')+'（'+im.naturalWidth+' × '+im.naturalHeight+' px）';update();URL.revokeObjectURL(u);done()};
+  im.onload=function(){trash=null;labelOffsets=new WeakMap();img=im;orig=im;origBlob=f;curBlob=null;curBlobFor=null;rotDeg=0;aln=null;psp=null;$('#alInfo').textContent='';cv.width=im.naturalWidth;cv.height=im.naturalHeight;cv.hidden=false;$('#empty').hidden=true;
+    pts=[null,null,null,null,null,null];act=0;TR={h:[],b:[]};trc=null;$('#stat').textContent=im.naturalWidth+' × '+im.naturalHeight+' px';$('#fileInfo').textContent='目前圖片：'+(f.name||'圖片')+'（'+im.naturalWidth+' × '+im.naturalHeight+' px）';showWorkflow('tabAxes',false);update();URL.revokeObjectURL(u);done()};
   im.onerror=function(){var m='這張圖片無法讀取。iPhone 的 HEIC 格式請改存成 JPG 或 PNG。';$('#next').textContent=m;$('#msg').textContent=m;$('#fileInfo').textContent=m;done()};
   im.src=u;
 }
 $('#file').onchange=function(e){var inp=e.target,f=inp.files&&inp.files[0];load(f,function(){try{inp.value=''}catch(x){}})};
 $('#empty').onclick=function(){$('#file').click()};
 document.addEventListener('paste',function(e){var it=Array.prototype.find.call((e.clipboardData&&e.clipboardData.items)||[],function(i){return /^image\//.test(i.type)});if(it)load(it.getAsFile())});
-var w=$('#wrap');
+var w=$('#wrap'),canvasFrame=$('#canvasFrame'),zoom=$('#zoom'),hand=$('#hand');
+var handMode=false,pan=null;
+var workflowTabs=Array.from(document.querySelectorAll('#workflowTabs [role="tab"]')),workflowTab='tabImage';
+function showWorkflow(id,focus){
+  if(!workflowTabs.some(function(tab){return tab.id===id}))return;
+  workflowTab=id;
+  workflowTabs.forEach(function(tab){
+    var selected=tab.id===id;
+    tab.setAttribute('aria-selected',String(selected));
+    tab.tabIndex=selected?0:-1;
+    document.getElementById(tab.getAttribute('aria-controls')).hidden=!selected;
+    if(selected&&focus)tab.focus({preventScroll:true});
+  });
+  $('#workflowPanels').scrollTop=0;
+  scheduleSave();
+}
+workflowTabs.forEach(function(tab){
+  tab.onclick=function(){showWorkflow(tab.id,false)};
+  tab.onkeydown=function(e){
+    var index=workflowTabs.indexOf(tab),last=workflowTabs.length-1;
+    if(e.key==='ArrowLeft')index=(index+last)%(last+1);
+    else if(e.key==='ArrowRight')index=(index+1)%(last+1);
+    else if(e.key==='Home')index=0;
+    else if(e.key==='End')index=last;
+    else return;
+    e.preventDefault();
+    showWorkflow(workflowTabs[index].id,true);
+  };
+});
+$('#jumpChart').onclick=function(){$('#chartTools').scrollIntoView({block:'start'})};
+$('#jumpWorkflow').onclick=function(){$('#workflow').scrollIntoView({block:'start'})};
+function syncViewControls(){
+  if(!img)handMode=false;
+  w.classList.toggle('hand',handMode);
+  hand.setAttribute('aria-pressed',String(handMode));
+  hand.disabled=zoom.disabled=$('#zoomFit').disabled=!img;
+  $('#zoomOut').disabled=!img||zoom.selectedIndex<=0;
+  $('#zoomIn').disabled=!img||zoom.selectedIndex>=zoom.options.length-1;
+  $('#viewHint').hidden=!img;
+  $('#jumpChart').hidden=!img;
+}
+function setZoom(value,anchor){
+  if(!img)return;
+  var before=canvasFrame.getBoundingClientRect(),viewport=w.getBoundingClientRect();
+  var x=anchor?anchor.clientX:viewport.left+w.clientLeft+w.clientWidth/2;
+  var y=anchor?anchor.clientY:viewport.top+w.clientTop+w.clientHeight/2;
+  var fx=Math.max(0,Math.min(1,(x-before.left)/before.width));
+  var fy=Math.max(0,Math.min(1,(y-before.top)/before.height));
+  zoom.value=value;
+  canvasFrame.style.width=(Number(value)*100)+'%';
+  var after=canvasFrame.getBoundingClientRect();
+  w.scrollLeft+=after.left+(after.width-before.width)*fx-before.left;
+  w.scrollTop+=after.top+(after.height-before.height)*fy-before.top;
+  syncViewControls();
+  scheduleSave();
+}
+function stepZoom(step,anchor){
+  var index=zoom.selectedIndex+step;
+  if(index>=0&&index<zoom.options.length)setZoom(zoom.options[index].value,anchor);
+}
+zoom.onchange=function(){setZoom(zoom.value)};
+$('#zoomOut').onclick=function(){stepZoom(-1)};
+$('#zoomIn').onclick=function(){stepZoom(1)};
+$('#zoomFit').onclick=function(){setZoom('1');w.scrollLeft=0;w.scrollTop=0};
+w.addEventListener('wheel',function(e){
+  if(!img||(!e.ctrlKey&&!e.metaKey)||!e.deltaY)return;
+  e.preventDefault();
+  stepZoom(e.deltaY<0?1:-1,e);
+},{passive:false});
+hand.onclick=function(){
+  handMode=!handMode;
+  syncViewControls();
+  syncValueHandles();
+};
+w.addEventListener('pointerdown',function(e){
+  if(!img||!handMode||pan||!e.isPrimary||e.button!==0||!canvasFrame.contains(e.target))return;
+  pan={id:e.pointerId,x:e.clientX,y:e.clientY,left:w.scrollLeft,top:w.scrollTop};
+  w.setPointerCapture(e.pointerId);
+  w.classList.add('panning');
+  e.preventDefault();
+},true);
+w.addEventListener('pointermove',function(e){
+  if(!pan||e.pointerId!==pan.id)return;
+  w.scrollLeft=pan.left+pan.x-e.clientX;
+  w.scrollTop=pan.top+pan.y-e.clientY;
+});
+['pointerup','pointercancel','lostpointercapture'].forEach(function(type){
+  w.addEventListener(type,function(e){
+    if(!pan||e.pointerId!==pan.id)return;
+    pan=null;
+    w.classList.remove('panning');
+  });
+});
 ['dragover','dragenter'].forEach(function(t){w.addEventListener(t,function(e){e.preventDefault();w.classList.add('drag')})});
 ['dragleave','drop'].forEach(function(t){w.addEventListener(t,function(e){e.preventDefault();w.classList.remove('drag')})});
 w.addEventListener('drop',function(e){load(e.dataTransfer.files[0])});
 
 for(var i=0;i<6;i++)(function(i){
-  $('#b'+i).onclick=function(){aln=null;psp=null;trc=null;act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
+  $('#b'+i).onclick=function(){handMode=false;aln=null;psp=null;trc=null;act=i;update();if(innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})};
   $('#v'+i).oninput=update;
 })(i);
 ['xu','yu','logx','logy','zxu','zu','logz','qu','hu','axl','dsh','smp'].forEach(function(id){$('#'+id).oninput=update;$('#'+id).onchange=update});
-$('#zoom').onchange=function(){cv.style.width=(parseFloat(this.value)*100)+'%';scheduleSave()};
-function trToggle(k){if(!img){$('#next').textContent='請先上傳曲線圖。';return}aln=null;psp=null;trc=trc===k?null:k;if(trc)act=-1;else{var n0=pts.slice(0,4).findIndex(function(p){return !p});act=n0>=0?n0:-1}update();if(trc&&innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})}
+function trToggle(k){if(!img){$('#next').textContent='請先上傳曲線圖。';return}handMode=false;aln=null;psp=null;trc=trc===k?null:k;if(trc)act=-1;else{var n0=pts.slice(0,4).findIndex(function(p){return !p});act=n0>=0?n0:-1}update();if(trc&&innerWidth<=860)$('#wrap').scrollIntoView({block:'center'})}
 $('#trH').onclick=function(){trToggle('h')};$('#trB').onclick=function(){trToggle('b')};
 $('#trHu').onclick=function(){TR.h.pop();update()};$('#trBu').onclick=function(){TR.b.pop();update()};
 $('#trClr').onclick=function(){var b=$('#trClr');if(!TR.h.length&&!TR.b.length)return;if(!trArm){trArm=true;b.textContent='再按一次確認清除';setTimeout(function(){trArm=false;b.textContent='清除全部描點'},3000);return}trArm=false;b.textContent='清除全部描點';TR={h:[],b:[]};trc=null;update()};
@@ -226,6 +370,75 @@ $('#reset').onclick=function(){pts=[null,null,null,null,null,null];act=0;trc=nul
 
 var drag=null,skipClick=false;
 function cvPt(e){var r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height,k:cv.width/r.width}}
+function clampLabel(value,span,size){
+  return Math.max(2,Math.min(span-size-2,value));
+}
+function setLabelPosition(label,x,y){
+  var positions=labelOffsets.get(label.row)||{};
+  var box=label.box;
+  labelOffsets.set(label.row,Object.assign({},positions,{
+    [label.key]:{
+      x:clampLabel(x,cv.width,box[2])/cv.width,
+      y:clampLabel(y,cv.height,box[3])/cv.height
+    }
+  }));
+}
+function syncValueHandles(){
+  var labels=img&&!handMode&&!trc&&!psp&&!aln&&act<0?valueLabels:[];
+  while(valueHandles.children.length>labels.length)valueHandles.lastElementChild.remove();
+  labels.forEach(function(label,i){
+    var button=valueHandles.children[i];
+    if(!button){
+      button=document.createElement('button');
+      button.type='button';
+      button.className='valueHandle';
+      button.dataset.index=i;
+      valueHandles.appendChild(button);
+    }
+    var box=label.box;
+    button.setAttribute('aria-label',label.name);
+    button.style.left=(100*box[0]/cv.width)+'%';
+    button.style.top=(100*box[1]/cv.height)+'%';
+    button.style.width=(100*box[2]/cv.width)+'%';
+    button.style.height=(100*box[3]/cv.height)+'%';
+  });
+  $('#resetLabels').disabled=!Array.from(document.querySelectorAll('#rows .pr')).some(function(row){return labelOffsets.has(row)});
+}
+valueHandles.addEventListener('pointerdown',function(e){
+  var label=valueLabels[e.target.dataset.index];
+  if(!label||!e.isPrimary||e.button!==0||labelDrag)return;
+  var p=cvPt(e);
+  labelDrag={label:label,id:e.pointerId,dx:p.x-label.box[0],dy:p.y-label.box[1]};
+  valueHandles.setPointerCapture(e.pointerId);
+  valueHandles.style.cursor='grabbing';
+  e.preventDefault();
+});
+valueHandles.addEventListener('pointermove',function(e){
+  if(!labelDrag||labelDrag.id!==e.pointerId)return;
+  var p=cvPt(e);
+  setLabelPosition(labelDrag.label,p.x-labelDrag.dx,p.y-labelDrag.dy);
+  render(false);
+});
+function endLabelDrag(e){
+  if(!labelDrag||labelDrag.id!==e.pointerId)return;
+  labelDrag=null;
+  valueHandles.style.cursor='';
+  scheduleSave();
+}
+['pointerup','pointercancel','lostpointercapture'].forEach(function(type){
+  valueHandles.addEventListener(type,endLabelDrag);
+});
+valueHandles.addEventListener('keydown',function(e){
+  var label=valueLabels[e.target.dataset.index];
+  var delta={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+  if(!label||!delta)return;
+  e.preventDefault();
+  var step=(e.shiftKey?10:2)*cv.width/cv.getBoundingClientRect().width;
+  setLabelPosition(label,label.box[0]+delta[0]*step,label.box[1]+delta[1]*step);
+  render(false);
+  scheduleSave();
+});
+$('#resetLabels').onclick=function(){labelOffsets=new WeakMap();update()};
 function trPath(k){
   var C=buildCurve(k),FX=axis('x'),FY=axis(k==='h'?'y':'z'),out=[];
   if(C&&FX&&FY){for(var i=0;i<=120;i++){var xv=C.x0+(C.x1-C.x0)*i/120;out.push({x:FX(xv),y:FY(C.f(xv))})}}
@@ -240,7 +453,7 @@ function nearLine(p){
 }
 function nearTr(p){if(!trc)return -1;var best=-1,bd=14*p.k;TR[trc].forEach(function(q,i){var d=Math.hypot(q.x-p.x,q.y-p.y);if(d<=bd){bd=d;best=i}});return best}
 cv.addEventListener('pointerdown',function(e){
-  skipClick=false;if(!img||!trc||psp||aln)return;
+  skipClick=false;if(!img||handMode||!trc||psp||aln)return;
   var p=cvPt(e),i=nearTr(p);
   if(i<0){if(!nearLine(p))return;drag={all:true,s:p,o:TR[trc].map(function(q){return {x:q.x,y:q.y}})}}
   else drag={i:i,id:e.pointerId};skipClick=true;e.preventDefault();
@@ -257,7 +470,7 @@ cv.addEventListener('pointermove',function(e){
 function endDrag(){if(!drag)return;var al=drag.all;if(al&&!drag.mv)skipClick=false;drag=null;cv.style.cursor=al?'move':'grab';update()}
 cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 cv.addEventListener('click',function(e){
-  if(!img)return;
+  if(!img||handMode)return;
   if(skipClick){skipClick=false;return}
   var r=cv.getBoundingClientRect();
   var p={x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
@@ -269,7 +482,7 @@ cv.addEventListener('click',function(e){
   var cur=act,n=pts.slice(0,4).findIndex(function(p){return !p});
   act=n>=0?n:(cur===4&&!pts[5]?5:-1);
   update();
-  var vi=$('#v'+cur);if(vi.value==='')vi.focus();
+  var vi=$('#v'+cur);if(vi.value===''&&!$('#axisPanel').hidden)vi.focus();
 });
 
 function axis(k){
@@ -418,6 +631,7 @@ function doPersp(){
   $('#alInfo').textContent='已套用四點透視校正。請重新點選座標軸的刻度。';
 }
 $('#psBtn').onclick=function(){
+  handMode=false;
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
   aln=null;trc=null;alNote='';psp=psp?null:[];update();
 };
@@ -445,6 +659,7 @@ function rotateImg(al){
   $('#alInfo').textContent='已轉正（累計 '+rotDeg.toFixed(2)+'°）。請重新點選座標軸的刻度。';
 }
 $('#alBtn').onclick=function(){
+  handMode=false;
   if(!img){$('#next').textContent='請先上傳曲線圖。';return}
   psp=null;trc=null;alNote='';aln=aln?null:[];update();
 };
@@ -458,7 +673,8 @@ $('#alUndo').onclick=function(){
 };
 
 function render(exp){
-  if(!img)return;
+  if(!exp)valueLabels=[];
+  if(!img){syncValueHandles();return}
   ctx.drawImage(img,0,0);
   var s=Math.max(.8,cv.width/1400),blue='#0a63b8';
   ctx.lineCap='round';
@@ -498,7 +714,7 @@ function render(exp){
     ctx.font='bold '+Math.round(15*s)+'px '+FONT;var lt=(a[0]==='h'?'H-Q 描點':'BHP 描點')+(ed?'（調整中）':''),lw=ctx.measureText(lt).width,lx=lp.x+8*s+lw>cv.width-4?lp.x-8*s-lw:lp.x+8*s;ctx.fillText(lt,lx,Math.max(16*s,lp.y-10*s));
   });
   var msg=$('#msg'),X=axis('x'),Y=axis('y'),rs=getRows().filter(function(r){return r.ok});
-  if(!X||!Y||!rs.length)return;
+  if(!X||!Y||!rs.length){if(!exp)syncValueHandles();return}
   var qu=$('#qu').value,hu=$('#hu').value,xu=$('#xu').value,yu=$('#yu').value;
   var x0=Math.min(pts[2].x,pts[3].x),y0=Math.max(pts[0].y,pts[1].y),fs=Math.round(20*s),placed=[],bad=[];
   var info=rs.map(function(r){
@@ -515,11 +731,12 @@ function render(exp){
   });
   msg.textContent=bad.length?'「'+bad.join('、')+'」超出圖片範圍，請檢查單位、數值或刻度校正。':'';
   if(bad.length)$('#next').textContent='有工作點超出圖片範圍。';
+  var showGuides=$('#dsh').checked;
   ctx.setLineDash([12*s,8*s]);ctx.lineWidth=3*s;
-  if($('#dsh').checked)good.forEach(function(o){
+  if(showGuides)good.forEach(function(o){
     ctx.strokeStyle=o.r.col;ctx.beginPath();ctx.moveTo(x0,o.py);ctx.lineTo(o.px,o.py);ctx.lineTo(o.px,y0);ctx.stroke();
   });
-  if($('#dsh').checked)zi.forEach(function(z){ctx.strokeStyle=z.o.r.col;ctx.beginPath();ctx.moveTo(zx,z.pz);ctx.lineTo(z.o.px,z.pz);ctx.stroke()});
+  if(showGuides)zi.forEach(function(z){ctx.strokeStyle=z.o.r.col;ctx.beginPath();ctx.moveTo(zx,z.pz);ctx.lineTo(z.o.px,z.pz);ctx.stroke()});
   ctx.setLineDash([]);
   zi.forEach(function(z){var c=z.o.r.col,h=12*s;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=4*s;ctx.strokeRect(z.o.px-h,z.pz-h,2*h,2*h);ctx.fillRect(z.o.px-3.5*s,z.pz-3.5*s,7*s,7*s)});
   good.forEach(function(o){
@@ -528,38 +745,58 @@ function render(exp){
     ctx.beginPath();ctx.arc(o.px,o.py,3.5*s,0,7);ctx.fill();
   });
   ctx.font='bold '+fs+'px '+FONT;
+  var labelDraws=[];
   function hit(a,b){return a[0]<b[0]+b[2]&&b[0]<a[0]+a[2]&&a[1]<b[1]+b[3]&&b[1]<a[1]+a[3]}
   function lum(c){var m=/^#?([0-9a-f]{6})$/i.exec(c||'');if(!m)return 0;var n=parseInt(m[1],16);return(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255}
-  function place(lines,col,cands,lead){
-    var tcol=lum(col)>0.72?'#17262e':col;
+  function place(lines,col,cands,lead,label){
     var bw=0;lines.forEach(function(t){bw=Math.max(bw,ctx.measureText(t).width)});bw+=14*s;
     var lh=fs+4*s,bh=lh*lines.length+6*s,pick=null;
-    for(var i=0;i<cands.length;i++){
-      var c=cands[i](bw,bh),bx=Math.max(2,Math.min(cv.width-bw-2,c[0])),by=Math.max(2,Math.min(cv.height-bh-2,c[1])),bb=[bx,by,bw,bh];
+    var positions=label&&labelOffsets.get(label.row),pos=positions&&positions[label.key];
+    if(pos)pick=[clampLabel(pos.x*cv.width,cv.width,bw),clampLabel(pos.y*cv.height,cv.height,bh),bw,bh];
+    for(var i=0;!pos&&i<cands.length;i++){
+      var c=cands[i](bw,bh),bb=[clampLabel(c[0],cv.width,bw),clampLabel(c[1],cv.height,bh),bw,bh];
       if(!pick)pick=bb;
       if(!placed.some(function(p){return hit(bb,p)})){pick=bb;break}
     }
     placed.push(pick);
-    if(lead){
-      var cx=Math.max(pick[0],Math.min(pick[0]+bw,lead[0])),cy=Math.max(pick[1],Math.min(pick[1]+bh,lead[1])),dx=cx-lead[0],dy=cy-lead[1],L=Math.hypot(dx,dy)||1;
-      ctx.strokeStyle=col;ctx.lineWidth=2.5*s;ctx.beginPath();ctx.moveTo(lead[0]+dx/L*13*s,lead[1]+dy/L*13*s);ctx.lineTo(cx,cy);ctx.stroke();
+    if(label&&!exp){
+      label.box=pick;
+      valueLabels.push(label);
     }
-    ctx.fillStyle='#fff';ctx.fillRect(pick[0],pick[1],bw,bh);ctx.strokeStyle=col;ctx.lineWidth=2.5*s;ctx.strokeRect(pick[0],pick[1],bw,bh);
+    var guide=showGuides&&pos&&(label.guide||lead);
+    labelDraws.push({lines:lines,col:col,box:pick,lh:lh,lead:lead,guide:guide});
+  }
+  function drawLeader(entry,anchor,inset){
+    var box=entry.box;
+    var dx=Math.max(box[0],Math.min(box[0]+box[2],anchor[0]))-anchor[0];
+    var dy=Math.max(box[1],Math.min(box[1]+box[3],anchor[1]))-anchor[1];
+    var length=Math.hypot(dx,dy);
+    if(length<=inset)return;
+    ctx.strokeStyle=entry.col;ctx.lineWidth=2.5*s;
+    ctx.beginPath();ctx.moveTo(anchor[0]+dx/length*inset,anchor[1]+dy/length*inset);
+    ctx.lineTo(anchor[0]+dx,anchor[1]+dy);ctx.stroke();
+  }
+  function drawLabel(entry){
+    var box=entry.box,lh=entry.lh,tcol=lum(entry.col)>0.72?'#17262e':entry.col;
+    ctx.fillStyle='#fff';ctx.fillRect(box[0],box[1],box[2],box[3]);
+    ctx.strokeStyle=entry.col;ctx.lineWidth=2.5*s;ctx.strokeRect(box[0],box[1],box[2],box[3]);
     ctx.textBaseline='middle';ctx.textAlign='left';
-    lines.forEach(function(t,i){ctx.fillStyle=(i===0||lines.length===1)?tcol:'#17262e';ctx.fillText(t,pick[0]+7*s,pick[1]+3*s+lh*i+lh/2)});
+    entry.lines.forEach(function(t,i){ctx.fillStyle=i===0?tcol:'#17262e';ctx.fillText(t,box[0]+7*s,box[1]+3*s+lh*i+lh/2)});
     ctx.textBaseline='alphabetic';
   }
   var d=30*s,simp=$('#smp').checked;
   good.forEach(function(o){
     place([o.r.name],o.r.col,[
       function(w,h){return [o.px+d,o.py-d-h]},function(w,h){return [o.px+d,o.py+d]},
-      function(w,h){return [o.px-d-w,o.py-d-h]},function(w,h){return [o.px-d-w,o.py+d]}],[o.px,o.py]);
+      function(w,h){return [o.px-d-w,o.py-d-h]},function(w,h){return [o.px-d-w,o.py+d]}],[o.px,o.py],
+      {row:o.r.el,key:'name',name:o.r.name+' 名稱框'});
   });
   zi.forEach(function(z){
     var o=z.o,dd=22*s;
     place([o.r.name+' BHP'],o.r.col,[
       function(w,h){return [o.px+dd+4*s,z.pz-dd-h]},function(w,h){return [o.px+dd+4*s,z.pz+dd]},
-      function(w,h){return [o.px-dd-w,z.pz-dd-h]},function(w,h){return [o.px-dd-w,z.pz+dd]}],[o.px,z.pz]);
+      function(w,h){return [o.px-dd-w,z.pz-dd-h]},function(w,h){return [o.px-dd-w,z.pz+dd]}],[o.px,z.pz],
+      {row:o.r.el,key:'bhpName',name:o.r.name+' BHP 名稱框'});
   });
   if($('#axl').checked&&!simp)good.forEach(function(o){
     var lc=[],bc=[];
@@ -567,14 +804,20 @@ function render(exp){
       lc.push(function(w,h){return [x0-6*s-w,o.py-h/2+k*(h+2*s)]});
       bc.push(function(w,h){return [o.px-w/2,y0+6*s+k*(h+2*s)]});
     })(k);
-    place([(o.r.eh?'≈':'')+fmt(o.hm)+' m'],o.r.col,lc);
-    place([(o.r.eq?'≈':'')+fmt(o.qm)+' m³/h'],o.r.col,bc);
+    place([(o.r.eh?'≈':'')+fmt(o.hm)+' m'],o.r.col,lc,null,{row:o.r.el,key:'h',name:o.r.name+' 揚程 H',guide:[x0,o.py]});
+    place([(o.r.eq?'≈':'')+fmt(o.qm)+' m³/h'],o.r.col,bc,null,{row:o.r.el,key:'q',name:o.r.name+' 流量 Q',guide:[o.px,y0]});
   });
   if($('#axl').checked&&!simp)zi.forEach(function(z){
     var right=zx>cv.width/2,zc=[];
     for(var k=0;k<5;k++)(function(k){zc.push(function(w,h){return [right?zx+6*s:zx-6*s-w,z.pz-h/2+k*(h+2*s)]})})(k);
-    place([(z.o.r.eb?'≈':'')+fmt(z.b)+' '+zu],z.o.r.col,zc);
+    place([(z.o.r.eb?'≈':'')+fmt(z.b)+' '+zu],z.o.r.col,zc,null,{row:z.o.r.el,key:'b',name:z.o.r.name+' BHP',guide:[zx,z.pz]});
   });
+  ctx.setLineDash([12*s,8*s]);
+  labelDraws.forEach(function(entry){if(entry.guide)drawLeader(entry,entry.guide,entry.lead?13*s:0)});
+  ctx.setLineDash([]);
+  labelDraws.forEach(function(entry){if(entry.lead&&!entry.guide)drawLeader(entry,entry.lead,13*s)});
+  labelDraws.forEach(drawLabel);
+  if(!exp)syncValueHandles();
 }
 
 function showEst(){
@@ -597,6 +840,7 @@ function trUI(){
   });
 }
 function update(){
+  syncViewControls();
   scheduleSave();
   CVS.h=trc==='h'?null:buildCurve('h');CVS.b=trc==='b'?null:buildCurve('b');
   cv.style.touchAction=trc?'none':'';if(!trc)cv.style.cursor='';
@@ -622,7 +866,7 @@ function update(){
     else if(!axis('x')||!axis('y'))t='校正有問題：同一軸兩個點的數值不能相同，位置也不能重疊。';
     else if(!nok)t=nhid?'校正完成。所有工作點都已隱藏，按右側的眼睛圖示可以重新顯示。':'校正完成。請在「工作點」填入流量和揚程。';
     else{
-      t='已標出 '+nok+' 個工作點'+(nhid?'（另有 '+nhid+' 個已隱藏）':'')+'，可以下載圖片。';
+      t='已標出 '+nok+' 個工作點'+(nhid?'（另有 '+nhid+' 個已隱藏）':'')+'，可拖曳圖上的數值框，再下載圖片。';
       var wb=rs.filter(function(r){return r.ok&&!r.hid&&!isNaN(r.b)}).length;
       if(wb&&!axis('z'))t+=' 已填 BHP，但 Z 軸尚未校正完成，BHP 點不會標出。';
       else if(wb)t+='（含 '+wb+' 個 BHP 點）';
@@ -743,12 +987,12 @@ update();
 
 // ===== 自動儲存／還原 =====
 function pad2(n){return String(n).padStart(2,'0')}
-function rowsRaw(){return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el){return{n:el.querySelector('.pn').value,q:el.querySelector('.pq').value,h:el.querySelector('.ph').value,b:el.querySelector('.pb').value,hid:el.classList.contains('hid'),c:el.dataset.custom?el.dataset.col:''}})}
+function rowsRaw(){return Array.prototype.map.call(document.querySelectorAll('#rows .pr'),function(el){return{n:el.querySelector('.pn').value,q:el.querySelector('.pq').value,h:el.querySelector('.ph').value,b:el.querySelector('.pb').value,hid:el.classList.contains('hid'),c:el.dataset.custom?el.dataset.col:'',labels:labelOffsets.get(el)}})}
 function collectMeta(){
   var inp={};
   ['v0','v1','v2','v3','v4','v5','xu','yu','zxu','zu','qu','hu','zoom','alMode'].forEach(function(id){inp[id]=$('#'+id).value});
   ['logx','logy','logz','axl','dsh','smp','trShow'].forEach(function(id){inp[id]=$('#'+id).checked});
-  return {v:1,t:Date.now(),inp:inp,pts:pts,tr:TR,rot:rotDeg,hasImg:!!img,rows:rowsRaw()};
+  return {v:1,t:Date.now(),inp:inp,pts:pts,tr:TR,rot:rotDeg,hasImg:!!img,rows:rowsRaw(),workflow:workflowTab};
 }
 function scheduleSave(){if(restoring||noSave)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,600)}
 function saveNow(){
@@ -775,6 +1019,12 @@ function applyRows(list){
     var all=document.querySelectorAll('#rows .pr'),el=all[all.length-1];
     el.querySelector('.pq').value=r.q;el.querySelector('.ph').value=r.h;el.querySelector('.pb').value=r.b;
     if(r.c&&/^#[0-9a-f]{6}$/i.test(r.c)){el.dataset.col=r.c;el.dataset.custom='1'}
+    var positions={};
+    ['q','h','b','name','bhpName'].forEach(function(key){
+      var p=r.labels&&r.labels[key];
+      if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))positions[key]={x:p.x,y:p.y};
+    });
+    if(Object.keys(positions).length)labelOffsets.set(el,positions);
     if(r.hid)el.querySelector('.eye').onclick();
   });
   recolor();
@@ -783,7 +1033,7 @@ function applyMeta(m,ob,cb){
   if(!m){restoring=false;return}
   var inp=m.inp||{};
   Object.keys(inp).forEach(function(id){var el=$('#'+id);if(!el)return;if(typeof inp[id]==='boolean')el.checked=inp[id];else el.value=inp[id]});
-  cv.style.width=((parseFloat($('#zoom').value)||1)*100)+'%';
+  canvasFrame.style.width=((Number(zoom.value)||1)*100)+'%';
   if(m.rows)applyRows(m.rows);
   var noImg=function(msg){restoring=false;$('#fileInfo').textContent=msg;update()};
   if(!m.hasImg){noImg('已還原上次的工作點與設定。');return}
@@ -797,6 +1047,7 @@ function applyMeta(m,ob,cb){
       var sp=m.pts||[];pts=[0,1,2,3,4,5].map(function(i){var p=sp[i];return p&&isFinite(p.x)&&isFinite(p.y)?{x:p.x,y:p.y}:null});
       var cl=function(a){return Array.isArray(a)?a.filter(function(p){return p&&isFinite(p.x)&&isFinite(p.y)}).map(function(p){return {x:p.x,y:p.y}}):[]};TR={h:cl(m.tr&&m.tr.h),b:cl(m.tr&&m.tr.b)};
       rotDeg=m.rot||0;
+      showWorkflow(m.workflow||'tabAxes',false);
       var n=pts.slice(0,4).findIndex(function(p){return !p});act=n>=0?n:-1;
       $('#stat').textContent=imC.naturalWidth+' × '+imC.naturalHeight+' px';
       $('#alInfo').textContent=rotDeg?('已轉正（累計 '+rotDeg.toFixed(2)+'°）。'):'';
