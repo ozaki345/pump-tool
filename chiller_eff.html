@@ -8,8 +8,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
 :root{--bg:#ffffff;--surface:#f6f9fc;--ink:#13222c;--muted:#52656f;--line:#c5d0d6;--accent:#0b6b8a;--accent-ink:#fff;--ok:#1f7a4d;--warn:#a85a12;--bad:#a8321f;--wall:#2b3f4b;--water:#cfe6ef;--scale:#b08a5a;--hl:#d9ecf3;
+--inf:#5848d6;--inf-bg:#f3f1ff;--inf-bd:#8f84ee;--inf-pill:#e4e0ff;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-:root[data-theme="dark"]{--bg:#0f1a21;--surface:#172630;--ink:#e4edf1;--muted:#93a8b3;--line:#2b404c;--accent:#5cc0e0;--accent-ink:#06222d;--ok:#5fd09a;--warn:#f0a24f;--bad:#f08a78;--wall:#9fb6c2;--water:#0f1a21;--scale:#8a6a42;--hl:#1d3340;color-scheme:dark}
+:root[data-theme="dark"]{--bg:#0f1a21;--surface:#172630;--ink:#e4edf1;--muted:#93a8b3;--line:#2b404c;--accent:#5cc0e0;--accent-ink:#06222d;--ok:#5fd09a;--warn:#f0a24f;--bad:#f08a78;--wall:#9fb6c2;--water:#0f1a21;--scale:#8a6a42;--hl:#1d3340;
+--inf:#b4a9ff;--inf-bg:#1e1c36;--inf-bd:#6d61c9;--inf-pill:#2b274d;
+color-scheme:dark}
 html{font-size:17px;scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.58;font-variant-numeric:tabular-nums}
@@ -73,12 +76,50 @@ details.sec>.in{padding:0 20px 18px}
 
 /* 診斷結果卡片 */
 .vd{border:1px solid var(--line);border-left:8px solid var(--muted);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:var(--bg)}
-.vd.g{border-left-color:var(--ok)}.vd.y{border-left-color:var(--warn)}.vd.r{border-left-color:var(--bad)}
-.vt{font-size:1.25rem;font-weight:700;margin:0 0 5px}.vd.g .vt{color:var(--ok)}.vd.y .vt{color:var(--warn)}.vd.r .vt{color:var(--bad)}
-.vd p{margin:0;font-size:.95rem;line-height:1.55}
-.kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:0 0 12px}
-.kv2 div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
-.kv2 b{display:block;font-size:1.28rem;line-height:1.25}.kv2 span{font-size:.78rem;color:var(--muted)}
+.vd.g{border-left-color:var(--ok)}.vd.y{border-left-color:var(--warn)}.vd.r{border-left-color:var(--bad)}.vd.p{border-left-color:var(--inf);background:var(--inf-bg);border-color:var(--inf-bd)}
+.vt{font-size:1.22rem;font-weight:700;margin:0 0 5px}.vd.g .vt{color:var(--ok)}.vd.y .vt{color:var(--warn)}.vd.r .vt{color:var(--bad)}.vd.p .vt{color:var(--inf)}
+.vd p{margin:0;font-size:.94rem;line-height:1.55}
+
+/* 核心 KPI 磚：區分「實測」與「反推」 */
+.kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:9px;margin:0 0 12px}
+.kv2>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;position:relative}
+.kv2>div.is-inf{background:var(--inf-bg);border:1.5px dashed var(--inf-bd)}
+.kv2 b{display:block;font-size:1.26rem;line-height:1.25}
+.kv2>div.is-inf b{color:var(--inf)}
+.kv2 span{font-size:.78rem;color:var(--muted);display:block;margin-top:2px}
+.tag-pill{display:inline-block;font-style:normal;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:5px;vertical-align:middle;margin-left:4px;letter-spacing:.02em}
+.tag-inf{background:var(--inf-pill);color:var(--inf);border:1px solid var(--inf-bd)}
+.tag-meas{background:var(--hl);color:var(--accent);border:1px solid var(--line)}
+
+/* 🔄 反推數據專屬區塊 */
+.inf-panel{margin:12px 0;background:var(--inf-bg);border:1.5px dashed var(--inf-bd);border-radius:11px;padding:12px 14px}
+.inf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.inf-title{font-weight:700;font-size:.93rem;color:var(--inf);display:flex;align-items:center;gap:6px}
+.inf-sub{font-size:.76rem;color:var(--muted)}
+.inf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.inf-cell{background:var(--bg);border:1px dashed var(--inf-bd);border-radius:8px;padding:8px 10px}
+.inf-cell .lbl{font-size:.76rem;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:4px}
+.inf-cell .val{font-size:1.12rem;font-weight:700;color:var(--inf);margin:2px 0}
+.inf-cell .how{font-size:.74rem;color:var(--muted);line-height:1.38}
+
+/* 預估區間小表（尚未填電氣時） */
+.sim-tbl{width:100%;border-collapse:collapse;margin-top:9px;font-size:.82rem;background:var(--bg);border-radius:8px;overflow:hidden}
+.sim-tbl th,.sim-tbl td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.sim-tbl th{background:var(--surface);color:var(--muted);font-weight:700;font-size:.76rem}
+.sim-tbl tr:last-child td{border-bottom:none}
+
+/* 📐 計算過程（扼要算式） */
+.steps-box{margin:12px 0 4px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 13px}
+.steps-box summary{cursor:pointer;font-weight:700;font-size:.9rem;color:var(--ink);list-style:none;display:flex;align-items:center;justify-content:space-between}
+.steps-box summary::-webkit-details-marker{display:none}
+.steps-box summary::after{content:"▾";color:var(--muted);font-size:.85rem;transition:transform .15s}
+.steps-box[open] summary::after{transform:rotate(180deg)}
+.step-list{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.step-item{font-size:.83rem;line-height:1.45;padding:6px 9px;border-radius:7px;background:var(--surface);border-left:3px solid var(--accent);display:flex;flex-direction:column;gap:2px}
+.step-item.is-inf{background:var(--inf-bg);border-left-color:var(--inf)}
+.step-top{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:700;font-size:.82rem}
+.step-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.8rem;color:var(--ink);word-break:break-all}
+
 ul.ls{margin:6px 0 0;padding-left:1.2em;font-size:.92rem}ul.ls li{margin:5px 0;line-height:1.5}
 .sh{font-weight:700;margin:13px 0 2px;font-size:.95rem}
 
@@ -133,7 +174,7 @@ ul.ls{margin:6px 0 0;padding-left:1.2em;font-size:.92rem}ul.ls li{margin:5px 0;l
 <div class="page-head">
   <div>
     <h1>冷凍機效率判斷</h1>
-    <p class="sub">欄位都可以留空（電氣、水側、或面板顯示值擇一即可），填得越多交叉比對越準。</p>
+    <p class="sub">欄位都可以留空（電氣、水側、或面板顯示值擇一即可），缺項時系統會自動以虛線紫框標示「反推數據」。</p>
   </div>
   <div class="btns">
     <button class="ghost" type="button" onclick="loadField('f1')">載入案例 1（750RT 離心機）</button>
@@ -301,6 +342,7 @@ for(const g in G)$(g).innerHTML=G[g].map(f=>`<div><label class="f" for="${f[1]}"
 const n=id=>{const el=$(id);if(!el)return null;const r=el.value;if(r==='')return null;const v=parseFloat(r);return isNaN(v)?null:v};
 const cmh=(id)=>{const v=n(id);if(!(v>0))return null;const u=$(id+'U').value;return u==='CMH'?v:u==='LPM'?v*.06:v*.227125};
 const RT=3.51685;
+const K_WATER=4.186/3.6; // ≈ 1.16278 kW / (CMH·°C)
 const getCapRT=(id)=>{const v=n(id);if(!(v>0))return null;return $(id+'U').value==='kW'?v/RT:v};
 const getEffKwRt=(id)=>{const v=n(id);if(!(v>0))return null;return $(id+'U').value==='COP'?RT/v:v};
 
@@ -469,7 +511,7 @@ function updateHints(){
 }
 
 function calc(){
- const o={};
+ const o={steps:[],inferred:[]};
  const rRT=getCapRT('ratedRT'),rKw=n('ratedKw'),rKR=getEffKwRt('ratedKwRt'),ty=$('ctype').value;
  o.rRT=rRT;o.ty=ty;
  if(rKR>0){o.bench=rKR;o.bsrc='銘牌效率'}
@@ -481,8 +523,8 @@ function calc(){
  o.chwIn=a;o.chwOut=b;o.cwIn=c;o.cwOut=d;
  o.chwDT=chwDT;o.cwDT=cwDT;
  const chwF=cmh('chwFlow'),cwF=cmh('cwFlow');
- const s1=(chwF&&chwDT>0)?chwF*chwDT*4.186/3.6:null;
- const qc=(cwF&&cwDT>0)?cwF*cwDT*4.186/3.6:null;
+ const s1=(chwF&&chwDT>0)?chwF*chwDT*K_WATER:null;
+ const qc=(cwF&&cwDT>0)?cwF*cwDT*K_WATER:null;
  const pCapRT=getCapRT('panelCap'),pCapKw=pCapRT?pCapRT*RT:null;
  const pKr=getEffKwRt('panelEff');
  o.s1=s1;o.qc=qc;o.pCapKw=pCapKw;o.pKr=pKr;o.chwF=chwF;o.cwF=cwF;
@@ -491,37 +533,88 @@ function calc(){
  o.effEvapApp=evapApp!==null?evapApp:(es!==null&&b!==null?b-es:null);
  o.effCondApp=condApp!==null?condApp:(cs!==null&&d!==null?cs-d:null);
 
- let P=n('pKw'),pSrc='電表直讀';
- if(!(P>0)){
+ if(s1){
+  o.steps.push({inf:false,title:'冰水產冷量 Qe',eq:`${chwF.toFixed(1)} CMH × (${a} − ${b})°C × 1.163 = ${s1.toFixed(1)} kW (${(s1/RT).toFixed(1)} RT)`});
+ }
+ if(qc){
+  o.steps.push({inf:false,title:'冷凝排熱量 Qc',eq:`${cwF.toFixed(1)} CMH × (${d} − ${c})°C × 1.163 = ${qc.toFixed(1)} kW`});
+ }
+
+ let P=n('pKw'),pSrc='電表直讀',pIsInf=false;
+ if(P>0){
+  o.steps.push({inf:false,title:'壓縮機耗電 P',eq:`電表直讀 = ${P.toFixed(1)} kW`});
+ }else{
   const V=n('lineV'),I=n('lineI'),pf=n('pf');
-  if(V>0&&I>0&&pf>0){P=Math.sqrt(3)*V*I*pf/1000;pSrc='三相機電計算'}
+  if(V>0&&I>0&&pf>0){
+   P=Math.sqrt(3)*V*I*pf/1000;pSrc='三相機電計算';pIsInf=true;
+   o.inferred.push({lbl:'壓縮機耗電功率',val:`${P.toFixed(1)} kW`,how:`√3 × ${V}V × ${I}A × ${pf}`});
+   o.steps.push({inf:true,title:'耗電功率 P（機電推算）',eq:`√3 × ${V} × ${I} × ${pf} ÷ 1000 = ${P.toFixed(1)} kW`});
+  }
  }
  if(!(P>0)&&pKr>0){
-  if(pCapRT>0){P=pCapRT*pKr;pSrc='依面板製冷量 × 面板效率推算'}
-  else if(s1>0){P=(s1/RT)*pKr;pSrc='依冰水產冷量 × 面板效率推算'}
+  if(pCapRT>0){
+   P=pCapRT*pKr;pSrc='面板製冷 × 效率反推';pIsInf=true;
+   o.inferred.push({lbl:'壓縮機耗電功率',val:`${P.toFixed(1)} kW`,how:`面板 ${pCapRT.toFixed(1)} RT × ${pKr.toFixed(3)} kW/RT`});
+   o.steps.push({inf:true,title:'耗電功率 P（面板反推）',eq:`${pCapRT.toFixed(1)} RT × ${pKr.toFixed(3)} kW/RT = ${P.toFixed(1)} kW`});
+  }else if(s1>0){
+   P=(s1/RT)*pKr;pSrc='冰水產冷 × 面板效率反推';pIsInf=true;
+   o.inferred.push({lbl:'壓縮機耗電功率',val:`${P.toFixed(1)} kW`,how:`冰水 ${(s1/RT).toFixed(1)} RT × ${pKr.toFixed(3)} kW/RT`});
+   o.steps.push({inf:true,title:'耗電功率 P（反推）',eq:`${(s1/RT).toFixed(1)} RT × ${pKr.toFixed(3)} kW/RT = ${P.toFixed(1)} kW`});
+  }
  }
- o.P=P;o.pSrc=pSrc;
+ o.P=P;o.pSrc=pSrc;o.pIsInf=pIsInf;
 
- let capKw=null,lo=null,hi=null;
+ let capKw=null,lo=null,hi=null,capIsInf=false;
  if(s1){
   capKw=s1;const r=Math.hypot(.2/chwDT,.03);lo=s1*(1-r);hi=s1*(1+r);
-  o.method='冰水側直接量測（冰水流量 × 溫差）';o.conf='高';
+  o.method='冰水側直接量測（冰水流量 × 溫差）';o.conf='高';capIsInf=false;
  }else if(qc&&P&&qc-P>0){
   capKw=qc-P;const e=qc*Math.hypot(.2/cwDT,.03)+.02*P;lo=Math.max(1,capKw-e);hi=capKw+e;
-  o.method='冷卻水熱平衡反推（排熱量 − 耗電）';o.conf='中，受冷卻水溫差影響大';
+  o.method='冷卻水熱平衡反推（排熱量 − 耗電）';o.conf='中，受冷卻水溫差影響大';capIsInf=true;
+  o.inferred.push({lbl:'實際產冷量（熱平衡）',val:`${(capKw/RT).toFixed(1)} RT`,how:`排熱 ${qc.toFixed(1)} − 耗電 ${P.toFixed(1)} = ${capKw.toFixed(1)} kW`});
+  o.steps.push({inf:true,title:'反推產冷量 Qe',eq:`Qc ${qc.toFixed(1)} − P ${P.toFixed(1)} = ${capKw.toFixed(1)} kW (${(capKw/RT).toFixed(1)} RT)`});
  }else if(pCapKw>0){
   capKw=pCapKw;lo=pCapKw*.94;hi=pCapKw*1.06;
-  o.method='依主機面板顯示製冷量';o.conf='中高（建議以超音波流量計複核）';
+  o.method='依主機面板顯示製冷量';o.conf='中高（建議以超音波流量計複核）';capIsInf=false;
  }else if(rRT>0&&n('rla')>0){
   capKw=rRT*RT*n('rla')/100;lo=capKw*.75;hi=capKw*1.25;
-  o.method='依電流負載率粗估';o.conf='低，僅供參考';
+  o.method='依電流負載率粗估';o.conf='低，僅供參考';capIsInf=true;
+  o.inferred.push({lbl:'粗估產冷量',val:`${(capKw/RT).toFixed(0)} RT`,how:`額定 ${rRT} RT × ${n('rla')}% RLA`});
+  o.steps.push({inf:true,title:'粗估產冷量 Qe',eq:`${rRT} RT × ${n('rla')}% = ${(capKw/RT).toFixed(1)} RT (${capKw.toFixed(1)} kW)`});
  }
- o.capKw=capKw;
+ o.capKw=capKw;o.capIsInf=capIsInf;
+
+ // 額外水側流量反推（當缺單側流量但有溫差與熱量時）
+ if(!chwF && chwDT>0 && capKw>0){
+  const estChwF=capKw/(chwDT*K_WATER);
+  o.estChwF=estChwF;
+  o.inferred.push({lbl:'反推冰水流量',val:`${estChwF.toFixed(1)} CMH`,how:`產冷 ${capKw.toFixed(1)} kW ÷ (${chwDT.toFixed(1)}°C × 1.163)`});
+  o.steps.push({inf:true,title:'反推冰水流量',eq:`${capKw.toFixed(1)} ÷ (${chwDT.toFixed(1)} × 1.163) = ${estChwF.toFixed(1)} CMH`});
+ }
+ if(!cwF && cwDT>0 && capKw>0 && P>0){
+  const estCwF=(capKw+P)/(cwDT*K_WATER);
+  o.estCwF=estCwF;
+  o.inferred.push({lbl:'反推冷卻水流量',val:`${estCwF.toFixed(1)} CMH`,how:`(產冷 ${capKw.toFixed(1)} + 耗電 ${P.toFixed(1)}) ÷ (${cwDT.toFixed(1)}°C × 1.163)`});
+  o.steps.push({inf:true,title:'反推冷卻水流量',eq:`(${capKw.toFixed(1)} + ${P.toFixed(1)}) ÷ (${cwDT.toFixed(1)} × 1.163) = ${estCwF.toFixed(1)} CMH`});
+ }
+ // 趨近溫度 / 飽和溫度互推
+ if(evapApp===null && es!==null && b!==null){
+  o.inferred.push({lbl:'蒸發器趨近溫度',val:`${(b-es).toFixed(1)} °C`,how:`冰水出水 ${b}°C − 飽和蒸發 ${es}°C`});
+ }else if(evapApp!==null && es===null && b!==null){
+  o.inferred.push({lbl:'推算飽和蒸發溫',val:`${(b-evapApp).toFixed(1)} °C`,how:`冰水出水 ${b}°C − 趨近 ${evapApp}°C`});
+ }
+ if(condApp===null && cs!==null && d!==null){
+  o.inferred.push({lbl:'冷凝器趨近溫度',val:`${(cs-d).toFixed(1)} °C`,how:`飽和冷凝 ${cs}°C − 冷卻出水 ${d}°C`});
+ }else if(condApp!==null && cs===null && d!==null){
+  o.inferred.push({lbl:'推算飽和冷凝溫',val:`${(d+condApp).toFixed(1)} °C`,how:`冷卻出水 ${d}°C + 趨近 ${condApp}°C`});
+ }
 
  if(P&&capKw){
   o.rt=capKw/RT;o.eff=P/o.rt;o.effLo=P/(hi/RT);o.effHi=P/(lo/RT);
   o.cop=RT/o.eff;o.load=rRT>0?o.rt/rRT*100:null;
+  o.effIsInf=(pIsInf||capIsInf);
   o.vd=verdict(o);
+  o.steps.push({inf:o.effIsInf,title:'運轉效率 & COP',eq:`${P.toFixed(1)} kW ÷ ${o.rt.toFixed(1)} RT = ${o.eff.toFixed(3)} kW/RT（COP = 3.517 ÷ ${o.eff.toFixed(3)} = ${o.cop.toFixed(2)}）`});
  }
  return o;
 }
@@ -537,16 +630,95 @@ function verdict(o){
  return['y','🟡 偏高，但還不能確定',`${cmp}。誤差範圍同時包含「正常」與「偏高」，目前資料不足以下結論，請補測下方建議的項目。`];
 }
 
+function renderInferredBox(o){
+ if(!o.inferred||!o.inferred.length)return '';
+ return `<div class="inf-panel">
+  <div class="inf-head">
+   <span class="inf-title">🔄 系統反推數據 <span class="tag-pill tag-inf">熱平衡／機電推算</span></span>
+   <span class="inf-sub">虛線框為缺項時由已知條件回推之數值</span>
+  </div>
+  <div class="inf-grid">
+   ${o.inferred.map(it=>`<div class="inf-cell">
+    <div class="lbl"><span>${it.lbl}</span><em class="tag-pill tag-inf">反推</em></div>
+    <div class="val">${it.val}</div>
+    <div class="how">${it.how}</div>
+   </div>`).join('')}
+  </div>
+ </div>`;
+}
+
+function renderStepsBox(o){
+ if(!o.steps||!o.steps.length)return '';
+ return `<details class="steps-box" open>
+  <summary>📐 計算過程（扼要算式） <span class="hint">${o.steps.length} 步驟</span></summary>
+  <ul class="step-list">
+   ${o.steps.map((s,idx)=>`<li class="step-item ${s.inf?'is-inf':''}">
+    <div class="step-top">
+     <span>${idx+1}. ${s.title}</span>
+     <em class="tag-pill ${s.inf?'tag-inf':'tag-meas'}">${s.inf?'反推':'實測'}</em>
+    </div>
+    <div class="step-eq">${s.eq}</div>
+   </li>`).join('')}
+  </ul>
+ </details>`;
+}
+
 function render(){
  updateHints();
  const o=calc(),R=$('res');
  updateEstimator(o);
+
+ // 特殊模式：尚未填耗電，但已有水側排熱 Qc 或冰水產冷 s1（例如只看面板 + 冷卻水流量時）
+ if(!o.P && (o.qc>0 || o.s1>0)){
+  const rRT=o.rRT, rla=n('rla');
+  const infCards=[];
+  if(o.qc>0){
+   infCards.push(`<div class="inf-cell"><div class="lbl"><span>冷凝器總排熱 Qc</span><em class="tag-pill tag-meas">水側實測</em></div><div class="val" style="color:var(--accent)">${o.qc.toFixed(1)} kW</div><div class="how">${o.cwF.toFixed(1)} CMH × ${o.cwDT.toFixed(1)}°C × 1.163</div></div>`);
+  }
+  if(o.s1>0){
+   infCards.push(`<div class="inf-cell"><div class="lbl"><span>冰水側產冷量 Qe</span><em class="tag-pill tag-meas">水側實測</em></div><div class="val" style="color:var(--accent)">${(o.s1/RT).toFixed(1)} RT</div><div class="how">${o.s1.toFixed(1)} kW（${o.chwF.toFixed(1)} CMH × ${o.chwDT.toFixed(1)}°C）</div></div>`);
+  }
+  let simHtml='';
+  if(o.qc>0 && rRT>0 && rla>0){
+   // 依 %RLA 與滿載效率 0.55~0.68 推算典型耗電區間
+   const pMid=rRT*(rla/100)*o.bench;
+   const pLow=Math.round((pMid*0.92)/5)*5;
+   const pHigh=Math.round((pMid*1.08)/5)*5;
+   const pCenter=Math.round(pMid/5)*5;
+   const pList=[...new Set([pLow,pCenter,pHigh])].filter(p=>p>0&&o.qc-p>0);
+   if(pList.length){
+    const cCap=o.qc-pCenter, cRT=cCap/RT, cLoad=(cRT/rRT)*100;
+    infCards.push(`<div class="inf-cell"><div class="lbl"><span>預估產冷量（依 ${rla}% RLA）</span><em class="tag-pill tag-inf">反推區間</em></div><div class="val">約 ${cRT.toFixed(0)} RT</div><div class="how">排熱 ${o.qc.toFixed(0)} − 估電 ${pCenter} kW（負載 ${cLoad.toFixed(0)}%）</div></div>`);
+    if(!o.chwF && o.chwDT>0){
+     const estF=cCap/(o.chwDT*K_WATER);
+     infCards.push(`<div class="inf-cell"><div class="lbl"><span>反推冰水流量</span><em class="tag-pill tag-inf">反推</em></div><div class="val">約 ${estF.toFixed(0)} CMH</div><div class="how">${cCap.toFixed(0)} kW ÷ (${o.chwDT.toFixed(1)}°C × 1.163)</div></div>`);
+    }
+    simHtml=`<table class="sim-tbl">
+     <thead><tr><th>假設耗電 P</th><th>反推產冷量</th><th>反推效率</th><th>對應 COP</th></tr></thead>
+     <tbody>${pList.map(p=>{
+      const q=o.qc-p, rt=q/RT, eff=p/rt, cop=RT/eff;
+      return `<tr><td><b>${p} kW</b></td><td>${rt.toFixed(1)} RT (${(rt/rRT*100).toFixed(0)}%)</td><td><b>${eff.toFixed(3)}</b> kW/RT</td><td>${cop.toFixed(2)}</td></tr>`;
+     }).join('')}</tbody>
+    </table>`;
+   }
+  }
+  R.innerHTML=`<h2>水側熱量與反推預估</h2>
+   <div class="vd p"><p class="vt">🔄 尚缺電氣實測，先顯示水側熱量與反推區間</p><p>已依水側流量與溫差算出熱量；只要在左側①補填<b>線電流（A）</b>或<b>電表 kW</b>，即可立即鎖定精確效率。</p></div>
+   <div class="inf-panel" style="margin-top:0">
+    <div class="inf-head"><span class="inf-title">🔄 水側與反推數據一覽</span><span class="inf-sub">虛線紫框＝推算值</span></div>
+    <div class="inf-grid">${infCards.join('')}</div>
+    ${simHtml}
+   </div>
+   ${renderStepsBox(o)}`;
+  return;
+ }
+
  if(!o.P){
   R.innerHTML='<h2>判斷結果</h2><p class="note" style="margin:0">請先填寫耗電數據（電表 kW 或電壓／電流／功因），或直接填入主機面板顯示的「製冷量＋COP（或 kW/RT）」。</p>';
   return;
  }
  if(!o.capKw){
-  R.innerHTML=`<h2>判斷結果</h2><p class="note" style="margin:0">耗電已算出 <b>${o.P.toFixed(1)} kW</b>，但還算不出產冷量。請至少補一組：<b>冰水流量＋進出水溫</b>、<b>冷卻水流量＋進出水溫</b>，或<b>面板顯示製冷量</b>。</p>`;
+  R.innerHTML=`<h2>判斷結果</h2><p class="note" style="margin:0">耗電已算出 <b>${o.P.toFixed(1)} kW</b>，但還算不出產冷量。請至少補一組：<b>冰水流量＋進出水溫</b>、<b>冷卻水流量＋進出水溫</b>，或<b>面板顯示製冷量</b>。</p>${renderStepsBox(o)}`;
   return;
  }
  const [cls,t,txt]=o.vd;
@@ -592,8 +764,16 @@ function render(){
  if(!(n('ratedKwRt')>0||(n('ratedKw')>0&&rRT>0)))tip.push('拍主機銘牌（額定冷凍能力、額定耗電）：基準改用銘牌值，判斷會更準。');
 
  R.innerHTML=`<h2>判斷結果</h2><div class="vd ${cls}"><p class="vt">${t}</p><p>${txt}</p></div>
- <div class="kv2"><div><b>${o.eff.toFixed(3)}</b><span>效率 kW/RT</span></div><div><b>${o.cop.toFixed(2)}</b><span>COP</span></div><div><b>${o.rt.toFixed(0)}</b><span>產冷量 RT（${o.capKw.toFixed(0)} kW）</span></div><div><b>${o.load!=null?o.load.toFixed(0)+'%':'--'}</b><span>負載率</span></div><div><b>${o.P.toFixed(0)}</b><span>耗電 kW（${o.pSrc}）</span></div></div>
+ <div class="kv2">
+  <div class="${o.effIsInf?'is-inf':''}"><b>${o.eff.toFixed(3)}</b><span>效率 kW/RT ${o.effIsInf?'<em class="tag-pill tag-inf">反推</em>':'<em class="tag-pill tag-meas">實測</em>'}</span></div>
+  <div class="${o.effIsInf?'is-inf':''}"><b>${o.cop.toFixed(2)}</b><span>COP ${o.effIsInf?'<em class="tag-pill tag-inf">反推</em>':''}</span></div>
+  <div class="${o.capIsInf?'is-inf':''}"><b>${o.rt.toFixed(0)}</b><span>產冷 RT（${o.capKw.toFixed(0)} kW）${o.capIsInf?'<em class="tag-pill tag-inf">反推</em>':'<em class="tag-pill tag-meas">實測</em>'}</span></div>
+  <div><b>${o.load!=null?o.load.toFixed(0)+'%':'--'}</b><span>負載率</span></div>
+  <div class="${o.pIsInf?'is-inf':''}"><b>${o.P.toFixed(0)}</b><span>耗電 kW ${o.pIsInf?'<em class="tag-pill tag-inf">推算</em>':'<em class="tag-pill tag-meas">實測</em>'}</span></div>
+ </div>
  <p class="note" style="margin:0">算法：${o.method}（可信度：${o.conf}）。基準：${o.bench.toFixed(3)} kW/RT，${o.bsrc}。</p>
+ ${renderInferredBox(o)}
+ ${renderStepsBox(o)}
  ${go.length?`<p class="sh">判斷依據</p><ul class="ls">${go.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
  ${tip.length?`<p class="sh">建議補測</p><ul class="ls">${tip.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}`;
 }
@@ -800,15 +980,15 @@ function renderRecs(){
 
 const BLANK={};document.querySelectorAll('input[id]').forEach(e=>{if(e.id!=='estAssumedEff')BLANK[e.id]=''});
 const PRESETS={
- f1:Object.assign({},BLANK,{siteName:'範例案場 - 750RT 離心機',siteNote:'傳統離心機三相機電量測',ratedRT:750,ratedRTU:'RT',lineV:381,lineI:519,pf:.833,rla:64,chwIn:11.5,chwOut:8.3,cwIn:28.2,cwOut:31.2,cwFlow:490,chwFlowU:'CMH',cwFlowU:'CMH',ctype:'centrifugal',estAssumedEff:'0.60',estPumpSide:'chw',estPumpFlowU:'CMH'}),
+ f1:Object.assign({},BLANK,{siteName:'範例案場 - TRANE 750RT 離心機',siteNote:'冷卻水 490 CMH 排熱反推（缺冰水流量計）',ratedRT:750,ratedRTU:'RT',lineV:381,lineI:519,pf:.833,rla:63,chwIn:11.4,chwOut:8.3,cwIn:28.2,cwOut:31.2,cwFlow:490,chwFlowU:'CMH',cwFlowU:'CMH',ctype:'centrifugal',estAssumedEff:'0.60',estPumpSide:'chw',estPumpFlowU:'CMH'}),
  f2:Object.assign({},BLANK,{siteName:'範例案場 - 海爾 450RT 磁懸浮機組',siteNote:'50%負載／變流量68.5%',panelCap:792.0,panelCapU:'kW',panelEff:5.5,panelEffU:'COP',chwIn:10.6,chwOut:6.9,chwFlow:185.0,chwFlowU:'CMH',cwIn:30.1,cwOut:32.7,cwFlow:323.8,cwFlowU:'CMH',ratedRT:1582.7,ratedRTU:'kW',ratedKw:275.7,ratedKwRt:5.74,ratedKwRtU:'COP',ratedChwFlow:270,ratedChwFlowU:'CMH',ratedCwFlow:338,ratedCwFlowU:'CMH',evapApp:3.5,condApp:0.8,ctype:'mag',estAssumedEff:'0.57',estPumpSide:'chw',estPumpFlowU:'CMH'})
 };
-function loadField(key){setAll(PRESETS[key||'f1']);save();toast(key==='f2'?'已載入海爾 450RT 磁懸浮（含銘牌）':'已載入現場案例 1')}
+function loadField(key){setAll(PRESETS[key||'f1']);save();toast(key==='f2'?'已載入海爾 450RT 磁懸浮（含銘牌）':'已載入現場案例 1（含反推數據）')}
 function clearAll(){setAll(Object.assign({},BLANK,{ratedRTU:'RT',panelCapU:'RT',panelEffU:'KWRT',ratedKwRtU:'KWRT',chwFlowU:'CMH',cwFlowU:'CMH',ratedChwFlowU:'CMH',ratedCwFlowU:'CMH',estAssumedEff:defaultEffByType($('ctype').value).toFixed(2),estPumpSide:'chw',estPumpFlowU:'CMH'}));save();toast('已清空')}
 
 let tm;['input','change'].forEach(e=>document.addEventListener(e,ev=>{if(ev.target&&['ratedRTU','panelCapU','panelEffU','ratedKwRtU'].includes(ev.target.id))return;render();clearTimeout(tm);tm=setTimeout(save,300)}));
 let sv=null;try{sv=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
-setAll(sv&&sv.f?sv.f:PRESETS.f2);
+setAll(sv&&sv.f?sv.f:PRESETS.f1);
 renderRecs();
 
 const SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
