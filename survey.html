@@ -858,15 +858,15 @@ renderRecs();
 <script>
 /* ===== 全站備份／同步（手機 ↔ 電腦）：所有頁面共用同一份資料 ===== */
 (function(){
-var LSK=['pumpRecords','pumpTbl','pumpTheme','flowSurveyRecs','flowSurveyDraft','pa47SurveyRecs_v8','pa47SurveyDraft_v8','pa47Theme','pumpDrawState'];
+var LSK=['chillerEffState_v1','chillerEffState_v2','chillerEffState_v3','chillerEffRecs_v1','pumpPressureState_v1','pumpRecords','pumpTbl','pumpTheme','flowSurveyRecs','flowSurveyDraft','pa47SurveyRecs_v8','pa47SurveyDraft_v8','pa47Theme','pumpDrawState'];
 var IDBS=[{db:'pa47SurveyPhotos',st:'p'},{db:'pumpDraw',st:'kv'}];
-var RECS={pumpRecords:'id',flowSurveyRecs:'name',pa47SurveyRecs_v8:'id'};
-var DRAFT={flowSurveyDraft:1,pa47SurveyDraft_v8:1,pumpDrawState:1};
+var RECS={chillerEffRecs_v1:'id',pumpRecords:'id',flowSurveyRecs:'name',pa47SurveyRecs_v8:'id'};
+var DRAFT={chillerEffState_v1:1,chillerEffState_v2:1,chillerEffState_v3:1,pumpPressureState_v1:1,flowSurveyDraft:1,pa47SurveyDraft_v8:1,pumpDrawState:1};
 function z(n){return String(n).padStart(2,'0')}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 function openDB(n,st){return new Promise(function(res){try{var r=indexedDB.open(n,1);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains(st))r.result.createObjectStore(st)};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
-function dbAll(db,st){return new Promise(function(res){if(!db)return res({});try{var out={},tx=db.transaction(st,'readonly'),s=tx.objectStore(st),c=s.openCursor();c.onsuccess=function(){var k=c.result;if(k){out[String(k.key)]=k.value;k.continue()}else res(out)};c.onerror=function(){res(out)}}catch(e){res({})}})}
+function dbAll(db,st){return new Promise(function(res){if(!db)return res({});try{var out={},tx=db.transaction(st,'readonly'),s=tx.objectStore(st),c=s.openCursor();c.onsuccess=function(){var k=c.result;if(k){out[String(k.key)]=k.value;k.continue()}else res(out)};c.onerror=function(){res({})}}catch(e){res({})}})}
 function dbPut(db,st,k,v){return new Promise(function(res){if(!db)return res(false);try{var tx=db.transaction(st,'readwrite');tx.objectStore(st).put(v,k);tx.oncomplete=function(){res(true)};tx.onerror=function(){res(false)}}catch(e){res(false)}})}
 function b2u(b){return new Promise(function(res){if(!(b instanceof Blob))return res(b);var r=new FileReader();r.onload=function(){res({__blob:r.result})};r.onerror=function(){res(null)};r.readAsDataURL(b)})}
 function u2b(o){if(!o||typeof o!=='object'||typeof o.__blob!=='string')return o;try{var m=/^data:([^;,]*)(;base64)?,(.*)$/.exec(o.__blob),bin=m[2]?atob(m[3]):decodeURIComponent(m[3]),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||'application/octet-stream'})}catch(e){return null}}
@@ -880,7 +880,7 @@ async function collect(){
 function summary(b){
   var c=function(k){try{var a=JSON.parse(b.ls[k]||'[]');return Array.isArray(a)?a.length:0}catch(e){return 0}};
   var ph=0,pi=(b.idb&&b.idb.pa47SurveyPhotos)||{};Object.keys(pi).forEach(function(k){var o=pi[k];if(o)ph+=((o.motor||[]).length+(o.pump||[]).length)});
-  return [['泵浦換算紀錄',c('pumpRecords')],['流量量測紀錄',c('flowSurveyRecs')],['現場資料表紀錄',c('pa47SurveyRecs_v8')],['銘牌照片',ph]];
+  return [['冷凍機巡檢紀錄',c('chillerEffRecs_v1')],['泵浦換算紀錄',c('pumpRecords')],['流量量測紀錄',c('flowSurveyRecs')],['現場資料表紀錄',c('pa47SurveyRecs_v8')],['銘牌照片',ph]];
 }
 function merge(cur,inc,key){
   var a=[];try{a=JSON.parse(cur||'[]');if(!Array.isArray(a))a=[]}catch(e){a=[]}
@@ -904,12 +904,10 @@ async function apply(b,withDraft){
   return n;
 }
 async function save(blob,name){
-  try{var d=(typeof claude!=='undefined'&&claude.use)?await claude.use('downloads'):null;if(d){await d.save({filename:name,data:blob});return}}catch(e){if(e&&e.code==='declined')return}
   var f=null;try{f=new File([blob],name,{type:'application/json'})}catch(e){}
   if(f&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'泵浦工具備份'});return}catch(e){if(e&&e.name==='AbortError')return}}
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
 }
-/* ---- UI ---- */
 var th=document.getElementById('thToggle')||document.getElementById('themeToggle');
 var btn=document.createElement('button');btn.type='button';btn.id='bkBtn';btn.className=th?th.className:'';btn.title='備份／同步資料（手機 ↔ 電腦）';
 btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>備份／同步';
@@ -927,9 +925,9 @@ document.head.appendChild(css);
 var M=document.createElement('div');M.id='bkM';M.hidden=true;M.setAttribute('role','dialog');M.setAttribute('aria-label','備份／同步資料');
 M.innerHTML='<div class="bx" style="position:relative"><button type="button" class="x" aria-label="關閉">×</button><h3>備份／同步資料</h3>'+
 '<p class="mut">網站的資料只存在這台裝置的瀏覽器裡。要在手機和電腦之間同步，請在一台按「匯出」，把檔案傳到另一台（LINE、Email、雲端硬碟都可以），再按「匯入」。</p>'+
-'<p class="mut">一個備份檔包含所有頁面：泵浦換算、流量量測、現場資料表（含銘牌照片）、工作點標記。</p><hr>'+
+'<p class="mut">一個備份檔包含所有頁面：冷凍機效率、泵浦換算、流量量測、現場資料表（含銘牌照片）、工作點標記。</p><hr>'+
 '<button type="button" class="pri" data-a="exp">⬇ 匯出全部資料（.json）</button>'+
-'<button type="button" data-a="imp">⬆ 匯入備份檔…</button><input type="file" accept=".json,application/json" hidden>'+
+'<button type="button" class="imp" data-a="imp">⬆ 匯入備份檔…</button><input type="file" accept=".json,application/json" hidden>'+
 '<div data-b="pv"></div><p class="st" role="status"></p></div>';
 document.body.appendChild(M);
 var bx=M.querySelector('.bx'),st=M.querySelector('.st'),fi=M.querySelector('input[type=file]'),pv=M.querySelector('[data-b="pv"]'),pend=null;
@@ -965,7 +963,7 @@ fi.onchange=function(){
     pv.innerHTML='<hr><p><b>備份檔內容</b>（匯出時間：'+(isNaN(d)?'未知':d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()))+'）</p><table>'+s.map(function(x){return '<tr><td>'+x[0]+'</td><td>'+x[1]+(x[0]==='銘牌照片'?' 張':' 筆')+'</td></tr>'}).join('')+'</table>'+
       '<p class="mut">已儲存紀錄會「合併」：這台沒有的會新增，同一筆以較新的為準，不會刪掉這台原有的紀錄。</p>'+
       '<button type="button" class="pri" data-a="go1">只合併已儲存紀錄（保留這台目前的畫面）</button>'+
-      '<button type="button" data-a="go2">合併紀錄，並載入備份檔裡「編輯中」的內容（會取代這台目前畫面上未儲存的內容）</button>';
+      '<button type="button" class="imp" data-a="go2">合併紀錄，並載入備份檔裡「編輯中」的內容（會取代這台目前畫面上未儲存的內容）</button>';
     st.textContent='';
   };
   r.onerror=function(){st.textContent='檔案讀取失敗。'};
@@ -974,10 +972,10 @@ fi.onchange=function(){
 })();
 </script>
 <script>
-/* ===== 全站統一導覽列（5 個頁面共用） ===== */
+/* ===== 全站統一導覽列（7 個頁面共用） ===== */
 (function(){
-var PAGES=[['index.html','泵浦換算'],['pipe.html','管路厚度'],['draw.html','工作點標記'],['survey.html','現場資料表'],['flow.html','流量量測']];
-var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(f==='pump-converter.html')f='index.html';
+var PAGES=[['index.html','泵浦換算'],['pipe.html','管路厚度'],['draw.html','工作點標記'],['survey.html','現場資料表'],['flow.html','流量量測'],['code_artifact.html','出入口壓力回推'],['chiller_eff.html','冷凍機效率']];
+var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(f==='pump-converter.html')f='index.html';if(/^chiller_eff.*\.html$/.test(f))f='chiller_eff.html';
 var css=document.createElement('style');css.textContent=
 '#siteNav{--sn-a:var(--bl,var(--accent,#0b7bc1));--sn-bg:var(--pn,var(--card,var(--surface,#f6f9fc)));--sn-ln:var(--ln,var(--line,#d5dee6));--sn-ink:var(--ink,var(--text,#17262e));--sn-mut:var(--mut,var(--muted,#5d6f7b));'+
  'background:var(--sn-bg);border-bottom:1px solid var(--sn-ln);margin:0 0 14px;font-size:16px;line-height:1.4}'+

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>水泵出入口真實壓力回推</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#ffffff;--surface:#f6f9fc;--ink:#13222c;--muted:#52656f;--line:#c5d0d6;--accent:#0b6b8a;--accent-ink:#fff;--ok:#1f7a4d;--warn:#a85a12;--bad:#a8321f;--wall:#2b3f4b;--water:#cfe6ef;--scale:#b08a5a;--hl:#d9ecf3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#0f1a21;--surface:#172630;--ink:#e4edf1;--muted:#93a8b3;--line:#2b404c;--accent:#5cc0e0;--accent-ink:#06222d;--ok:#5fd09a;--warn:#f0a24f;--bad:#f08a78;--wall:#9fb6c2;--water:#0f1a21;--scale:#8a6a42;--hl:#1d3340;color-scheme:dark}
+html{font-size:18px;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6;font-variant-numeric:tabular-nums}
+main{max-width:760px;margin:0 auto;padding:12px 16px 56px}
+h1{font-size:1.45rem;margin:4px 0 6px;font-weight:700}
+.sub{color:var(--muted);margin:0 0 20px;font-size:.95rem}
+.card,details.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px}
+.card{padding:18px}
+h2{font-size:1.1rem;margin:0 0 14px;font-weight:700}
+label.f{display:block;font-weight:500;font-size:.92rem;margin-bottom:6px}
+.hint{color:var(--muted);font-size:.82rem;font-weight:400}
+input,select{width:100%;font:inherit;font-size:1.1rem;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.seg{display:flex;gap:8px;margin-bottom:16px}
+.seg button{flex:1;font:inherit;font-size:.95rem;font-weight:500;padding:10px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--hl);color:var(--accent);border-color:var(--accent);font-weight:700}
+.note{font-size:.88rem;color:var(--muted);margin:12px 0 0}
+.alert{color:var(--warn);font-size:.92rem;margin:12px 0 0}
+details.sec>summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700;font-size:1.05rem;display:flex;align-items:center;justify-content:space-between;gap:10px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"▾";color:var(--muted);margin-left:auto;transition:transform .15s}
+details.sec[open]>summary::after{transform:rotate(180deg)}
+details.sec>summary .sm{font-weight:400;font-size:.88rem;color:var(--muted)}
+details.sec>.in{padding:0 18px 14px}
+.row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.ck{display:flex;align-items:center;gap:12px;flex:1 1 220px;cursor:pointer;min-width:0}
+.ck input{width:22px;height:22px;flex:none;padding:0;accent-color:var(--accent)}
+.ck em{display:block;font-style:normal;font-size:.8rem;color:var(--muted)}
+.mini{width:132px;padding:8px 10px;font-size:1rem}
+.bd{min-width:78px;text-align:right;font-weight:700;color:var(--accent);font-size:1rem}
+.bd.neg{color:var(--warn)}
+details.sec>summary .bd{min-width:0}
+.res{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-top:1px solid var(--line);padding:14px 0;cursor:pointer}
+.res:first-of-type{border-top:0}
+.rt{flex:1 1 200px;min-width:0}
+.rl{display:block;font-weight:500}
+.rs{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+.rv{font-size:1.7rem;font-weight:700;line-height:1.2;color:var(--accent)}
+.res.in .rv{color:var(--ok)}.res.hd .rv{color:var(--ink)}.res.low .rv{color:var(--bad)}
+.rep{white-space:pre-wrap;font:inherit;font-size:.92rem;line-height:1.75;margin:0}
+.act{font:inherit;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 18px;cursor:pointer;font-weight:500;margin-top:12px}
+.ghost{font:inherit;font-size:.9rem;color:var(--accent);background:none;border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}.top h2{margin:0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;max-width:90vw}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<main>
+<div class="topbar"><button class="tb" id="thToggle" type="button" title="切換深色背景" aria-label="切換深色背景"></button></div>
+<h1>水泵出入口真實壓力回推</h1>
+<p class="sub">輸入現場錶壓，再確認錶頭與泵法蘭之間的管件與高差，就能算出泵法蘭處的真實壓力。</p>
+
+<section class="card">
+  <div class="top"><h2>① 輸入錶壓</h2><button class="ghost" type="button" onclick="clearInputs()">清空</button></div>
+  <div class="g2">
+    <div><label class="f" for="outGauge">出口錶讀值 <span class="hint ul"></span></label><input id="outGauge" type="number" inputmode="decimal" step="any" placeholder="例 2.80"></div>
+    <div><label class="f" for="inGauge">入口錶讀值 <span class="hint">選填</span> <span class="hint ul"></span></label><input id="inGauge" type="number" inputmode="decimal" step="any" placeholder="例 1.40"></div>
+    <div><label class="f" for="pressUnit">壓力單位</label>
+      <select id="pressUnit" onchange="onPressUnit()"><option value="kg">kgf/cm²</option><option value="bar">bar</option><option value="kpa">kPa</option><option value="psi">psi</option><option value="m">mAq (m)</option></select></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② 計算結果 <span class="hint">（點一下可複製）</span></h2>
+  <button type="button" class="res" id="cOut" onclick="cp('rOut','真實出口壓')"><span class="rt"><span class="rl">真實出口壓</span><span class="rs" id="rOutS"></span></span><span class="rv" id="rOut">--</span></button>
+  <button type="button" class="res in" id="cIn" onclick="cp('rIn','真實入口壓')"><span class="rt"><span class="rl">真實入口壓</span><span class="rs" id="rInS"></span></span><span class="rv" id="rIn">--</span></button>
+  <button type="button" class="res hd" id="cHd" onclick="cp('rHd','真實總揚程')"><span class="rt"><span class="rl">真實總揚程 H</span><span class="rs" id="rHdS"></span></span><span class="rv" id="rHd">--</span></button>
+  <p class="alert" id="velAlert" hidden></p>
+</section>
+
+<details class="sec" open>
+  <summary>③ 吐出側管件與高差 <span class="bd sum" id="sum_out">+0.00</span></summary>
+  <div class="in"><p class="note" style="margin:0 0 4px">只勾選「出口錶頭與泵法蘭之間」真的有的項目。高差請用捲尺實測。</p><div id="listOut"></div></div>
+</details>
+
+<details class="sec" open>
+  <summary>④ 吸入側管件與高差 <span class="bd sum" id="sum_in">+0.00</span></summary>
+  <div class="in"><p class="note" style="margin:0 0 4px">只勾選「入口錶頭與泵法蘭之間」真的有的項目。</p><div id="listIn"></div></div>
+</details>
+
+<details class="sec">
+  <summary>估算設定 <span class="sm" id="modeSum"></span></summary>
+  <div class="in">
+    <div class="seg">
+      <button type="button" id="mStd" onclick="setMode('std')">快速估算</button>
+      <button type="button" id="mDyn" onclick="setMode('dyn')">依管徑與流量</button>
+    </div>
+    <div id="stdBox"><p class="note" style="margin:0">不用填流量，以約 2.8 m/s（DN250、約 490 CMH 等級）估算，每個管件損失約 K × 0.04 kgf/cm²。</p></div>
+    <div id="dynBox" hidden>
+      <div class="g2">
+        <div><label class="f" for="pipeDn">吐出側管徑</label><select id="pipeDn"></select></div>
+        <div><label class="f" for="pipeDnIn">吸入側管徑 <span class="hint">通常大一級</span></label><select id="pipeDnIn"></select></div>
+        <div><label class="f" for="flowVal">流量 <span class="hint" id="flowHint"></span></label>
+          <div style="display:flex;gap:8px"><input id="flowVal" type="number" inputmode="decimal" step="any" placeholder="例 490"><select id="flowUnit" onchange="onFlowUnit()" style="width:104px"><option value="CMH">CMH</option><option value="LPM">LPM</option><option value="GPM">GPM</option></select></div></div>
+      </div>
+      <p class="note" id="vel"></p>
+    </div>
+  </div>
+</details>
+
+<details class="sec">
+  <summary>報告用說明文字</summary>
+  <div class="in"><pre class="rep" id="rep"></pre><button type="button" class="act" onclick="cp('rep','說明文字')">複製說明文字</button></div>
+</details>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const TO_KG={kg:1,bar:1.019716,kpa:0.01019716,psi:0.070307,m:0.1},UL={kg:'kgf/cm²',bar:'bar',kpa:'kPa',psi:'psi',m:'mAq'};
+const ID={100:.1023,125:.1282,150:.1541,200:.2027,250:.2545,300:.3048,350:.3334,400:.381};
+const ITEMS={
+ out:[
+  {id:'out_elev',n:'outElevM',l:'出口錶高於泵軸 (m)',t:'最重要，請實測',on:1},
+  {id:'out_cv',s:'cvState',o:[['2.0','全開 K=2.0'],['4.0','微卡 K=4.0']],l:'旋啟式止回閥',on:1},
+  {id:'out_bfv',k:.3,l:'出口隔離蝶閥（全開）',t:'錶頭之後免勾'},
+  {id:'out_fj',k:.5,l:'不鏽鋼防震軟管',on:1},
+  {id:'out_red',k:.3,l:'偏心漸擴管',on:1},
+  {id:'out_elb45',k:.2,l:'45° 斜彎管',on:1},
+  {id:'out_extra',k:.3,l:'額外 90° 彎頭'}],
+ in:[
+  {id:'in_elev',n:'inElevM',l:'入口錶高於泵軸 (m)',t:'最重要，請實測；負數＝錶頭在泵軸下方',on:1},
+  {id:'in_str',s:'strState',o:[['2.0','乾淨 K=2.0'],['4.5','微髒 K=4.5'],['8.0','堵塞 K=8.0']],l:'吸入側 Y 型過濾器',t:'本機照片未見，有才勾'},
+  {id:'in_fj',k:.5,l:'不鏽鋼防震軟管',on:1},
+  {id:'in_elb',k:.5,l:'90° 漸縮彎頭',on:1},
+  {id:'in_bfv',k:.3,l:'吸入側隔離蝶閥（全開）'}]};
+function build(side,el){
+ $(el).innerHTML=ITEMS[side].map(it=>{
+  const c=it.n?`<input class="mini" type="number" inputmode="decimal" id="${it.n}" value="2.0" step="0.1" aria-label="${it.l}">`:it.s?`<select class="mini" id="${it.s}" aria-label="${it.l}">${it.o.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select>`:'';
+  return `<div class="row"><label class="ck"><input type="checkbox" id="chk_${it.id}"${it.on?' checked':''}><span>${it.l}${it.t?`<em>${it.t}</em>`:''}</span></label>${c}<span class="bd" id="d_${it.id}">+0.00</span></div>`}).join('')}
+build('out','listOut');build('in','listIn');
+const dnOpts=Object.keys(ID).map(k=>`<option value="${k}">DN${k}（內徑 ${(ID[k]*1000).toFixed(1)} mm）</option>`).join('');
+$('pipeDn').innerHTML=dnOpts;$('pipeDnIn').innerHTML=dnOpts;$('pipeDn').value='250';$('pipeDnIn').value='300';$('flowVal').value=490;
+let mode='dyn',prevP='kg',prevF='CMH';
+const dp=u=>u==='kg'||u==='bar'?2:1;
+const sg=(v,d)=>{if(v!==0&&Math.abs(v)<Math.pow(10,-d)/2)return (v>0?'+':'-')+Math.abs(v).toFixed(d+1);return (v>=0?'+':'-')+Math.abs(v).toFixed(d)};
+const num=id=>{const r=$(id).value;if(r==='')return null;const v=parseFloat(r);return isNaN(v)?null:v};
+function setMode(m){mode=m;$('mStd').setAttribute('aria-pressed',m==='std');$('mDyn').setAttribute('aria-pressed',m==='dyn');$('stdBox').hidden=m!=='std';$('dynBox').hidden=m!=='dyn';recalc();saveState()}
+function onPressUnit(){const n=$('pressUnit').value;if(n!==prevP){const f=TO_KG[prevP]/TO_KG[n];['outGauge','inGauge'].forEach(i=>{const v=parseFloat($(i).value);if(!isNaN(v))$(i).value=(v*f).toFixed(dp(n))});prevP=n}recalc()}
+function onFlowUnit(){const n=$('flowUnit').value,v=parseFloat($('flowVal').value);if(!isNaN(v)&&n!==prevF){const k={CMH:1,LPM:.06,GPM:.227125};$('flowVal').value=Number((v*k[prevF]/k[n]).toFixed(1))}prevF=n;recalc()}
+function clearInputs(){['outGauge','inGauge','flowVal'].forEach(i=>$(i).value='');recalc();saveState();toast('已清空數值')}
+function recalc(){try{
+ const u=$('pressUnit').value,L=UL[u],tk=TO_KG[u],fk=1/tk,d=dp(u);
+ document.querySelectorAll('.ul').forEach(e=>e.textContent=L);
+ let hv={out:.04,in:.04},vs='快速估算（約 2.8 m/s）',al='';
+ if(mode==='dyn'){
+  const dn=$('pipeDn').value,di=$('pipeDnIn').value,f=num('flowVal'),fu=$('flowUnit').value;
+  const cmh=f>0?(fu==='CMH'?f:fu==='LPM'?f*.06:f*.227125):null;
+  $('flowHint').textContent=cmh!==null&&fu!=='CMH'?`= ${cmh.toFixed(1)} CMH`:'';
+  if(cmh!==null){
+   const v=x=>(cmh/3600)/(Math.PI*x*x/4),vo=v(ID[dn]),vi=v(ID[di]);
+   hv={out:vo*vo/19.6133*.1,in:vi*vi/19.6133*.1};
+   $('vel').innerHTML=`吐出側流速 <b>${vo.toFixed(2)} m/s</b>　吸入側流速 <b>${vi.toFixed(2)} m/s</b>　吐出側動壓頭 ${(vo*vo/19.6133).toFixed(3)} m`;
+   vs=`DN${dn}，流速 ${vo.toFixed(2)} m/s`;
+   if(vo>4||vi>4)al=`⚠️ 流速偏高（吐出 ${vo.toFixed(1)}／吸入 ${vi.toFixed(1)} m/s，超過 4 m/s），局部壓損隨流速平方放大`;
+   else if(vo<1.2)al=`⚠️ 流速偏低（${vo.toFixed(2)} m/s），止回閥可能未完全頂開`;
+  }else{$('vel').textContent='請填流量，才能依管徑算流速；目前以約 2.8 m/s 估算。';vs=`DN${dn}（未填流量）`}
+ }
+ $('modeSum').textContent=vs;$('velAlert').textContent=al;$('velAlert').hidden=!al;
+ const net={out:0,in:0},tags={out:[],in:[]};
+ for(const side of['out','in'])for(const it of ITEMS[side]){
+  let kg;
+  if(it.n){const m=num(it.n)||0;kg=m*.1;}
+  else{const k=it.s?(parseFloat($(it.s).value)||2):it.k;kg=k*hv[side]}
+  const sgn=it.n?1:(side==='out'?1:-1),val=sgn*kg,b=$('d_'+it.id);
+  b.textContent=sg(val*fk,d);b.classList.toggle('neg',val<0);
+  if($('chk_'+it.id).checked){net[side]+=val;tags[side].push(it.n?`高程${num(it.n)||0}m`:it.s?`${it.l.replace('吸入側 ','').replace('旋啟式','')}K=${$(it.s).value}`:it.l.replace(/（全開）/,'').replace('不鏽鋼防震','').replace('出口','').replace('吸入側',''))}
+ }
+ for(const s of['out','in']){const e=$('sum_'+s);e.textContent=`${sg(net[s]*fk,d)} ${L}`;e.classList.toggle('neg',net[s]<0)}
+ const go=num('outGauge'),gi=num('inGauge'),go_k=go!==null?go*tk:null,gi_k=gi!==null?gi*tk:null;
+ const to=go_k!==null?go_k+net.out:null,ti=gi_k!==null?gi_k+net.in:null;
+ const od=net.out*fk,id_=net.in*fk,os=tags.out.join('、')||'無中間管件',is=tags.in.join('、')||'無中間管件';
+ if(to!==null){$('rOut').textContent=`${(to*fk).toFixed(d)} ${L}`;$('rOutS').textContent=`錶頭 ${go.toFixed(d)} ${sg(od,d)} ${L}`}
+ else{$('rOut').textContent=`-- ${L}`;$('rOutS').textContent='請輸入出口壓力錶數值'}
+ const cIn=$('cIn');cIn.classList.remove('low');
+ if(ti!==null){$('rIn').textContent=`${(ti*fk).toFixed(d)} ${L}`;
+  const low=ti<.15;cIn.classList.toggle('low',low);
+  $('rInS').textContent=`錶頭 ${gi.toFixed(d)} ${sg(id_,d)} ${L}`+(low?'　⚠️ 接近負壓，注意汽蝕風險':'')}
+ else{$('rIn').textContent=`-- ${L}`;$('rInS').textContent=`選填入口壓力錶可推算（目前淨修正 ${sg(id_,d)} ${L}）`}
+ let tH=null,gH=null;
+ if(to!==null&&ti!==null){tH=Math.max(0,to-ti)*10;gH=Math.max(0,go_k-gi_k)*10;
+  $('rHd').textContent=`${tH.toFixed(1)} m`;$('rHdS').textContent=`${(tH/10).toFixed(2)} kgf/cm²；錶頭直減 ${gH.toFixed(1)} m，淨修正 ${sg(tH-gH,1)} m`}
+ else{$('rHd').textContent='-- m';$('rHdS').textContent='同時輸入出入口錶壓後自動計算'}
+ if(to!==null){
+  const li=ti!==null?`\n• 真實入口壓：${(ti*fk).toFixed(d)} ${L}（錶頭 ${gi.toFixed(d)} ${sg(id_,d)}，含${is}）\n• 真實總揚程：${tH.toFixed(1)} m（未修正錶頭直減 ${gH.toFixed(1)} m）`:`\n• 真實入口壓：未測（若補測將套用 ${sg(id_,d)} ${L}，含${is}）`;
+  $('rep').textContent=`【揚程修正說明】（${vs}）：\n• 真實出口壓：${(to*fk).toFixed(d)} ${L}（錶頭 ${go.toFixed(d)} ${sg(od,d)}，含${os}）${li}\n※ 註：本修正以閥件全開、濾網乾淨為前提；報告並列錶頭原值與法蘭修正值供追溯。`}
+ else $('rep').textContent='請輸入出口壓力數值以自動產生精簡說明...';
+}catch(e){console.error(e)}}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800)}
+function cp(id,name){const t=$(id).textContent;const fb=()=>{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('已複製：'+name)}catch(e){toast('複製失敗')}a.remove()};
+ if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('已複製：'+name),fb);else fb()}
+/* 自動儲存（同時納入全站「備份／同步」） */
+const LS='pumpPressureState_v1';
+function saveState(){try{const f={};document.querySelectorAll('input[id],select[id]').forEach(e=>{f[e.id]=e.type==='checkbox'?e.checked:e.value});localStorage.setItem(LS,JSON.stringify({mode,f}))}catch(e){}}
+function applyState(s){const f=s.f||{},set=id=>{const e=$(id);if(!e||!(id in f))return;if(e.type==='checkbox')e.checked=!!f[id];else e.value=f[id]};
+ set('pressUnit');set('flowUnit');prevP=$('pressUnit').value;prevF=$('flowUnit').value;
+ Object.keys(f).forEach(i=>{if(i!=='pressUnit'&&i!=='flowUnit')set(i)});setMode(s.mode==='std'?'std':'dyn')}
+let tmr;['input','change'].forEach(e=>document.addEventListener(e,()=>{recalc();clearTimeout(tmr);tmr=setTimeout(saveState,300)}));
+let sv=null;try{sv=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
+if(sv&&sv.f)applyState(sv);else setMode('dyn');
+/* 深淺主題（與其他頁共用 pumpTheme） */
+const SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
+const MOON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="#818CF8" stroke="#4F46E5" stroke-width="1.6"/><path d="M18 3.2l.55 1.25 1.25.55-1.25.55L18 6.8l-.55-1.25L16.2 5l1.25-.55z" fill="#FBBF24" stroke="#F59E0B" stroke-width=".6"/></svg>';
+let curTheme='white';
+function setTheme(k){curTheme=k==='dark'?'dark':'white';document.documentElement.setAttribute('data-theme',curTheme==='dark'?'dark':'light');const b=$('thToggle'),t=curTheme==='dark'?'切換淺色背景':'切換深色背景';b.innerHTML=curTheme==='dark'?SUN:MOON;b.title=t;b.setAttribute('aria-label',t);try{localStorage.setItem('pumpTheme',curTheme)}catch(e){}}
+let st='white';try{st=localStorage.getItem('pumpTheme')||'white'}catch(e){}
+setTheme(st);
+$('thToggle').onclick=()=>setTheme(curTheme==='dark'?'white':'dark');
+</script>
+<script>
+/* ===== 全站備份／同步（手機 ↔ 電腦）：所有頁面共用同一份資料 ===== */
+(function(){
+var LSK=['chillerEffState_v1','chillerEffState_v2','chillerEffState_v3','chillerEffRecs_v1','pumpPressureState_v1','pumpRecords','pumpTbl','pumpTheme','flowSurveyRecs','flowSurveyDraft','pa47SurveyRecs_v8','pa47SurveyDraft_v8','pa47Theme','pumpDrawState'];
+var IDBS=[{db:'pa47SurveyPhotos',st:'p'},{db:'pumpDraw',st:'kv'}];
+var RECS={chillerEffRecs_v1:'id',pumpRecords:'id',flowSurveyRecs:'name',pa47SurveyRecs_v8:'id'};
+var DRAFT={chillerEffState_v1:1,chillerEffState_v2:1,chillerEffState_v3:1,pumpPressureState_v1:1,flowSurveyDraft:1,pa47SurveyDraft_v8:1,pumpDrawState:1};
+function z(n){return String(n).padStart(2,'0')}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function openDB(n,st){return new Promise(function(res){try{var r=indexedDB.open(n,1);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains(st))r.result.createObjectStore(st)};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
+function dbAll(db,st){return new Promise(function(res){if(!db)return res({});try{var out={},tx=db.transaction(st,'readonly'),s=tx.objectStore(st),c=s.openCursor();c.onsuccess=function(){var k=c.result;if(k){out[String(k.key)]=k.value;k.continue()}else res(out)};c.onerror=function(){res({})}}catch(e){res({})}})}
+function dbPut(db,st,k,v){return new Promise(function(res){if(!db)return res(false);try{var tx=db.transaction(st,'readwrite');tx.objectStore(st).put(v,k);tx.oncomplete=function(){res(true)};tx.onerror=function(){res(false)}}catch(e){res(false)}})}
+function b2u(b){return new Promise(function(res){if(!(b instanceof Blob))return res(b);var r=new FileReader();r.onload=function(){res({__blob:r.result})};r.onerror=function(){res(null)};r.readAsDataURL(b)})}
+function u2b(o){if(!o||typeof o!=='object'||typeof o.__blob!=='string')return o;try{var m=/^data:([^;,]*)(;base64)?,(.*)$/.exec(o.__blob),bin=m[2]?atob(m[3]):decodeURIComponent(m[3]),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||'application/octet-stream'})}catch(e){return null}}
+async function deep(v,f){if(v instanceof Blob)return await f(v);if(Array.isArray(v)){var a=[];for(var i=0;i<v.length;i++)a.push(await deep(v[i],f));return a}if(v&&typeof v==='object'&&!(v instanceof Date)){if(v.__blob)return f(v);var o={};for(var k in v)o[k]=await deep(v[k],f);return o}return v}
+async function collect(){
+  var out={app:'pump-tool-backup',v:1,t:new Date().toISOString(),ls:{},idb:{}};
+  LSK.forEach(function(k){var v=lsGet(k);if(v!=null)out.ls[k]=v});
+  for(var i=0;i<IDBS.length;i++){var d=IDBS[i],db=await openDB(d.db,d.st),all=await dbAll(db,d.st);if(db)db.close();var o={};for(var k in all)o[k]=await deep(all[k],b2u);if(Object.keys(o).length)out.idb[d.db]=o}
+  return out;
+}
+function summary(b){
+  var c=function(k){try{var a=JSON.parse(b.ls[k]||'[]');return Array.isArray(a)?a.length:0}catch(e){return 0}};
+  var ph=0,pi=(b.idb&&b.idb.pa47SurveyPhotos)||{};Object.keys(pi).forEach(function(k){var o=pi[k];if(o)ph+=((o.motor||[]).length+(o.pump||[]).length)});
+  return [['冷凍機巡檢紀錄',c('chillerEffRecs_v1')],['泵浦換算紀錄',c('pumpRecords')],['流量量測紀錄',c('flowSurveyRecs')],['現場資料表紀錄',c('pa47SurveyRecs_v8')],['銘牌照片',ph]];
+}
+function merge(cur,inc,key){
+  var a=[];try{a=JSON.parse(cur||'[]');if(!Array.isArray(a))a=[]}catch(e){a=[]}
+  var b=[];try{b=JSON.parse(inc||'[]');if(!Array.isArray(b))b=[]}catch(e){b=[]}
+  var add=0,upd=0;
+  b.forEach(function(r){if(!r||r[key]==null)return;var i=a.findIndex(function(x){return x&&x[key]===r[key]});
+    if(i<0){a.push(r);add++}else if(!a[i].t||!r.t||String(r.t)>=String(a[i].t)){if(JSON.stringify(a[i])!==JSON.stringify(r)){a[i]=r;upd++}}});
+  return {v:JSON.stringify(a),add:add,upd:upd};
+}
+async function apply(b,withDraft){
+  var n={add:0,upd:0};
+  Object.keys(RECS).forEach(function(k){if(b.ls[k]==null)return;var m=merge(lsGet(k),b.ls[k],RECS[k]);lsSet(k,m.v);n.add+=m.add;n.upd+=m.upd});
+  var ph=(b.idb&&b.idb.pa47SurveyPhotos)||{},pdb=await openDB('pa47SurveyPhotos','p');
+  for(var k in ph){if(k==='draft'&&!withDraft)continue;await dbPut(pdb,'p',k,ph[k])}
+  if(pdb)pdb.close();
+  if(withDraft){
+    Object.keys(DRAFT).forEach(function(k){if(b.ls[k]!=null)lsSet(k,b.ls[k])});
+    var dr=(b.idb&&b.idb.pumpDraw)||{};
+    if(dr.last){var ddb=await openDB('pumpDraw','kv');await dbPut(ddb,'kv','last',await deep(dr.last,u2b));if(ddb)ddb.close()}
+  }
+  return n;
+}
+async function save(blob,name){
+  var f=null;try{f=new File([blob],name,{type:'application/json'})}catch(e){}
+  if(f&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'泵浦工具備份'});return}catch(e){if(e&&e.name==='AbortError')return}}
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+}
+var th=document.getElementById('thToggle')||document.getElementById('themeToggle');
+var btn=document.createElement('button');btn.type='button';btn.id='bkBtn';btn.className=th?th.className:'';btn.title='備份／同步資料（手機 ↔ 電腦）';
+btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>備份／同步';
+btn.style.width='auto';btn.style.whiteSpace='nowrap';
+if(th&&th.parentNode)th.parentNode.insertBefore(btn,th.nextSibling);else{btn.style.cssText='position:fixed;right:12px;bottom:12px;z-index:60';document.body.appendChild(btn)}
+var css=document.createElement('style');css.textContent=
+'#bkM{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}#bkM[hidden]{display:none}'+
+'#bkM .bx{max-width:520px;width:100%;max-height:90vh;overflow:auto;border-radius:12px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:16px;line-height:1.6}'+
+'#bkM h3{margin:0 0 6px;font-size:20px}#bkM p{margin:6px 0}#bkM .mut{opacity:.75;font-size:15px}'+
+'#bkM button{font:inherit;cursor:pointer;width:100%;padding:10px 12px;border-radius:8px;margin:6px 0;border:1px solid currentColor;background:transparent;color:inherit;text-align:center}'+
+'#bkM button.pri{background:#0b7bc1;border-color:#0b7bc1;color:#fff;font-weight:700}#bkM .x{position:absolute;right:10px;top:8px;width:auto;border:0;font-size:22px;padding:2px 8px;margin:0}'+
+'#bkM table{border-collapse:collapse;width:100%;margin:6px 0;font-size:15px}#bkM td{padding:3px 6px;border-bottom:1px solid rgba(128,128,128,.3)}#bkM td:last-child{text-align:right}'+
+'#bkM .st{font-weight:700;color:#0b7bc1;min-height:1.4em}#bkM hr{border:0;border-top:1px solid rgba(128,128,128,.35);margin:12px 0}';
+document.head.appendChild(css);
+var M=document.createElement('div');M.id='bkM';M.hidden=true;M.setAttribute('role','dialog');M.setAttribute('aria-label','備份／同步資料');
+M.innerHTML='<div class="bx" style="position:relative"><button type="button" class="x" aria-label="關閉">×</button><h3>備份／同步資料</h3>'+
+'<p class="mut">網站的資料只存在這台裝置的瀏覽器裡。要在手機和電腦之間同步，請在一台按「匯出」，把檔案傳到另一台（LINE、Email、雲端硬碟都可以），再按「匯入」。</p>'+
+'<p class="mut">一個備份檔包含所有頁面：冷凍機效率、泵浦換算、流量量測、現場資料表（含銘牌照片）、工作點標記。</p><hr>'+
+'<button type="button" class="pri" data-a="exp">⬇ 匯出全部資料（.json）</button>'+
+'<button type="button" class="imp" data-a="imp">⬆ 匯入備份檔…</button><input type="file" accept=".json,application/json" hidden>'+
+'<div data-b="pv"></div><p class="st" role="status"></p></div>';
+document.body.appendChild(M);
+var bx=M.querySelector('.bx'),st=M.querySelector('.st'),fi=M.querySelector('input[type=file]'),pv=M.querySelector('[data-b="pv"]'),pend=null;
+function paint(){var cs=getComputedStyle(document.body),bg=cs.backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')bg=getComputedStyle(document.documentElement).backgroundColor||'#fff';if(!bg||bg==='rgba(0, 0, 0, 0)')bg='#fff';bx.style.background=bg;bx.style.color=cs.color}
+function open(){paint();st.textContent='';pv.innerHTML='';pend=null;M.hidden=false}
+function close(){M.hidden=true}
+btn.onclick=open;M.querySelector('.x').onclick=close;M.addEventListener('click',function(e){if(e.target===M)close()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!M.hidden)close()});
+M.addEventListener('click',async function(e){
+  var b=e.target.closest('button[data-a]');if(!b)return;var a=b.getAttribute('data-a');
+  if(a==='exp'){
+    st.textContent='正在打包資料…';
+    try{var d=await collect(),s=summary(d),txt=JSON.stringify(d),blob=new Blob([txt],{type:'application/json'}),t=new Date();
+      var name='泵浦工具備份_'+t.getFullYear()+z(t.getMonth()+1)+z(t.getDate())+'_'+z(t.getHours())+z(t.getMinutes())+'.json';
+      await save(blob,name);
+      st.textContent='已匯出：'+name+'（'+(blob.size/1024/1024).toFixed(1)+' MB；'+s.filter(function(x){return x[1]}).map(function(x){return x[0]+' '+x[1]}).join('、')+(s.some(function(x){return x[1]})?'':'目前沒有已儲存紀錄，只有編輯中的內容')+'）';
+    }catch(err){st.textContent='匯出失敗：'+(err&&err.message||err)}
+  }
+  if(a==='imp'){fi.value='';fi.click()}
+  if(a==='go1'||a==='go2'){
+    if(!pend)return;st.textContent='正在匯入…';
+    try{var n=await apply(pend,a==='go2');st.textContent='匯入完成：新增 '+n.add+' 筆、更新 '+n.upd+' 筆紀錄'+(a==='go2'?'，並載入編輯中的內容':'')+'。頁面即將重新整理…';pend=null;setTimeout(function(){location.reload()},1400)}
+    catch(err){st.textContent='匯入失敗：'+(err&&err.message||err)}
+  }
+});
+fi.onchange=function(){
+  var f=fi.files&&fi.files[0];if(!f)return;st.textContent='正在讀取 '+f.name+' …';
+  var r=new FileReader();
+  r.onload=function(){
+    var b=null;try{b=JSON.parse(r.result)}catch(e){}
+    if(!b||b.app!=='pump-tool-backup'||!b.ls){st.textContent='這不是泵浦工具的備份檔，請選擇「泵浦工具備份_….json」。';return}
+    pend=b;var s=summary(b),d=new Date(b.t);
+    pv.innerHTML='<hr><p><b>備份檔內容</b>（匯出時間：'+(isNaN(d)?'未知':d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()))+'）</p><table>'+s.map(function(x){return '<tr><td>'+x[0]+'</td><td>'+x[1]+(x[0]==='銘牌照片'?' 張':' 筆')+'</td></tr>'}).join('')+'</table>'+
+      '<p class="mut">已儲存紀錄會「合併」：這台沒有的會新增，同一筆以較新的為準，不會刪掉這台原有的紀錄。</p>'+
+      '<button type="button" class="pri" data-a="go1">只合併已儲存紀錄（保留這台目前的畫面）</button>'+
+      '<button type="button" class="imp" data-a="go2">合併紀錄，並載入備份檔裡「編輯中」的內容（會取代這台目前畫面上未儲存的內容）</button>';
+    st.textContent='';
+  };
+  r.onerror=function(){st.textContent='檔案讀取失敗。'};
+  r.readAsText(f);
+};
+})();
+</script>
+<script>
+/* ===== 全站統一導覽列（7 個頁面共用） ===== */
+(function(){
+var PAGES=[['index.html','泵浦換算'],['pipe.html','管路厚度'],['draw.html','工作點標記'],['survey.html','現場資料表'],['flow.html','流量量測'],['code_artifact.html','出入口壓力回推'],['chiller_eff.html','冷凍機效率']];
+var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(f==='pump-converter.html')f='index.html';if(/^chiller_eff.*\.html$/.test(f))f='chiller_eff.html';
+var css=document.createElement('style');css.textContent=
+'#siteNav{--sn-a:var(--bl,var(--accent,#0b7bc1));--sn-bg:var(--pn,var(--card,var(--surface,#f6f9fc)));--sn-ln:var(--ln,var(--line,#d5dee6));--sn-ink:var(--ink,var(--text,#17262e));--sn-mut:var(--mut,var(--muted,#5d6f7b));'+
+ 'background:var(--sn-bg);border-bottom:1px solid var(--sn-ln);margin:0 0 14px;font-size:16px;line-height:1.4}'+
+'#siteNav .sn-in{margin:0 auto;display:flex;align-items:center;gap:6px 14px;padding:8px 20px;flex-wrap:wrap;box-sizing:border-box}'+
+'#siteNav .sn-brand{font-weight:800;color:var(--sn-ink);text-decoration:none;white-space:nowrap;font-size:17px;margin-right:4px}'+
+'#siteNav .sn-tabs{display:flex;gap:4px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}#siteNav .sn-tabs::-webkit-scrollbar{display:none}'+
+'#siteNav .sn-tab{white-space:nowrap;text-decoration:none;color:var(--sn-mut);padding:7px 12px;border-radius:8px;font-weight:600;border:1px solid transparent}'+
+'#siteNav .sn-tab:hover{color:var(--sn-a);border-color:var(--sn-ln)}'+
+'#siteNav .sn-tab[aria-current="page"]{color:#fff;background:var(--sn-a);border-color:var(--sn-a)}'+
+':root[data-theme="dark"] #siteNav .sn-tab[aria-current="page"]{color:#0b1418}'+
+'#siteNav .sn-act{display:flex;gap:6px;margin-left:auto;flex:none}'+
+'#siteNav .sn-ic{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:38px;min-width:38px;padding:0 10px;border:1px solid var(--sn-ln);border-radius:8px;cursor:pointer;color:var(--sn-a);background:var(--bg,#fff);font:inherit;font-size:15px;white-space:nowrap}'+
+'#siteNav .sn-ic:hover{border-color:var(--sn-a)}#siteNav .sn-ic:focus-visible{outline:2px solid var(--sn-a);outline-offset:2px}#siteNav .sn-ic svg{flex:none}'+
+'@media(max-width:720px){#siteNav .sn-in{padding:8px 12px}#siteNav .sn-tabs{order:3;flex-basis:100%;flex-wrap:wrap;overflow:visible;gap:6px}#siteNav .sn-tab{padding:5px 10px;border-color:var(--sn-ln);font-size:15px}}'+
+'@media print{#siteNav{display:none!important}}';
+document.head.appendChild(css);
+var nav=document.createElement('nav');nav.id='siteNav';nav.setAttribute('aria-label','網站導覽');
+nav.innerHTML='<div class="sn-in"><a class="sn-brand" href="index.html">💧 泵浦工具</a><div class="sn-tabs">'+
+  PAGES.map(function(p){return '<a class="sn-tab" href="'+p[0]+'"'+(p[0]===f?' aria-current="page"':'')+'>'+p[1]+'</a>'}).join('')+
+  '</div><div class="sn-act"></div></div>';
+document.body.insertBefore(nav,document.body.firstChild);
+var act=nav.querySelector('.sn-act');
+['bkBtn','thToggle','themeToggle'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;var par=el.parentNode;
+  el.className='sn-ic';el.removeAttribute('style');act.appendChild(el);
+  if(par&&par!==act&&!par.children.length&&!par.textContent.trim())par.remove();
+});
+var cur=nav.querySelector('[aria-current]');if(cur&&cur.scrollIntoView)try{cur.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}
+window.scrollTo(0,0);
+var inn=nav.querySelector('.sn-in');
+function fit(){var m=document.querySelector('main'),h=document.querySelector('body>header');var ref=(h&&h.offsetWidth)?h:m;if(!ref)return;var cs=getComputedStyle(ref);
+  var mw=parseFloat(cs.maxWidth);inn.style.maxWidth=isFinite(mw)?Math.max(mw,1120)+'px':'';if(innerWidth>720){inn.style.paddingLeft=cs.paddingLeft;inn.style.paddingRight=cs.paddingRight}else{inn.style.paddingLeft='';inn.style.paddingRight=''}}
+fit();addEventListener('resize',fit);
+})();
+</script>
+</body>
+</html>

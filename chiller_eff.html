@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>冷凍機效率判斷</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#ffffff;--surface:#f6f9fc;--ink:#13222c;--muted:#52656f;--line:#c5d0d6;--accent:#0b6b8a;--accent-ink:#fff;--ok:#1f7a4d;--warn:#a85a12;--bad:#a8321f;--wall:#2b3f4b;--water:#cfe6ef;--scale:#b08a5a;--hl:#d9ecf3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#0f1a21;--surface:#172630;--ink:#e4edf1;--muted:#93a8b3;--line:#2b404c;--accent:#5cc0e0;--accent-ink:#06222d;--ok:#5fd09a;--warn:#f0a24f;--bad:#f08a78;--wall:#9fb6c2;--water:#0f1a21;--scale:#8a6a42;--hl:#1d3340;color-scheme:dark}
+html{font-size:17px;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.58;font-variant-numeric:tabular-nums}
+main{max-width:1240px;margin:0 auto;padding:8px 20px 56px}
+
+/* 頁首標題與快速按鈕列 */
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px 20px;margin-bottom:18px}
+h1{font-size:1.45rem;margin:0 0 4px;font-weight:700;line-height:1.25}
+.sub{color:var(--muted);margin:0;font-size:.93rem}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin:0}
+
+/* 電腦版雙欄配置：左輸入、右即時結果＋紀錄（手機版維持結果在上、輸入在下） */
+.layout{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
+@media(min-width:980px){
+  .layout{grid-template-columns:minmax(0,1.32fr) minmax(390px,.95fr);gap:22px;grid-template-areas:"form side"}
+  .col-form{grid-area:form;min-width:0}
+  .col-side{grid-area:side;min-width:0;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto;padding-right:2px}
+  .col-side::-webkit-scrollbar{width:6px}
+  .col-side::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+}
+
+.card,details.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px}
+.card{padding:18px 20px}
+h2{font-size:1.08rem;margin:0 0 12px;font-weight:700}
+label.f{display:block;font-weight:500;font-size:.9rem;margin-bottom:5px}
+.hint{color:var(--muted);font-size:.8rem;font-weight:400}
+.conv-hint{color:var(--accent);font-size:.82rem;font-weight:500;margin-top:4px;min-height:1.25em}
+.conv-hint button,.est-box button{font:inherit;font-size:.8rem;color:var(--accent);background:var(--hl);border:1px solid var(--accent);border-radius:6px;padding:2px 9px;margin-left:6px;cursor:pointer;font-weight:500}
+input,select{width:100%;font:inherit;font-size:1.04rem;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 16px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px 16px}
+@media(min-width:1120px){
+  #gP.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #gR.g2{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+.pair-row{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:760px){
+  .pair-row{grid-template-columns:1fr 1fr;gap:18px}
+  .pair-row .card{margin-bottom:18px}
+}
+
+.note{font-size:.87rem;color:var(--muted);margin:10px 0 0}
+details.sec>summary{list-style:none;cursor:pointer;padding:15px 20px;font-weight:700;font-size:1.04rem;display:flex;align-items:center;justify-content:space-between;gap:10px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"▾";color:var(--muted);margin-left:auto;transition:transform .15s}
+details.sec[open]>summary::after{transform:rotate(180deg)}
+details.sec>summary .sm{font-weight:400;font-size:.86rem;color:var(--muted)}
+details.sec>.in{padding:0 20px 18px}
+
+.ghost{font:inherit;font-size:.88rem;color:var(--accent);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 13px;cursor:pointer;white-space:nowrap}
+.ghost:hover{border-color:var(--accent);background:var(--hl)}
+.pri-btn{font:inherit;font-size:.92rem;font-weight:700;color:var(--accent-ink);background:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.pri-btn:hover{opacity:.92}
+.danger-btn{font:inherit;font-size:.84rem;color:var(--bad);background:none;border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
+.danger-btn:hover{border-color:var(--bad)}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;max-width:90vw}
+#toast.on{opacity:1}
+
+/* 診斷結果卡片 */
+.vd{border:1px solid var(--line);border-left:8px solid var(--muted);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:var(--bg)}
+.vd.g{border-left-color:var(--ok)}.vd.y{border-left-color:var(--warn)}.vd.r{border-left-color:var(--bad)}
+.vt{font-size:1.25rem;font-weight:700;margin:0 0 5px}.vd.g .vt{color:var(--ok)}.vd.y .vt{color:var(--warn)}.vd.r .vt{color:var(--bad)}
+.vd p{margin:0;font-size:.95rem;line-height:1.55}
+.kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:0 0 12px}
+.kv2 div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.kv2 b{display:block;font-size:1.28rem;line-height:1.25}.kv2 span{font-size:.78rem;color:var(--muted)}
+ul.ls{margin:6px 0 0;padding-left:1.2em;font-size:.92rem}ul.ls li{margin:5px 0;line-height:1.5}
+.sh{font-weight:700;margin:13px 0 2px;font-size:.95rem}
+
+/* 反推輔助區塊樣式 */
+.est-wrap{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.est-toggle{font:inherit;font-size:.88rem;font-weight:600;color:var(--accent);background:var(--hl);border:1px solid var(--accent);border-radius:8px;padding:7px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.est-box{margin-top:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.est-box[hidden]{display:none}
+.est-sec{padding:10px 0;border-top:1px solid var(--line)}
+.est-sec:first-child{padding-top:0;border-top:0}
+.est-title{font-weight:700;font-size:.92rem;margin:0 0 8px;color:var(--ink)}
+.est-res{margin-top:8px;padding:9px 12px;background:var(--surface);border-radius:8px;font-size:.88rem;line-height:1.6}
+.est-res .item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:4px 0}
+.est-res .item+.item{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px}
+
+/* 巡檢紀錄與清單樣式 */
+.save-stack{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed var(--line)}
+.save-stack-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.save-stack-row{grid-template-columns:1fr}}
+.rec-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.rec-head h2{margin:0}
+.rec-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rec-list{display:flex;flex-direction:column;gap:10px}
+.rec-item{background:var(--bg);border:1px solid var(--line);border-left:6px solid var(--muted);border-radius:10px;padding:11px 13px}
+.rec-item.g{border-left-color:var(--ok)}.rec-item.y{border-left-color:var(--warn)}.rec-item.r{border-left-color:var(--bad)}
+.rec-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.rec-title{font-weight:700;font-size:.98rem}
+.rec-time{font-size:.78rem;color:var(--muted)}
+.rec-badge{font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
+.rec-item.g .rec-badge{color:var(--ok)}.rec-item.y .rec-badge{color:var(--warn)}.rec-item.r .rec-badge{color:var(--bad)}
+.rec-metrics{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.85rem;margin:6px 0;color:var(--ink)}
+.rec-metrics span b{font-weight:700}
+.rec-note{font-size:.82rem;color:var(--muted);margin:4px 0 8px}
+.rec-btns{display:flex;gap:6px;flex-wrap:wrap}
+.rec-btns button{font:inherit;font-size:.8rem;padding:4px 9px;border-radius:6px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.rec-btns button:hover{border-color:var(--accent);color:var(--accent)}
+.rec-btns button.del:hover{border-color:var(--bad);color:var(--bad)}
+
+/* 確認對話框樣式（取代原生 confirm） */
+.modal-mask{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-mask[hidden]{display:none}
+.modal-card{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:420px;width:100%;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.modal-card h3{margin:0 0 8px;font-size:1.1rem}
+.modal-card p{margin:0 0 16px;font-size:.94rem;color:var(--muted)}
+.modal-acts{display:flex;justify-content:flex-end;gap:8px}
+</style>
+</head>
+<body>
+<main>
+<div class="topbar"><button class="tb" id="thToggle" type="button" title="切換深色背景" aria-label="切換深色背景"></button></div>
+
+<div class="page-head">
+  <div>
+    <h1>冷凍機效率判斷</h1>
+    <p class="sub">欄位都可以留空（電氣、水側、或面板顯示值擇一即可），填得越多交叉比對越準。</p>
+  </div>
+  <div class="btns">
+    <button class="ghost" type="button" onclick="loadField('f1')">載入案例 1（750RT 離心機）</button>
+    <button class="ghost" type="button" onclick="loadField('f2')">載入案例 2（海爾 450RT 磁懸浮）</button>
+    <button class="ghost" type="button" onclick="clearAll()">全部清空</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="col-side">
+    <section class="card" id="res"></section>
+
+    <section class="card" id="recCard">
+      <div class="rec-head">
+        <h2>📋 巡檢紀錄與清單（<span id="recCount">0</span> 筆）</h2>
+        <div class="rec-actions">
+          <button type="button" class="ghost" id="expCsvBtn">📥 匯出 CSV</button>
+          <button type="button" class="danger-btn" id="clearRecsBtn">清空</button>
+        </div>
+      </div>
+      <div class="save-stack">
+        <div class="save-stack-row">
+          <div>
+            <label class="f" for="siteName">案場與主機名稱 <span class="hint">儲存用</span></label>
+            <input id="siteName" type="text" placeholder="例：台塑林園 AE 廠 - 1#磁懸浮">
+          </div>
+          <div>
+            <label class="f" for="siteNote">巡檢備註 <span class="hint">選填</span></label>
+            <input id="siteNote" type="text" placeholder="例：清洗前基準、50%負載">
+          </div>
+        </div>
+        <button type="button" class="pri-btn" id="saveRecBtn" style="width:100%">💾 儲存本筆巡檢紀錄</button>
+      </div>
+      <div id="recList" class="rec-list"></div>
+    </section>
+  </div>
+
+  <div class="col-form">
+    <section class="card">
+      <h2>① 耗電與面板顯示值</h2>
+      <p class="note" style="margin:0 0 12px">填電表 kW、三相機電數據，或直接填主機面板顯示的製冷量／COP（程式會自動反推功率並交叉比對）。</p>
+      <div class="g3" id="gP"></div>
+    </section>
+
+    <div class="pair-row">
+      <section class="card"><h2>② 冰水側（蒸發器）</h2><div class="g2" id="gC"></div></section>
+      <section class="card"><h2>③ 冷卻水側（冷凝器）</h2><div class="g2" id="gW"></div></section>
+    </div>
+
+    <details class="sec" open>
+      <summary>④ 主機銘牌與基準 <span class="sm" id="nameplateSm">用來判斷好壞的比較對象</span></summary>
+      <div class="in">
+        <p class="note" style="margin:0 0 12px">若銘牌同時有「名義工況」與「用戶工況」，請優先填入<b>用戶工況</b>數值。</p>
+        <div class="g2" id="gR"></div>
+        <div class="est-wrap">
+          <button type="button" class="est-toggle" id="estBtn" aria-expanded="false">🔍 不知道額定 RT？點此自動反推</button>
+          <div class="est-box" id="estBox" hidden>
+            <div class="est-sec">
+              <div class="est-title">方法 A：依面板「% RLA」與運轉數據反推</div>
+              <div class="g2">
+                <div>
+                  <label class="f" for="estAssumedEff">假設滿載效率 <span class="hint">kW/RT（可依機型調整）</span></label>
+                  <input id="estAssumedEff" type="number" inputmode="decimal" step="0.01" value="0.60">
+                </div>
+                <div>
+                  <label class="f" for="estRlaCap">或直接填面板滿載電流 <span class="hint">RLA (A)，選填</span></label>
+                  <input id="estRlaCap" type="number" inputmode="decimal" step="any" placeholder="面板設定值，例 810">
+                </div>
+              </div>
+              <div class="est-res" id="estResA"></div>
+            </div>
+            <div class="est-sec">
+              <div class="est-title">方法 B：依「專用一對一水泵」銘牌額定流量反推</div>
+              <div class="g2">
+                <div>
+                  <label class="f" for="estPumpSide">水泵迴路</label>
+                  <select id="estPumpSide">
+                    <option value="chw">冰水泵（約 0.605 CMH / RT）</option>
+                    <option value="cw">冷卻水泵（約 0.740 CMH / RT）</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="f" for="estPumpFlow">水泵銘牌設計流量</label>
+                  <div style="display:flex;gap:8px">
+                    <input id="estPumpFlow" type="number" inputmode="decimal" step="any" placeholder="例 450">
+                    <select id="estPumpFlowU" style="width:104px"><option value="CMH">CMH</option><option value="LPM">LPM</option><option value="GPM">GPM</option></select>
+                  </div>
+                </div>
+              </div>
+              <div class="est-res" id="estResB"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>⑤ 趨近溫度與冷媒飽和溫度（選填） <span class="sm" id="appSm">判斷銅管結垢與冷媒狀態</span></summary>
+      <div class="in">
+        <p class="note" style="margin:0 0 12px">面板若有直接顯示「趨近溫度」可直接填；若只顯示冷媒飽和溫度，程式會自動搭配出水溫度算出趨近溫度。</p>
+        <div class="g2" id="gS"></div>
+      </div>
+    </details>
+  </div>
+</div>
+</main>
+
+<!-- 自訂確認視窗 -->
+<div class="modal-mask" id="confirmModal" hidden role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h3>清空巡檢紀錄</h3>
+    <p id="confirmMsg">確定要清空全部巡檢紀錄嗎？</p>
+    <div class="modal-acts">
+      <button type="button" class="ghost" id="confirmCancel">取消</button>
+      <button type="button" class="danger-btn" id="confirmOk" style="border-color:var(--bad);font-weight:700">確定清空</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
+<script>
+const $=id=>document.getElementById(id);
+const FL=(id,ph)=>`<div style="display:flex;gap:8px"><input id="${id}" type="number" inputmode="decimal" step="any" placeholder="${ph||'例 490'}"><select id="${id}U" style="width:100px;flex:none"><option value="CMH">CMH</option><option value="LPM">LPM</option><option value="GPM">GPM</option></select></div>`;
+const CAP=(id,ph)=>`<div style="display:flex;gap:8px"><input id="${id}" type="number" inputmode="decimal" step="any" placeholder="${ph}"><select id="${id}U" style="width:92px;flex:none"><option value="RT">RT</option><option value="kW">kW</option></select></div><div class="conv-hint" id="${id}ConvHint"></div>`;
+const EFF=(id,hintId,ph)=>`<div style="display:flex;gap:8px"><input id="${id}" type="number" inputmode="decimal" step="any" placeholder="${ph}"><select id="${id}U" style="width:108px;flex:none"><option value="KWRT">kW/RT</option><option value="COP">COP</option></select></div><div class="conv-hint" id="${hintId}"></div>`;
+const NUM=(id,ph)=>`<input id="${id}" type="number" inputmode="decimal" step="any" placeholder="${ph||''}">`;
+
+const G={
+ gP:[
+  ['耗電功率 <span class="hint">kW（電能表）</span>','pKw',NUM('pKw','有電表直接填')],
+  ['線電壓 <span class="hint">V</span>','lineV',NUM('lineV','例 381')],
+  ['平均線電流 <span class="hint">A</span>','lineI',NUM('lineI','例 519')],
+  ['功率因數','pf',NUM('pf','例 0.833')],
+  ['電流負載率 <span class="hint">% RLA，面板</span>','rla',NUM('rla','例 64')],
+  ['面板顯示製冷量 <span class="hint">選填</span>','panelCap',CAP('panelCap','例 225.2')],
+  ['面板顯示效率 <span class="hint">選填</span>','panelEff',EFF('panelEff','panelEffHint','例 0.64 或 5.5')]
+ ],
+ gC:[
+  ['冰水入水溫度 <span class="hint">°C</span>','chwIn',NUM('chwIn','例 10.6')],
+  ['冰水出水溫度 <span class="hint">°C</span>','chwOut',NUM('chwOut','例 6.9')],
+  ['冰水流量 <span class="hint">有量到最準</span>','chwFlow',FL('chwFlow','例 185')]
+ ],
+ gW:[
+  ['冷卻水入水溫度 <span class="hint">°C</span>','cwIn',NUM('cwIn','例 30.1')],
+  ['冷卻水出水溫度 <span class="hint">°C</span>','cwOut',NUM('cwOut','例 32.7')],
+  ['冷卻水流量 <span class="hint">本台主機回水管</span>','cwFlow',FL('cwFlow','例 323.8')]
+ ],
+ gR:[
+  ['額定冷凍能力 <span class="hint">RT 或 kW</span>','ratedRT',CAP('ratedRT','例 1582.7')],
+  ['額定耗電 <span class="hint">kW，選填</span>','ratedKw',NUM('ratedKw','例 275.7')+'<div class="conv-hint" id="rKwConvHint"></div>'],
+  ['額定效率 <span class="hint">kW/RT 或 COP，選填</span>','ratedKwRt',EFF('ratedKwRt','rKrConvHint','例 5.74 或 0.613')],
+  ['壓縮機型式','ctype','<select id="ctype"><option value="centrifugal">水冷離心式</option><option value="mag">磁懸浮離心式</option><option value="screw">水冷螺旋式</option></select>'],
+  ['設計冰水流量 <span class="hint">銘牌，選填</span>','ratedChwFlow',FL('ratedChwFlow','例 270')],
+  ['設計冷卻水流量 <span class="hint">銘牌，選填</span>','ratedCwFlow',FL('ratedCwFlow','例 338')]
+ ],
+ gS:[
+  ['蒸發器趨近溫度 <span class="hint">°C，面板直讀</span>','evapApp',NUM('evapApp','例 3.5')+'<div class="conv-hint" id="evapAppHint"></div>'],
+  ['冷凝器趨近溫度 <span class="hint">°C，面板直讀</span>','condApp',NUM('condApp','例 0.8')+'<div class="conv-hint" id="condAppHint"></div>'],
+  ['飽和蒸發溫度 <span class="hint">°C，若無直讀再填</span>','evapSat',NUM('evapSat','例 3.4')],
+  ['飽和冷凝溫度 <span class="hint">°C，若無直讀再填</span>','condSat',NUM('condSat','例 33.5')]
+ ]
+};
+for(const g in G)$(g).innerHTML=G[g].map(f=>`<div><label class="f" for="${f[1]}">${f[0]}</label>${f[2]}</div>`).join('');
+
+const n=id=>{const el=$(id);if(!el)return null;const r=el.value;if(r==='')return null;const v=parseFloat(r);return isNaN(v)?null:v};
+const cmh=(id)=>{const v=n(id);if(!(v>0))return null;const u=$(id+'U').value;return u==='CMH'?v:u==='LPM'?v*.06:v*.227125};
+const RT=3.51685;
+const getCapRT=(id)=>{const v=n(id);if(!(v>0))return null;return $(id+'U').value==='kW'?v/RT:v};
+const getEffKwRt=(id)=>{const v=n(id);if(!(v>0))return null;return $(id+'U').value==='COP'?RT/v:v};
+
+function defaultEffByType(ty){return ty==='screw'?0.70:ty==='mag'?0.55:0.60}
+
+$('estBtn').addEventListener('click',function(){
+ const box=$('estBox');
+ const open=box.hidden;
+ box.hidden=!open;
+ this.setAttribute('aria-expanded',String(open));
+ this.textContent=open?'🔼 收起額定 RT 反推計算':'🔍 不知道額定 RT？點此自動反推';
+ if(open)updateEstimator();
+});
+
+$('ctype').addEventListener('change',function(){
+ $('estAssumedEff').value=defaultEffByType(this.value).toFixed(2);
+ updateEstimator();
+});
+
+function applyEstimatedRT(rtVal){
+ const u=$('ratedRTU').value;
+ const roundedRT=Math.round(rtVal);
+ $('ratedRT').value=u==='kW'?+(roundedRT*RT).toFixed(1):roundedRT;
+ render();save();
+ toast(`已帶入推算額定能力：${roundedRT} RT`);
+}
+
+function updateEstimator(o){
+ if($('estBox').hidden)return;
+ o=o||calc();
+ const rla=n('rla');
+ const assEff=n('estAssumedEff')||defaultEffByType($('ctype').value);
+ const rlaAmp=n('estRlaCap');
+ const itemsA=[];
+
+ if(o.P>0 && rla>0){
+  const p100=o.P/(rla/100);
+  const estRT1=p100/assEff;
+  itemsA.push(`<div class="item"><span>① 依耗電 <b>${o.P.toFixed(1)} kW</b> ÷ 負載率 <b>${rla}%</b>（滿載約 ${p100.toFixed(0)} kW）÷ ${assEff} kW/RT → <b>約 ${Math.round(estRT1)} RT</b></span><button type="button" onclick="applyEstimatedRT(${estRT1})">帶入 ${Math.round(estRT1)} RT</button></div>`);
+ }
+ if(o.capKw>0 && rla>0 && o.method.indexOf('粗估')<0){
+  const measRT=o.capKw/RT;
+  const estRT2=measRT/(rla/100);
+  itemsA.push(`<div class="item"><span>② 依產冷量 <b>${measRT.toFixed(0)} RT</b> ÷ 負載率 <b>${rla}%</b> → <b>約 ${Math.round(estRT2)} RT</b></span><button type="button" onclick="applyEstimatedRT(${estRT2})">帶入 ${Math.round(estRT2)} RT</button></div>`);
+ }
+ if(rlaAmp>0){
+  const V=n('lineV')||380;
+  const pf=n('pf')||0.88;
+  const pRla=Math.sqrt(3)*V*rlaAmp*pf/1000;
+  const estRT3=pRla/assEff;
+  itemsA.push(`<div class="item"><span>③ 依面板設定滿載電流 <b>${rlaAmp} A</b>（${V}V, PF ${pf} → 滿載 ${pRla.toFixed(0)} kW）÷ ${assEff} → <b>約 ${Math.round(estRT3)} RT</b></span><button type="button" onclick="applyEstimatedRT(${estRT3})">帶入 ${Math.round(estRT3)} RT</button></div>`);
+ }
+ $('estResA').innerHTML=itemsA.length?itemsA.join(''):'<span class="hint">請在左側①填寫耗電／產冷量與「電流負載率 % RLA」，或在此填入面板 RLA 電流，即可自動反推。</span>';
+
+ const pfCmh=cmh('estPumpFlow');
+ const side=$('estPumpSide').value;
+ if(pfCmh>0){
+  const factor=side==='chw'?0.605:0.740;
+  const estRTp=pfCmh/factor;
+  $('estResB').innerHTML=`<div class="item"><span>依${side==='chw'?'冰水':'冷卻水'}泵流量 <b>${pfCmh.toFixed(1)} CMH</b>（÷ ${factor} CMH/RT）→ <b>約 ${Math.round(estRTp)} RT</b></span><button type="button" onclick="applyEstimatedRT(${estRTp})">帶入 ${Math.round(estRTp)} RT</button></div>`;
+ }else{
+  $('estResB').innerHTML='<span class="hint">輸入專用一對一水泵的銘牌流量，即可依標準溫差 5°C 回推主機噸數。</span>';
+ }
+}
+
+function switchCapUnit(id,targetU){
+ const sel=$(id+'U');
+ if(sel.value===targetU)return;
+ const v=n(id);
+ if(v>0){
+  $(id).value=targetU==='kW'?+(v*RT).toFixed(1):+(v/RT).toFixed(1);
+ }
+ sel.value=targetU;
+ $(id).placeholder=targetU==='kW'?(id==='ratedRT'?'例 1582.7':'例 792'):(id==='ratedRT'?'例 450':'例 225.2');
+ render();save();
+ toast('已切換為 '+targetU);
+}
+
+['ratedRTU','panelCapU'].forEach(uid=>{
+ $(uid).addEventListener('change',function(e){
+  e.stopPropagation();
+  const id=uid.slice(0,-1);
+  const targetU=this.value;
+  const v=n(id);
+  if(v>0){
+   $(id).value=targetU==='kW'?+(v*RT).toFixed(1):+(v/RT).toFixed(1);
+  }
+  $(id).placeholder=targetU==='kW'?(id==='ratedRT'?'例 1582.7':'例 792'):(id==='ratedRT'?'例 450':'例 225.2');
+  render();save();
+ });
+});
+
+['panelEffU','ratedKwRtU'].forEach(uid=>{
+ $(uid).addEventListener('change',function(e){
+  e.stopPropagation();
+  const id=uid.slice(0,-1);
+  const v=n(id);
+  if(v>0){
+   $(id).value=this.value==='COP'?+(RT/v).toFixed(2):+(RT/v).toFixed(3);
+  }
+  $(id).placeholder=this.value==='COP'?(id==='ratedKwRt'?'例 5.74':'例 5.5'):(id==='ratedKwRt'?'例 0.613':'例 0.64');
+  render();save();
+ });
+});
+
+function applyNameplate(id,val,unit){
+ if(unit && $(id+'U'))$(id+'U').value=unit;
+ $(id).value=val;render();save();toast('已帶入 '+val+(unit?' '+unit:''))
+}
+
+function updateHints(){
+ const rRT=getCapRT('ratedRT'),rKw=n('ratedKw'),rKR=getEffKwRt('ratedKwRt'),u=$('ratedRTU').value,rEffU=$('ratedKwRtU').value;
+ const rtEl=$('ratedRTConvHint'),kwEl=$('rKwConvHint'),krEl=$('rKrConvHint'),smEl=$('nameplateSm');
+ if(rRT>0){
+  const thKw=rRT*RT,kcal=rRT*3024;
+  rtEl.innerHTML=u==='RT'
+   ?`= <b>${thKw.toLocaleString('zh-TW',{maximumFractionDigits:1})} kW</b>（${kcal.toLocaleString('zh-TW',{maximumFractionDigits:0})} kcal/h） <button type="button" onclick="switchCapUnit('ratedRT','kW')">切換 kW</button>`
+   :`= <b>${rRT.toLocaleString('zh-TW',{maximumFractionDigits:1})} RT</b>（${kcal.toLocaleString('zh-TW',{maximumFractionDigits:0})} kcal/h） <button type="button" onclick="switchCapUnit('ratedRT','RT')">切換 RT</button>`;
+  smEl.textContent=`${rRT.toFixed(1).replace(/\.0$/,'')} RT = ${thKw.toFixed(1)} kW 熱負載`;
+ }else{
+  rtEl.textContent='1 RT = 3.51685 kW（切換單位自動換算）';
+  smEl.textContent='用來判斷好壞的比較對象';
+ }
+ if(rRT>0&&rKR>0&&!(rKw>0)){
+  const estKw=(rRT*rKR).toFixed(1);
+  kwEl.innerHTML=`推算：<b>${estKw} kW</b> <button type="button" onclick="applyNameplate('ratedKw',${estKw})">帶入</button>`;
+ }else if(rRT>0&&rKw>0){
+  const calcCop=(rRT*RT)/rKw;
+  kwEl.textContent=`銘牌 COP = ${calcCop.toFixed(2)}（${(rKw/rRT).toFixed(3)} kW/RT）`;
+ }else kwEl.textContent='';
+
+ if(rRT>0&&rKw>0&&!(rKR>0)){
+  const estKr=(rKw/rRT).toFixed(3),estCop=((rRT*RT)/rKw).toFixed(2);
+  krEl.innerHTML=rEffU==='COP'
+   ?`推算：<b>COP ${estCop}</b> <button type="button" onclick="applyNameplate('ratedKwRt',${estCop},'COP')">帶入</button>`
+   :`推算：<b>${estKr} kW/RT</b> <button type="button" onclick="applyNameplate('ratedKwRt',${estKr},'KWRT')">帶入</button>`;
+ }else if(rKR>0){
+  krEl.textContent=rEffU==='COP'?`= ${rKR.toFixed(3)} kW/RT`:`= 額定 COP ${(RT/rKR).toFixed(2)}`;
+ }else krEl.textContent='';
+
+ const pCapRT=getCapRT('panelCap'),pCapU=$('panelCapU').value,pCapEl=$('panelCapConvHint');
+ if(pCapRT>0){
+  pCapEl.innerHTML=pCapU==='RT'
+   ?`= <b>${(pCapRT*RT).toFixed(1)} kW</b> <button type="button" onclick="switchCapUnit('panelCap','kW')">切換 kW</button>`
+   :`= <b>${pCapRT.toFixed(1)} RT</b> <button type="button" onclick="switchCapUnit('panelCap','RT')">切換 RT</button>`;
+ }else pCapEl.textContent='';
+
+ const pKr=getEffKwRt('panelEff'),pEffU=$('panelEffU').value,pEffEl=$('panelEffHint');
+ if(pKr>0){
+  const estP=pCapRT>0?`（功率 ${(pCapRT*pKr).toFixed(1)} kW）`:'';
+  pEffEl.textContent=pEffU==='COP'?`= ${pKr.toFixed(3)} kW/RT ${estP}`:`= COP ${(RT/pKr).toFixed(2)} ${estP}`;
+ }else pEffEl.textContent='';
+
+ const chwOut=n('chwOut'),cwOut=n('cwOut'),evapApp=n('evapApp'),condApp=n('condApp'),evapSat=n('evapSat'),condSat=n('condSat');
+ const eaEl=$('evapAppHint'),caEl=$('condAppHint'),appSm=$('appSm');
+ const effEvapApp=evapApp!==null?evapApp:(evapSat!==null&&chwOut!==null?chwOut-evapSat:null);
+ const effCondApp=condApp!==null?condApp:(condSat!==null&&cwOut!==null?condSat-cwOut:null);
+ eaEl.textContent=evapApp!==null&&chwOut!==null?`推算飽和蒸發溫 ≈ ${(chwOut-evapApp).toFixed(1)} °C`:(evapApp===null&&evapSat!==null&&chwOut!==null?`出水 − 飽和溫 = ${(chwOut-evapSat).toFixed(1)} °C`:'');
+ caEl.textContent=condApp!==null&&cwOut!==null?`推算飽和冷凝溫 ≈ ${(cwOut+condApp).toFixed(1)} °C`:(condApp===null&&condSat!==null&&cwOut!==null?`飽和溫 − 出水 = ${(condSat-cwOut).toFixed(1)} °C`:'');
+ if(effEvapApp!==null||effCondApp!==null){
+  const parts=[];
+  if(effEvapApp!==null)parts.push(`蒸發趨近 ${effEvapApp.toFixed(1)}°C`);
+  if(effCondApp!==null)parts.push(`冷凝趨近 ${effCondApp.toFixed(1)}°C`);
+  appSm.textContent=parts.join(' ／ ');
+ }else appSm.textContent='判斷銅管結垢與冷媒狀態';
+}
+
+function calc(){
+ const o={};
+ const rRT=getCapRT('ratedRT'),rKw=n('ratedKw'),rKR=getEffKwRt('ratedKwRt'),ty=$('ctype').value;
+ o.rRT=rRT;o.ty=ty;
+ if(rKR>0){o.bench=rKR;o.bsrc='銘牌效率'}
+ else if(rRT>0&&rKw>0){o.bench=rKw/rRT;o.bsrc='銘牌耗電 ÷ 額定能力'}
+ else{o.bench=defaultEffByType(ty);o.bsrc='未填銘牌，採一般'+(ty==='screw'?'螺旋式':ty==='mag'?'磁懸浮離心式':'離心式')+'參考值'}
+
+ const a=n('chwIn'),b=n('chwOut'),c=n('cwIn'),d=n('cwOut');
+ const chwDT=(a!==null&&b!==null)?a-b:null,cwDT=(c!==null&&d!==null)?d-c:null;
+ o.chwIn=a;o.chwOut=b;o.cwIn=c;o.cwOut=d;
+ o.chwDT=chwDT;o.cwDT=cwDT;
+ const chwF=cmh('chwFlow'),cwF=cmh('cwFlow');
+ const s1=(chwF&&chwDT>0)?chwF*chwDT*4.186/3.6:null;
+ const qc=(cwF&&cwDT>0)?cwF*cwDT*4.186/3.6:null;
+ const pCapRT=getCapRT('panelCap'),pCapKw=pCapRT?pCapRT*RT:null;
+ const pKr=getEffKwRt('panelEff');
+ o.s1=s1;o.qc=qc;o.pCapKw=pCapKw;o.pKr=pKr;o.chwF=chwF;o.cwF=cwF;
+
+ const evapApp=n('evapApp'),condApp=n('condApp'),es=n('evapSat'),cs=n('condSat');
+ o.effEvapApp=evapApp!==null?evapApp:(es!==null&&b!==null?b-es:null);
+ o.effCondApp=condApp!==null?condApp:(cs!==null&&d!==null?cs-d:null);
+
+ let P=n('pKw'),pSrc='電表直讀';
+ if(!(P>0)){
+  const V=n('lineV'),I=n('lineI'),pf=n('pf');
+  if(V>0&&I>0&&pf>0){P=Math.sqrt(3)*V*I*pf/1000;pSrc='三相機電計算'}
+ }
+ if(!(P>0)&&pKr>0){
+  if(pCapRT>0){P=pCapRT*pKr;pSrc='依面板製冷量 × 面板效率推算'}
+  else if(s1>0){P=(s1/RT)*pKr;pSrc='依冰水產冷量 × 面板效率推算'}
+ }
+ o.P=P;o.pSrc=pSrc;
+
+ let capKw=null,lo=null,hi=null;
+ if(s1){
+  capKw=s1;const r=Math.hypot(.2/chwDT,.03);lo=s1*(1-r);hi=s1*(1+r);
+  o.method='冰水側直接量測（冰水流量 × 溫差）';o.conf='高';
+ }else if(qc&&P&&qc-P>0){
+  capKw=qc-P;const e=qc*Math.hypot(.2/cwDT,.03)+.02*P;lo=Math.max(1,capKw-e);hi=capKw+e;
+  o.method='冷卻水熱平衡反推（排熱量 − 耗電）';o.conf='中，受冷卻水溫差影響大';
+ }else if(pCapKw>0){
+  capKw=pCapKw;lo=pCapKw*.94;hi=pCapKw*1.06;
+  o.method='依主機面板顯示製冷量';o.conf='中高（建議以超音波流量計複核）';
+ }else if(rRT>0&&n('rla')>0){
+  capKw=rRT*RT*n('rla')/100;lo=capKw*.75;hi=capKw*1.25;
+  o.method='依電流負載率粗估';o.conf='低，僅供參考';
+ }
+ o.capKw=capKw;
+
+ if(P&&capKw){
+  o.rt=capKw/RT;o.eff=P/o.rt;o.effLo=P/(hi/RT);o.effHi=P/(lo/RT);
+  o.cop=RT/o.eff;o.load=rRT>0?o.rt/rRT*100:null;
+  o.vd=verdict(o);
+ }
+ return o;
+}
+
+function verdict(o){
+ const c=o.eff/o.bench,l=o.effLo/o.bench,h=o.effHi/o.bench;
+ const pct=x=>((x-1)*100).toFixed(0);
+ const cmp=`中心值 ${o.eff.toFixed(3)}，基準 ${o.bench.toFixed(3)} kW/RT（約${c>=1?'高':'低'} ${Math.abs(pct(c))}%），誤差範圍 ${o.effLo.toFixed(2)}～${o.effHi.toFixed(2)}`;
+ if(h<=1.05)return['g','🟢 效率良好',`${cmp}。整個誤差範圍都沒有比基準差，主機運轉正常。`];
+ if(c<=1.05)return['g','🟢 大致正常',`${cmp}。中心值不比基準差，但誤差範圍的上端偏高，補測下方項目可以縮小誤差。`];
+ if(l>1.20&&c>1.20)return['r','🔴 效率明顯偏高',`${cmp}。即使取誤差最有利的一端，仍比基準差 20% 以上，建議檢查結垢、冷媒量與流量計。`];
+ if(l>1.05)return['y','🟡 效率偏高，建議追蹤',`${cmp}。即使取誤差最有利的一端，仍高於基準，不是只靠量測誤差能解釋。`];
+ return['y','🟡 偏高，但還不能確定',`${cmp}。誤差範圍同時包含「正常」與「偏高」，目前資料不足以下結論，請補測下方建議的項目。`];
+}
+
+function render(){
+ updateHints();
+ const o=calc(),R=$('res');
+ updateEstimator(o);
+ if(!o.P){
+  R.innerHTML='<h2>判斷結果</h2><p class="note" style="margin:0">請先填寫耗電數據（電表 kW 或電壓／電流／功因），或直接填入主機面板顯示的「製冷量＋COP（或 kW/RT）」。</p>';
+  return;
+ }
+ if(!o.capKw){
+  R.innerHTML=`<h2>判斷結果</h2><p class="note" style="margin:0">耗電已算出 <b>${o.P.toFixed(1)} kW</b>，但還算不出產冷量。請至少補一組：<b>冰水流量＋進出水溫</b>、<b>冷卻水流量＋進出水溫</b>，或<b>面板顯示製冷量</b>。</p>`;
+  return;
+ }
+ const [cls,t,txt]=o.vd;
+ const go=[],tip=[];
+ const rRT=o.rRT;
+ if(o.load!=null){
+  go.push(`負載率約 ${o.load.toFixed(0)}%（${o.rt.toFixed(1)} RT ÷ ${rRT.toFixed(1).replace(/\.0$/,'')} RT，產冷量約 ${o.capKw.toFixed(1)} kW）。`+(o.load<75&&n('cwIn')!==null&&n('cwIn')<30?'部分負載且冷卻水入水偏低，正常效率應不高於額定值。':($('ctype').value==='mag'&&o.load<75?'磁懸浮機組在部分負載下，正常效率應優於滿載額定值。':'')));
+ }
+ if(o.s1&&o.pCapKw){
+  const df=((o.s1-o.pCapKw)/o.pCapKw)*100;
+  go.push(`冰水側實測產冷 ${o.s1.toFixed(1)} kW（${(o.s1/RT).toFixed(1)} RT），與面板顯示 ${o.pCapKw.toFixed(1)} kW（${(o.pCapKw/RT).toFixed(1)} RT）相差 ${Math.abs(df).toFixed(1)}%（${Math.abs(df)<=5?'高度吻合':Math.abs(df)<=10?'尚可':'偏差偏大'}）。`);
+ }
+ if(o.s1&&o.qc&&o.P){
+  const e=(o.qc-(o.s1+o.P))/o.qc;const m=Math.abs(e)*100;
+  go.push(`冰水側與冷卻水側熱平衡相差 ${m.toFixed(0)}%（${m<=5?'吻合':m<=10?'尚可':'偏大'}）。`);
+  if(m>10)tip.push('兩側熱量對不上：先檢查流量計的管徑、管壁厚度設定，再檢查溫度感測。');
+ }
+ const rChw=cmh('ratedChwFlow'),rCw=cmh('ratedCwFlow');
+ if(o.chwF&&rChw){
+  const fr=(o.chwF/rChw)*100;
+  go.push(`冰水流量 ${o.chwF.toFixed(1)} CMH，為銘牌設計值 ${rChw.toFixed(0)} CMH 的 ${fr.toFixed(0)}%${fr<75?'（變流量減載運轉，管內流速較低可能使蒸發器趨近溫度略升）':fr>110?'（超流量運轉，注意蒸發器壓損與沖蝕）':'（接近設計流量）'}。`);
+ }
+ if(o.cwF&&rCw){
+  const fr=(o.cwF/rCw)*100;
+  go.push(`冷卻水流量 ${o.cwF.toFixed(1)} CMH，為銘牌設計值 ${rCw.toFixed(0)} CMH 的 ${fr.toFixed(0)}%${fr<80?'（冷卻水量偏低，會推高冷凝溫度與耗電）':'（接近設計流量）'}。`);
+ }
+ const rla=n('rla');
+ if(o.method.indexOf('粗估')<0&&rla>0&&rRT>0){
+  const ex=rRT*rla/100,df=(o.rt-ex)/ex*100;
+  if(Math.abs(df)>20)go.push(`量測產冷量 ${o.rt.toFixed(0)} RT，與電流負載率 ${rla}% 對應的約 ${ex.toFixed(0)} RT 相差 ${df.toFixed(0)}%，量測或額定值其中之一可能有誤。`);
+ }
+ if(o.effEvapApp!==null){
+  go.push(`蒸發器趨近溫度 ${o.effEvapApp.toFixed(1)}°C（${o.effEvapApp<=2?'正常':o.effEvapApp<=3.5?'略大，留意':'偏大，疑似蒸發器結垢、冷媒不足或電子膨脹閥開度異常'}）。`);
+ }
+ if(o.effCondApp!==null){
+  go.push(`冷凝器趨近溫度 ${o.effCondApp.toFixed(1)}°C（${o.effCondApp<=2?'正常（銅管很乾淨）':o.effCondApp<=3.5?'略大，留意':'偏大，疑似冷凝器銅管結垢或有不凝結氣體'}）。`);
+ }
+
+ if(o.pSrc.indexOf('面板')>=0)tip.push('目前耗電是依面板 COP 反推：建議切到面板「電能表」分頁或用勾錶實測三相電壓、電流與功因，確認實際耗電。');
+ if(o.method.indexOf('冰水側')<0)tip.push('量冰水流量（超音波流量計）：產冷量直接由「冰水流量 × 溫差」算出，是最準的做法。');
+ if(o.cwDT!==null&&o.cwDT<3.5&&o.method.indexOf('熱平衡')>=0)tip.push(`冷卻水溫差只有 ${o.cwDT.toFixed(1)}°C，感測器 ±0.2°C 就會讓結果差約 ±${(.2/o.cwDT*100).toFixed(0)}%，流量大時建議用同一組感測器重量。`);
+ if(o.effEvapApp===null||o.effCondApp===null)tip.push('讀取面板上的「趨近溫度」或「飽和蒸發／飽和冷凝溫度」，可判斷蒸發器或冷凝器哪一側結垢。');
+ if(!(n('ratedKwRt')>0||(n('ratedKw')>0&&rRT>0)))tip.push('拍主機銘牌（額定冷凍能力、額定耗電）：基準改用銘牌值，判斷會更準。');
+
+ R.innerHTML=`<h2>判斷結果</h2><div class="vd ${cls}"><p class="vt">${t}</p><p>${txt}</p></div>
+ <div class="kv2"><div><b>${o.eff.toFixed(3)}</b><span>效率 kW/RT</span></div><div><b>${o.cop.toFixed(2)}</b><span>COP</span></div><div><b>${o.rt.toFixed(0)}</b><span>產冷量 RT（${o.capKw.toFixed(0)} kW）</span></div><div><b>${o.load!=null?o.load.toFixed(0)+'%':'--'}</b><span>負載率</span></div><div><b>${o.P.toFixed(0)}</b><span>耗電 kW（${o.pSrc}）</span></div></div>
+ <p class="note" style="margin:0">算法：${o.method}（可信度：${o.conf}）。基準：${o.bench.toFixed(3)} kW/RT，${o.bsrc}。</p>
+ ${go.length?`<p class="sh">判斷依據</p><ul class="ls">${go.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+ ${tip.length?`<p class="sh">建議補測</p><ul class="ls">${tip.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}`;
+}
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800)}
+const LS='chillerEffState_v3';
+const RECS_LS='chillerEffRecs_v1';
+
+function getFormSnapshot(){
+ const f={};
+ document.querySelectorAll('input[id],select[id]').forEach(e=>{f[e.id]=e.value});
+ return f;
+}
+function save(){try{localStorage.setItem(LS,JSON.stringify({f:getFormSnapshot()}))}catch(e){}}
+function setAll(f){
+ document.querySelectorAll('input[id],select[id]').forEach(e=>{if(f&&e.id in f)e.value=f[e.id]});
+ if(!f||!('ratedRTU' in f))$('ratedRTU').value='RT';
+ if(!f||!('panelCapU' in f))$('panelCapU').value='RT';
+ if(!f||!('panelEffU' in f))$('panelEffU').value='KWRT';
+ if(!f||!('ratedKwRtU' in f))$('ratedKwRtU').value='KWRT';
+ if(!f||!('ratedChwFlowU' in f))$('ratedChwFlowU').value='CMH';
+ if(!f||!('ratedCwFlowU' in f))$('ratedCwFlowU').value='CMH';
+ if(!f||!('estAssumedEff' in f))$('estAssumedEff').value=defaultEffByType($('ctype').value).toFixed(2);
+ if(!f||!('estPumpFlowU' in f))$('estPumpFlowU').value='CMH';
+ $('ratedRT').placeholder=$('ratedRTU').value==='kW'?'例 1582.7':'例 450';
+ $('panelCap').placeholder=$('panelCapU').value==='kW'?'例 792':'例 225.2';
+ $('panelEff').placeholder=$('panelEffU').value==='COP'?'例 5.5':'例 0.64';
+ $('ratedKwRt').placeholder=$('ratedKwRtU').value==='COP'?'例 5.74':'例 0.613';
+ render();
+}
+
+/* ===== 巡檢紀錄儲存、載入、複製摘要與匯出 CSV ===== */
+function loadRecs(){
+ try{const a=JSON.parse(localStorage.getItem(RECS_LS)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}
+}
+function saveRecs(arr){
+ try{localStorage.setItem(RECS_LS,JSON.stringify(arr))}catch(e){toast('儲存空間已滿，請先匯出並清理舊紀錄')}
+}
+function fmtTime(iso){
+ const d=new Date(iso);if(isNaN(d))return iso||'';
+ const p=x=>String(x).padStart(2,'0');
+ return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function escHtml(s){
+ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('saveRecBtn').addEventListener('click',()=>{
+ const o=calc();
+ if(!o.P || !o.capKw || !o.vd){
+  toast('請先填妥耗電與產冷數據，算出效率後再儲存');
+  return;
+ }
+ const rawName=($('siteName').value||'').trim();
+ const tyLabel=o.ty==='mag'?'磁懸浮離心機':o.ty==='screw'?'螺旋式冰水機':'離心式冰水機';
+ const name=rawName||`未命名案場（${tyLabel} ${o.rt.toFixed(0)}RT）`;
+ const note=($('siteNote').value||'').trim();
+ const now=new Date().toISOString();
+ const rec={
+  id:'rec_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+  t:now,
+  name:name,
+  note:note,
+  cls:o.vd[0],
+  status:o.vd[1],
+  eff:+o.eff.toFixed(3),
+  cop:+o.cop.toFixed(2),
+  bench:+o.bench.toFixed(3),
+  rt:+o.rt.toFixed(1),
+  capKw:+o.capKw.toFixed(1),
+  load:o.load!=null?Math.round(o.load):null,
+  P:+o.P.toFixed(1),
+  pSrc:o.pSrc,
+  method:o.method,
+  chwIn:o.chwIn,
+  chwOut:o.chwOut,
+  chwF:o.chwF!=null?+o.chwF.toFixed(1):null,
+  cwIn:o.cwIn,
+  cwOut:o.cwOut,
+  cwF:o.cwF!=null?+o.cwF.toFixed(1):null,
+  evapApp:o.effEvapApp!=null?+o.effEvapApp.toFixed(1):null,
+  condApp:o.effCondApp!=null?+o.effCondApp.toFixed(1):null,
+  f:getFormSnapshot()
+ };
+ const list=loadRecs();
+ list.unshift(rec);
+ saveRecs(list);
+ renderRecs();
+ toast(`已儲存：${name}`);
+});
+
+function loadRecToForm(id){
+ const rec=loadRecs().find(r=>r.id===id);
+ if(!rec||!rec.f)return;
+ setAll(rec.f);
+ save();
+ window.scrollTo({top:0,behavior:'smooth'});
+ toast(`已載入「${rec.name}」的測試數據`);
+}
+
+function copyRecSummary(id){
+ const r=loadRecs().find(x=>x.id===id);
+ if(!r)return;
+ const lines=[
+  `【冷凍機效率診斷紀錄】${r.name}`,
+  `巡檢時間：${fmtTime(r.t)}`,
+  `診斷結果：${r.status}`,
+  `運轉效率：${r.eff.toFixed(3)} kW/RT（COP ${r.cop.toFixed(2)}，基準 ${r.bench.toFixed(3)} kW/RT）`,
+  `產冷／負載：${r.rt.toFixed(1)} RT（${r.capKw.toFixed(1)} kW）${r.load!=null?'／負載率 '+r.load+'%':''}`,
+  `耗電功率：${r.P.toFixed(1)} kW（${r.pSrc}）`
+ ];
+ if(r.chwIn!=null&&r.chwOut!=null)lines.push(`冰水側：${r.chwIn}°C → ${r.chwOut}°C${r.chwF!=null?'（流量 '+r.chwF+' CMH）':''}`);
+ if(r.cwIn!=null&&r.cwOut!=null)lines.push(`冷卻水側：${r.cwIn}°C → ${r.cwOut}°C${r.cwF!=null?'（流量 '+r.cwF+' CMH）':''}`);
+ if(r.evapApp!=null||r.condApp!=null)lines.push(`趨近溫度：蒸發 ${r.evapApp!=null?r.evapApp+'°C':'--'} ／ 冷凝 ${r.condApp!=null?r.condApp+'°C':'--'}`);
+ if(r.note)lines.push(`備註：${r.note}`);
+ const txt=lines.join('\n');
+ fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+ const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+ try{document.execCommand('copy');toast('已複製診斷摘要到剪貼簿')}catch(e){toast('複製失敗，請手動選取')}
+ ta.remove();
+}
+
+function deleteRec(id){
+ const list=loadRecs().filter(r=>r.id!==id);
+ saveRecs(list);
+ renderRecs();
+ toast('已刪除該筆紀錄');
+}
+
+$('clearRecsBtn').addEventListener('click',()=>{
+ const list=loadRecs();
+ if(!list.length){toast('目前沒有已儲存的紀錄');return}
+ $('confirmMsg').textContent=`確定要清空全部 ${list.length} 筆巡檢紀錄嗎？（建議先按匯出 CSV 備份）`;
+ $('confirmModal').hidden=false;
+});
+$('confirmCancel').addEventListener('click',()=>{$('confirmModal').hidden=true});
+$('confirmOk').addEventListener('click',()=>{
+ $('confirmModal').hidden=true;
+ saveRecs([]);
+ renderRecs();
+ toast('已清空全部巡檢紀錄');
+});
+
+$('expCsvBtn').addEventListener('click',()=>{
+ const list=loadRecs();
+ if(!list.length){toast('目前沒有紀錄可匯出');return}
+ const headers=['巡檢時間','案場與主機名稱','診斷燈號','效率(kW/RT)','COP','基準(kW/RT)','產冷量(RT)','產冷量(kW)','負載率(%)','耗電功率(kW)','耗電來源','演算法','冰水入水(°C)','冰水出水(°C)','冰水流量(CMH)','冷卻水入水(°C)','冷卻水出水(°C)','冷卻水流量(CMH)','蒸發趨近(°C)','冷凝趨近(°C)','備註'];
+ const csvCell=v=>{
+  if(v===null||v===undefined)return '';
+  const s=String(v).replace(/"/g,'""');
+  return /[",\r\n]/.test(s)?`"${s}"`:s;
+ };
+ const rows=list.map(r=>[
+  fmtTime(r.t),r.name,r.status,r.eff,r.cop,r.bench,r.rt,r.capKw,
+  r.load!=null?r.load:'',r.P,r.pSrc,r.method,
+  r.chwIn,r.chwOut,r.chwF,r.cwIn,r.cwOut,r.cwF,r.evapApp,r.condApp,r.note
+ ].map(csvCell).join(','));
+ const csvContent='\uFEFF'+headers.join(',')+'\r\n'+rows.join('\r\n');
+ const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
+ const t=new Date(),p=x=>String(x).padStart(2,'0');
+ const fname=`冷凍機巡檢紀錄清單_${t.getFullYear()}${p(t.getMonth()+1)}${p(t.getDate())}_${p(t.getHours())}${p(t.getMinutes())}.csv`;
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=fname;
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+ toast(`已匯出 ${list.length} 筆紀錄（CSV）`);
+});
+
+function renderRecs(){
+ const list=loadRecs();
+ $('recCount').textContent=list.length;
+ const box=$('recList');
+ if(!list.length){
+  box.innerHTML='<p class="note" style="margin:0">尚無已儲存紀錄。在左側填入現場數據並輸入「案場與主機名稱」後，按「💾 儲存本筆巡檢紀錄」即可建立清單。</p>';
+  return;
+ }
+ box.innerHTML=list.map(r=>{
+  const appStr=(r.evapApp!=null||r.condApp!=null)?`<span>趨近：<b>${r.evapApp!=null?r.evapApp+'°C':'--'}</b> / <b>${r.condApp!=null?r.condApp+'°C':'--'}</b></span>`:'';
+  return `<div class="rec-item ${escHtml(r.cls||'')}">
+   <div class="rec-top">
+    <div><div class="rec-title">${escHtml(r.name)}</div><div class="rec-time">${fmtTime(r.t)}</div></div>
+    <span class="rec-badge">${escHtml(r.status)}</span>
+   </div>
+   <div class="rec-metrics">
+    <span>效率：<b>${Number(r.eff).toFixed(3)} kW/RT</b>（COP ${Number(r.cop).toFixed(2)}，基準 ${Number(r.bench).toFixed(3)}）</span>
+    <span>能力：<b>${Number(r.rt).toFixed(0)} RT</b>${r.load!=null?'（'+r.load+'%）':''}</span>
+    <span>耗電：<b>${Number(r.P).toFixed(1)} kW</b></span>
+    ${appStr}
+   </div>
+   ${r.note?`<div class="rec-note">備註：${escHtml(r.note)}</div>`:''}
+   <div class="rec-btns">
+    <button type="button" onclick="loadRecToForm('${escHtml(r.id)}')">↩ 帶入編輯</button>
+    <button type="button" onclick="copyRecSummary('${escHtml(r.id)}')">📋 複製摘要</button>
+    <button type="button" class="del" onclick="deleteRec('${escHtml(r.id)}')">🗑️ 刪除</button>
+   </div>
+  </div>`;
+ }).join('');
+}
+
+const BLANK={};document.querySelectorAll('input[id]').forEach(e=>{if(e.id!=='estAssumedEff')BLANK[e.id]=''});
+const PRESETS={
+ f1:Object.assign({},BLANK,{siteName:'範例案場 - 750RT 離心機',siteNote:'傳統離心機三相機電量測',ratedRT:750,ratedRTU:'RT',lineV:381,lineI:519,pf:.833,rla:64,chwIn:11.5,chwOut:8.3,cwIn:28.2,cwOut:31.2,cwFlow:490,chwFlowU:'CMH',cwFlowU:'CMH',ctype:'centrifugal',estAssumedEff:'0.60',estPumpSide:'chw',estPumpFlowU:'CMH'}),
+ f2:Object.assign({},BLANK,{siteName:'範例案場 - 海爾 450RT 磁懸浮機組',siteNote:'50%負載／變流量68.5%',panelCap:792.0,panelCapU:'kW',panelEff:5.5,panelEffU:'COP',chwIn:10.6,chwOut:6.9,chwFlow:185.0,chwFlowU:'CMH',cwIn:30.1,cwOut:32.7,cwFlow:323.8,cwFlowU:'CMH',ratedRT:1582.7,ratedRTU:'kW',ratedKw:275.7,ratedKwRt:5.74,ratedKwRtU:'COP',ratedChwFlow:270,ratedChwFlowU:'CMH',ratedCwFlow:338,ratedCwFlowU:'CMH',evapApp:3.5,condApp:0.8,ctype:'mag',estAssumedEff:'0.57',estPumpSide:'chw',estPumpFlowU:'CMH'})
+};
+function loadField(key){setAll(PRESETS[key||'f1']);save();toast(key==='f2'?'已載入海爾 450RT 磁懸浮（含銘牌）':'已載入現場案例 1')}
+function clearAll(){setAll(Object.assign({},BLANK,{ratedRTU:'RT',panelCapU:'RT',panelEffU:'KWRT',ratedKwRtU:'KWRT',chwFlowU:'CMH',cwFlowU:'CMH',ratedChwFlowU:'CMH',ratedCwFlowU:'CMH',estAssumedEff:defaultEffByType($('ctype').value).toFixed(2),estPumpSide:'chw',estPumpFlowU:'CMH'}));save();toast('已清空')}
+
+let tm;['input','change'].forEach(e=>document.addEventListener(e,ev=>{if(ev.target&&['ratedRTU','panelCapU','panelEffU','ratedKwRtU'].includes(ev.target.id))return;render();clearTimeout(tm);tm=setTimeout(save,300)}));
+let sv=null;try{sv=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
+setAll(sv&&sv.f?sv.f:PRESETS.f2);
+renderRecs();
+
+const SUN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="#F59E0B" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.6"/></svg>';
+const MOON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="#818CF8" stroke="#4F46E5" stroke-width="1.6"/><path d="M18 3.2l.55 1.25 1.25.55-1.25.55L18 6.8l-.55-1.25L16.2 5l1.25-.55z" fill="#FBBF24" stroke="#F59E0B" stroke-width=".6"/></svg>';
+let curTheme='white';
+function setTheme(k){curTheme=k==='dark'?'dark':'white';document.documentElement.setAttribute('data-theme',curTheme==='dark'?'dark':'light');const b=$('thToggle'),t=curTheme==='dark'?'切換淺色背景':'切換深色背景';b.innerHTML=curTheme==='dark'?SUN:MOON;b.title=t;b.setAttribute('aria-label',t);try{localStorage.setItem('pumpTheme',curTheme)}catch(e){}}
+let st='white';try{st=localStorage.getItem('pumpTheme')||'white'}catch(e){}
+setTheme(st);
+$('thToggle').onclick=()=>setTheme(curTheme==='dark'?'white':'dark');
+</script>
+<script>
+/* ===== 全站備份／同步（手機 ↔ 電腦）：所有頁面共用同一份資料 ===== */
+(function(){
+var LSK=['chillerEffState_v1','chillerEffState_v2','chillerEffState_v3','chillerEffRecs_v1','pumpPressureState_v1','pumpRecords','pumpTbl','pumpTheme','flowSurveyRecs','flowSurveyDraft','pa47SurveyRecs_v8','pa47SurveyDraft_v8','pa47Theme','pumpDrawState'];
+var IDBS=[{db:'pa47SurveyPhotos',st:'p'},{db:'pumpDraw',st:'kv'}];
+var RECS={chillerEffRecs_v1:'id',pumpRecords:'id',flowSurveyRecs:'name',pa47SurveyRecs_v8:'id'};
+var DRAFT={chillerEffState_v1:1,chillerEffState_v2:1,chillerEffState_v3:1,pumpPressureState_v1:1,flowSurveyDraft:1,pa47SurveyDraft_v8:1,pumpDrawState:1};
+function z(n){return String(n).padStart(2,'0')}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function openDB(n,st){return new Promise(function(res){try{var r=indexedDB.open(n,1);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains(st))r.result.createObjectStore(st)};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
+function dbAll(db,st){return new Promise(function(res){if(!db)return res({});try{var out={},tx=db.transaction(st,'readonly'),s=tx.objectStore(st),c=s.openCursor();c.onsuccess=function(){var k=c.result;if(k){out[String(k.key)]=k.value;k.continue()}else res(out)};c.onerror=function(){res({})}}catch(e){res({})}})}
+function dbPut(db,st,k,v){return new Promise(function(res){if(!db)return res(false);try{var tx=db.transaction(st,'readwrite');tx.objectStore(st).put(v,k);tx.oncomplete=function(){res(true)};tx.onerror=function(){res(false)}}catch(e){res(false)}})}
+function b2u(b){return new Promise(function(res){if(!(b instanceof Blob))return res(b);var r=new FileReader();r.onload=function(){res({__blob:r.result})};r.onerror=function(){res(null)};r.readAsDataURL(b)})}
+function u2b(o){if(!o||typeof o!=='object'||typeof o.__blob!=='string')return o;try{var m=/^data:([^;,]*)(;base64)?,(.*)$/.exec(o.__blob),bin=m[2]?atob(m[3]):decodeURIComponent(m[3]),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m[1]||'application/octet-stream'})}catch(e){return null}}
+async function deep(v,f){if(v instanceof Blob)return await f(v);if(Array.isArray(v)){var a=[];for(var i=0;i<v.length;i++)a.push(await deep(v[i],f));return a}if(v&&typeof v==='object'&&!(v instanceof Date)){if(v.__blob)return f(v);var o={};for(var k in v)o[k]=await deep(v[k],f);return o}return v}
+async function collect(){
+  var out={app:'pump-tool-backup',v:1,t:new Date().toISOString(),ls:{},idb:{}};
+  LSK.forEach(function(k){var v=lsGet(k);if(v!=null)out.ls[k]=v});
+  for(var i=0;i<IDBS.length;i++){var d=IDBS[i],db=await openDB(d.db,d.st),all=await dbAll(db,d.st);if(db)db.close();var o={};for(var k in all)o[k]=await deep(all[k],b2u);if(Object.keys(o).length)out.idb[d.db]=o}
+  return out;
+}
+function summary(b){
+  var c=function(k){try{var a=JSON.parse(b.ls[k]||'[]');return Array.isArray(a)?a.length:0}catch(e){return 0}};
+  var ph=0,pi=(b.idb&&b.idb.pa47SurveyPhotos)||{};Object.keys(pi).forEach(function(k){var o=pi[k];if(o)ph+=((o.motor||[]).length+(o.pump||[]).length)});
+  return [['冷凍機巡檢紀錄',c('chillerEffRecs_v1')],['泵浦換算紀錄',c('pumpRecords')],['流量量測紀錄',c('flowSurveyRecs')],['現場資料表紀錄',c('pa47SurveyRecs_v8')],['銘牌照片',ph]];
+}
+function merge(cur,inc,key){
+  var a=[];try{a=JSON.parse(cur||'[]');if(!Array.isArray(a))a=[]}catch(e){a=[]}
+  var b=[];try{b=JSON.parse(inc||'[]');if(!Array.isArray(b))b=[]}catch(e){b=[]}
+  var add=0,upd=0;
+  b.forEach(function(r){if(!r||r[key]==null)return;var i=a.findIndex(function(x){return x&&x[key]===r[key]});
+    if(i<0){a.push(r);add++}else if(!a[i].t||!r.t||String(r.t)>=String(a[i].t)){if(JSON.stringify(a[i])!==JSON.stringify(r)){a[i]=r;upd++}}});
+  return {v:JSON.stringify(a),add:add,upd:upd};
+}
+async function apply(b,withDraft){
+  var n={add:0,upd:0};
+  Object.keys(RECS).forEach(function(k){if(b.ls[k]==null)return;var m=merge(lsGet(k),b.ls[k],RECS[k]);lsSet(k,m.v);n.add+=m.add;n.upd+=m.upd});
+  var ph=(b.idb&&b.idb.pa47SurveyPhotos)||{},pdb=await openDB('pa47SurveyPhotos','p');
+  for(var k in ph){if(k==='draft'&&!withDraft)continue;await dbPut(pdb,'p',k,ph[k])}
+  if(pdb)pdb.close();
+  if(withDraft){
+    Object.keys(DRAFT).forEach(function(k){if(b.ls[k]!=null)lsSet(k,b.ls[k])});
+    var dr=(b.idb&&b.idb.pumpDraw)||{};
+    if(dr.last){var ddb=await openDB('pumpDraw','kv');await dbPut(ddb,'kv','last',await deep(dr.last,u2b));if(ddb)ddb.close()}
+  }
+  return n;
+}
+async function save(blob,name){
+  var f=null;try{f=new File([blob],name,{type:'application/json'})}catch(e){}
+  if(f&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'泵浦工具備份'});return}catch(e){if(e&&e.name==='AbortError')return}}
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+}
+var th=document.getElementById('thToggle')||document.getElementById('themeToggle');
+var btn=document.createElement('button');btn.type='button';btn.id='bkBtn';btn.className=th?th.className:'';btn.title='備份／同步資料（手機 ↔ 電腦）';
+btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>備份／同步';
+btn.style.width='auto';btn.style.whiteSpace='nowrap';
+if(th&&th.parentNode)th.parentNode.insertBefore(btn,th.nextSibling);else{btn.style.cssText='position:fixed;right:12px;bottom:12px;z-index:60';document.body.appendChild(btn)}
+var css=document.createElement('style');css.textContent=
+'#bkM{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}#bkM[hidden]{display:none}'+
+'#bkM .bx{max-width:520px;width:100%;max-height:90vh;overflow:auto;border-radius:12px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:16px;line-height:1.6}'+
+'#bkM h3{margin:0 0 6px;font-size:20px}#bkM p{margin:6px 0}#bkM .mut{opacity:.75;font-size:15px}'+
+'#bkM button{font:inherit;cursor:pointer;width:100%;padding:10px 12px;border-radius:8px;margin:6px 0;border:1px solid currentColor;background:transparent;color:inherit;text-align:center}'+
+'#bkM button.pri{background:#0b7bc1;border-color:#0b7bc1;color:#fff;font-weight:700}#bkM .x{position:absolute;right:10px;top:8px;width:auto;border:0;font-size:22px;padding:2px 8px;margin:0}'+
+'#bkM table{border-collapse:collapse;width:100%;margin:6px 0;font-size:15px}#bkM td{padding:3px 6px;border-bottom:1px solid rgba(128,128,128,.3)}#bkM td:last-child{text-align:right}'+
+'#bkM .st{font-weight:700;color:#0b7bc1;min-height:1.4em}#bkM hr{border:0;border-top:1px solid rgba(128,128,128,.35);margin:12px 0}';
+document.head.appendChild(css);
+var M=document.createElement('div');M.id='bkM';M.hidden=true;M.setAttribute('role','dialog');M.setAttribute('aria-label','備份／同步資料');
+M.innerHTML='<div class="bx" style="position:relative"><button type="button" class="x" aria-label="關閉">×</button><h3>備份／同步資料</h3>'+
+'<p class="mut">網站的資料只存在這台裝置的瀏覽器裡。要在手機和電腦之間同步，請在一台按「匯出」，把檔案傳到另一台（LINE、Email、雲端硬碟都可以），再按「匯入」。</p>'+
+'<p class="mut">一個備份檔包含所有頁面：冷凍機效率、泵浦換算、流量量測、現場資料表（含銘牌照片）、工作點標記。</p><hr>'+
+'<button type="button" class="pri" data-a="exp">⬇ 匯出全部資料（.json）</button>'+
+'<button type="button" class="imp" data-a="imp">⬆ 匯入備份檔…</button><input type="file" accept=".json,application/json" hidden>'+
+'<div data-b="pv"></div><p class="st" role="status"></p></div>';
+document.body.appendChild(M);
+var bx=M.querySelector('.bx'),st=M.querySelector('.st'),fi=M.querySelector('input[type=file]'),pv=M.querySelector('[data-b="pv"]'),pend=null;
+function paint(){var cs=getComputedStyle(document.body),bg=cs.backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')bg=getComputedStyle(document.documentElement).backgroundColor||'#fff';if(!bg||bg==='rgba(0, 0, 0, 0)')bg='#fff';bx.style.background=bg;bx.style.color=cs.color}
+function open(){paint();st.textContent='';pv.innerHTML='';pend=null;M.hidden=false}
+function close(){M.hidden=true}
+btn.onclick=open;M.querySelector('.x').onclick=close;M.addEventListener('click',function(e){if(e.target===M)close()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!M.hidden)close()});
+M.addEventListener('click',async function(e){
+  var b=e.target.closest('button[data-a]');if(!b)return;var a=b.getAttribute('data-a');
+  if(a==='exp'){
+    st.textContent='正在打包資料…';
+    try{var d=await collect(),s=summary(d),txt=JSON.stringify(d),blob=new Blob([txt],{type:'application/json'}),t=new Date();
+      var name='泵浦工具備份_'+t.getFullYear()+z(t.getMonth()+1)+z(t.getDate())+'_'+z(t.getHours())+z(t.getMinutes())+'.json';
+      await save(blob,name);
+      st.textContent='已匯出：'+name+'（'+(blob.size/1024/1024).toFixed(1)+' MB；'+s.filter(function(x){return x[1]}).map(function(x){return x[0]+' '+x[1]}).join('、')+(s.some(function(x){return x[1]})?'':'目前沒有已儲存紀錄，只有編輯中的內容')+'）';
+    }catch(err){st.textContent='匯出失敗：'+(err&&err.message||err)}
+  }
+  if(a==='imp'){fi.value='';fi.click()}
+  if(a==='go1'||a==='go2'){
+    if(!pend)return;st.textContent='正在匯入…';
+    try{var n=await apply(pend,a==='go2');st.textContent='匯入完成：新增 '+n.add+' 筆、更新 '+n.upd+' 筆紀錄'+(a==='go2'?'，並載入編輯中的內容':'')+'。頁面即將重新整理…';pend=null;setTimeout(function(){location.reload()},1400)}
+    catch(err){st.textContent='匯入失敗：'+(err&&err.message||err)}
+  }
+});
+fi.onchange=function(){
+  var f=fi.files&&fi.files[0];if(!f)return;st.textContent='正在讀取 '+f.name+' …';
+  var r=new FileReader();
+  r.onload=function(){
+    var b=null;try{b=JSON.parse(r.result)}catch(e){}
+    if(!b||b.app!=='pump-tool-backup'||!b.ls){st.textContent='這不是泵浦工具的備份檔，請選擇「泵浦工具備份_….json」。';return}
+    pend=b;var s=summary(b),d=new Date(b.t);
+    pv.innerHTML='<hr><p><b>備份檔內容</b>（匯出時間：'+(isNaN(d)?'未知':d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()))+'）</p><table>'+s.map(function(x){return '<tr><td>'+x[0]+'</td><td>'+x[1]+(x[0]==='銘牌照片'?' 張':' 筆')+'</td></tr>'}).join('')+'</table>'+
+      '<p class="mut">已儲存紀錄會「合併」：這台沒有的會新增，同一筆以較新的為準，不會刪掉這台原有的紀錄。</p>'+
+      '<button type="button" class="pri" data-a="go1">只合併已儲存紀錄（保留這台目前的畫面）</button>'+
+      '<button type="button" class="imp" data-a="go2">合併紀錄，並載入備份檔裡「編輯中」的內容（會取代這台目前畫面上未儲存的內容）</button>';
+    st.textContent='';
+  };
+  r.onerror=function(){st.textContent='檔案讀取失敗。'};
+  r.readAsText(f);
+};
+})();
+</script>
+<script>
+/* ===== 全站統一導覽列（7 個頁面共用） ===== */
+(function(){
+var PAGES=[['index.html','泵浦換算'],['pipe.html','管路厚度'],['draw.html','工作點標記'],['survey.html','現場資料表'],['flow.html','流量量測'],['code_artifact.html','出入口壓力回推'],['chiller_eff.html','冷凍機效率']];
+var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(f==='pump-converter.html')f='index.html';if(/^chiller_eff.*\.html$/.test(f))f='chiller_eff.html';
+var css=document.createElement('style');css.textContent=
+'#siteNav{--sn-a:var(--bl,var(--accent,#0b7bc1));--sn-bg:var(--pn,var(--card,var(--surface,#f6f9fc)));--sn-ln:var(--ln,var(--line,#d5dee6));--sn-ink:var(--ink,var(--text,#17262e));--sn-mut:var(--mut,var(--muted,#5d6f7b));'+
+ 'background:var(--sn-bg);border-bottom:1px solid var(--sn-ln);margin:0 0 14px;font-size:16px;line-height:1.4}'+
+'#siteNav .sn-in{margin:0 auto;display:flex;align-items:center;gap:6px 14px;padding:8px 20px;flex-wrap:wrap;box-sizing:border-box}'+
+'#siteNav .sn-brand{font-weight:800;color:var(--sn-ink);text-decoration:none;white-space:nowrap;font-size:17px;margin-right:4px}'+
+'#siteNav .sn-tabs{display:flex;gap:4px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}#siteNav .sn-tabs::-webkit-scrollbar{display:none}'+
+'#siteNav .sn-tab{white-space:nowrap;text-decoration:none;color:var(--sn-mut);padding:7px 12px;border-radius:8px;font-weight:600;border:1px solid transparent}'+
+'#siteNav .sn-tab:hover{color:var(--sn-a);border-color:var(--sn-ln)}'+
+'#siteNav .sn-tab[aria-current="page"]{color:#fff;background:var(--sn-a);border-color:var(--sn-a)}'+
+':root[data-theme="dark"] #siteNav .sn-tab[aria-current="page"]{color:#0b1418}'+
+'#siteNav .sn-act{display:flex;gap:6px;margin-left:auto;flex:none}'+
+'#siteNav .sn-ic{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:38px;min-width:38px;padding:0 10px;border:1px solid var(--sn-ln);border-radius:8px;cursor:pointer;color:var(--sn-a);background:var(--bg,#fff);font:inherit;font-size:15px;white-space:nowrap}'+
+'#siteNav .sn-ic:hover{border-color:var(--sn-a)}#siteNav .sn-ic:focus-visible{outline:2px solid var(--sn-a);outline-offset:2px}#siteNav .sn-ic svg{flex:none}'+
+'@media(max-width:720px){#siteNav .sn-in{padding:8px 12px}#siteNav .sn-tabs{order:3;flex-basis:100%;flex-wrap:wrap;overflow:visible;gap:6px}#siteNav .sn-tab{padding:5px 10px;border-color:var(--sn-ln);font-size:15px}}'+
+'@media print{#siteNav{display:none!important}}';
+document.head.appendChild(css);
+var nav=document.createElement('nav');nav.id='siteNav';nav.setAttribute('aria-label','網站導覽');
+nav.innerHTML='<div class="sn-in"><a class="sn-brand" href="index.html">💧 泵浦工具</a><div class="sn-tabs">'+
+  PAGES.map(function(p){return '<a class="sn-tab" href="'+p[0]+'"'+(p[0]===f?' aria-current="page"':'')+'>'+p[1]+'</a>'}).join('')+
+  '</div><div class="sn-act"></div></div>';
+document.body.insertBefore(nav,document.body.firstChild);
+var act=nav.querySelector('.sn-act');
+['bkBtn','thToggle','themeToggle'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;var par=el.parentNode;
+  el.className='sn-ic';el.removeAttribute('style');act.appendChild(el);
+  if(par&&par!==act&&!par.children.length&&!par.textContent.trim())par.remove();
+});
+var cur=nav.querySelector('[aria-current]');if(cur&&cur.scrollIntoView)try{cur.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}
+window.scrollTo(0,0);
+var inn=nav.querySelector('.sn-in');
+function fit(){var m=document.querySelector('main'),h=document.querySelector('body>header');var ref=(h&&h.offsetWidth)?h:m;if(!ref)return;var cs=getComputedStyle(ref);
+  var mw=parseFloat(cs.maxWidth);inn.style.maxWidth=isFinite(mw)?Math.max(mw,1120)+'px':'';if(innerWidth>720){inn.style.paddingLeft=cs.paddingLeft;inn.style.paddingRight=cs.paddingRight}else{inn.style.paddingLeft='';inn.style.paddingRight=''}}
+fit();addEventListener('resize',fit);
+})();
+</script>
+</body>
+</html>
